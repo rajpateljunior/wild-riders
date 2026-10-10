@@ -1,0 +1,27 @@
+// Renders the app icons from the game's own art (Kaito portrait over a sunset mountain).
+const { chromium } = require('/opt/npm-tools/node_modules/playwright');
+const fs = require('fs'), path = require('path');
+(async () => {
+  const src = ['core.js','data.js','art.js'].map(f => fs.readFileSync(path.join(__dirname,'..','src',f),'utf8')).join('\n');
+  const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+  const shots = [['icon-180.png',180,0],['icon-192.png',192,0],['icon-512.png',512,0],['icon-maskable-512.png',512,1],['favicon-64.png',64,0]];
+  for (const [name, size, mask] of shots) {
+    const p = await b.newPage({viewport:{width:size,height:size}});
+    const html = `<html><body style="margin:0"><div id=i></div><script>${src}
+      const r = RIDERS[0]; const por = portraitSVG(r).replace(/^<svg[^>]*>/,'').replace(/<\\/svg>$/,'');
+      const pad = ${mask} ? 0.16 : 0;
+      document.getElementById('i').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 512 512">'+
+      '<defs><radialGradient id="bgx" cx="50%" cy="30%" r="80%"><stop offset="0" stop-color="#ffd23f"/><stop offset=".45" stop-color="#ff6a3d"/><stop offset=".8" stop-color="#c2185b"/><stop offset="1" stop-color="#3a1257"/></radialGradient></defs>'+
+      '<rect width="512" height="512" fill="url(#bgx)"/>'+
+      '<g opacity=".25" stroke="#fff" stroke-width="6">'+Array.from({length:14},(_, k)=>'<path d="M'+(k*40-40)+' 0 L'+(k*40+120)+' 512"/>').join('')+'</g>'+
+      '<path d="M0 380 L90 260 L150 310 L250 190 L340 300 L410 240 L512 340 L512 512 L0 512Z" fill="#2a1240"/>'+
+      '<path d="M250 190 L290 238 L270 232 L250 250 L232 232 L214 238Z" fill="#fff" opacity=".85"/>'+
+      '<g transform="translate('+(256-150*(1-pad)*1.25)+','+(60+pad*80)+') scale('+(1.25*(1-pad))+')"><svg viewBox="0 -50 300 390" width="300" height="390">'+por+'</svg></g>'+
+      '</svg>';
+    </script></body></html>`;
+    await p.setContent(html); await p.waitForTimeout(150);
+    await p.screenshot({ path: path.join(__dirname,'..','icons',name), clip:{x:0,y:0,width:size,height:size} });
+    await p.close();
+  }
+  await b.close();
+})();

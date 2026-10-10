@@ -1,0 +1,16 @@
+{
+  "name": "Wild Riders",
+  "short_name": "Wild Riders",
+  "description": "Downhill bike and ATV racing with anime riders, punches, throwables and wild nature tracks.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#14101c",
+  "theme_color": "#14101c",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

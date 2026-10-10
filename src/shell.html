@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Wild Riders</title>
+<meta name="description" content="Downhill bike and ATV racing with anime riders, punches, throwables and wild nature tracks.">
+<meta name="theme-color" content="#14101c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Wild Riders">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="preload" href="fonts/bangers.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+/*@CSS*/
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<section id="scr-title" class="screen hidden">
+  <div class="topbar"><div style="flex:1"></div><span class="coins"><i class="coin"></i><span class="coinv">0</span></span></div>
+  <div class="title-wrap">
+    <div>
+      <h1 class="logo">WILD<br>RIDERS<small>DOWNHILL · BRAWL · BOOST</small></h1>
+      <div class="menu">
+        <button class="btn" style="--c:#ff3d7f" data-act="race">RACE</button>
+        <button class="btn" style="--c:#ff8a1c" data-act="split">2 PLAYERS · ONE SCREEN</button>
+        <button class="btn" style="--c:#2b9cff" data-act="online">2 PLAYERS · ONLINE</button>
+        <div class="row">
+          <button class="btn sm" style="--c:#13a89e" data-act="garage">GARAGE</button>
+          <button class="btn sm ghost" data-act="settings">SETTINGS</button>
+        </div>
+      </div>
+    </div>
+    <div class="title-cast" id="cast"></div>
+  </div>
+</section>
+
+<section id="scr-rider" class="screen hidden">
+  <div class="topbar"><button class="back" data-act="back">‹</button><h2 id="rider-h">CHOOSE YOUR RIDER</h2><span class="coins"><i class="coin"></i><span class="coinv">0</span></span></div>
+  <div class="cards" id="rider-cards"></div>
+  <div class="footer"><div class="desc" id="rider-desc"></div><button class="btn" id="rider-go">NEXT ›</button></div>
+</section>
+
+<section id="scr-veh" class="screen hidden">
+  <div class="topbar"><button class="back" data-act="back">‹</button><h2 id="veh-h">CHOOSE YOUR RIDE</h2><span class="coins"><i class="coin"></i><span class="coinv">0</span></span></div>
+  <div class="cards" id="veh-cards"></div>
+  <div class="footer"><div class="desc" id="veh-desc"></div><div class="upg" id="veh-upg"></div><button class="btn" id="veh-go">NEXT ›</button></div>
+</section>
+
+<section id="scr-track" class="screen hidden">
+  <div class="topbar"><button class="back" data-act="back">‹</button><h2>CHOOSE A TRAIL</h2><span class="coins"><i class="coin"></i><span class="coinv">0</span></span></div>
+  <div class="cards" id="track-cards"></div>
+  <div class="footer"><div class="desc" id="track-desc"></div><button class="btn" style="--c:#2bd96a" id="track-go">RIDE!</button></div>
+</section>
+
+<section id="scr-results" class="screen hidden">
+  <div class="topbar"><h2 id="res-h">RESULTS</h2><span class="coins"><i class="coin"></i><span class="coinv">0</span></span></div>
+  <div class="results"><div class="standings" id="res-list"></div><div class="reward" id="res-reward"></div></div>
+  <div class="footer"><div class="desc"></div><button class="btn ghost sm" data-act="menu">MENU</button><button class="btn sm" style="--c:#ff8a1c" data-act="retry">RETRY</button><button class="btn" style="--c:#2bd96a" id="res-next">NEXT TRAIL ›</button></div>
+</section>
+
+<div id="loading" class="hidden"><div class="lt">LOADING TRAIL…</div><div class="lb"><i></i></div><div class="tip"></div></div>
+<div id="modal" class="hidden"><div class="mbox"></div></div>
+<div id="rotate"><div class="ph"></div>Turn your phone sideways to ride</div>
+<div id="install" class="hidden"></div>
+
+<script>
+/*@JS*/
+</script>
+</body>
+</html>
