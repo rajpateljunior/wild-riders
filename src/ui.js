@@ -285,7 +285,7 @@ function openHelp(after) {
       <b>DRIFT</b><span>Hold DRIFT while steering through corners to slide and charge boost.</span>
       <b>HEALTH</b><span>Hits and crashes drain health, and less health means a lower top speed. Grab green repair kits. At zero you wipe out.</span>
     </div>
-    <p style="font-size:12px;color:var(--mute)">Keyboard: WASD / arrows steer, Space punch, Shift boost, S drift. Two players: P1 WASD + F/G, P2 arrows + L/K.</p>
+    <p class="kbd-note" style="font-size:12px;color:var(--mute)">Keyboard: WASD / arrows steer, Space punch, Shift boost, S drift. Two players: P1 WASD + F/G, P2 arrows + L/K.</p>
     <div class="acts"><button class="btn" style="--c:#2bd96a" data-a="ok">LET'S RIDE</button></div>`, (box) => {
     box.querySelector('[data-a="ok"]').onclick = () => { SFX.play("click"); closeModal(); App.save.seenHelp = true; saveGame(); after && after(); };
   });
@@ -330,6 +330,7 @@ async function startRace() {
 }
 
 async function launchRace(cfg) {
+  $("#install").classList.add("hidden");
   const race = await createRace(cfg, (p) => ($("#loading .lb i").style.width = Math.round(10 + p * 90) + "%"));
   App.race = race;
   App.paused = false;

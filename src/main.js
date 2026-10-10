@@ -144,7 +144,13 @@ async function boot() {
   // prevent iOS pinch/double-tap zoom
   document.addEventListener("gesturestart", (e) => e.preventDefault());
   let lastTap = 0;
-  document.addEventListener("touchend", (e) => { const n = Date.now(); if (n - lastTap < 300 && e.target.tagName !== "TEXTAREA" && e.target.tagName !== "INPUT") e.preventDefault(); lastTap = n; }, { passive: false });
+  // block double-tap zoom on empty space only — never swallow quick taps on buttons, cards or fields
+  document.addEventListener("touchend", (e) => {
+    const n = Date.now();
+    const interactive = e.target.closest && e.target.closest("button, .card, .trk, input, textarea, .seg, canvas");
+    if (!interactive && n - lastTap < 300) e.preventDefault();
+    lastTap = n;
+  }, { passive: false });
   try { await document.fonts.load("30px Bangers"); } catch (_) {}
   renderTitle();
   setupPWA();
