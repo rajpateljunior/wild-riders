@@ -129,7 +129,7 @@ async function boot() {
   wireMenus();
   SFX.setMusic(App.save.settings.music); SFX.setSfx(App.save.settings.sfx);
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) { if (App.race && !App.paused) pauseRace(); SFX.suspend(); }
+    if (document.hidden) { if (App.race && !App.paused && !App.pauseMenu) pauseRace(); SFX.suspend(); }
     else SFX.resume();
   });
   // iOS needs a user gesture before any sound

@@ -2237,13 +2237,14 @@ async function createRace(cfg, onProgress) {
 
   const riders = [];
   const used = {};
+  let localIdx = 0;
   cfg.humans.forEach((hm, i) => {
     const r = RIDERS.find((x) => x.id === hm.riderId);
     const dup = used[r.id];
     used[r.id] = (used[r.id] || 0) + 1;
     const e = makeRiderEntity(riderVariant(r, dup), VEHICLES.find((v) => v.id === hm.vehId), { human: !hm.remote, remote: hm.remote, pIndex: i, upg: hm.upg, netId: hm.netId });
-    e.human = true; e.local = !hm.remote; e.pIndex = i;
-    e.name = hm.name || (cfg.humans.length > 1 ? "P" + (i + 1) : "You");
+    e.human = true; e.local = !hm.remote; e.pIndex = hm.remote ? i : localIdx++; e.mark = i;
+    e.name = hm.name || (cfg.humans.length > 1 ? (cfg.online ? (hm.remote ? "Friend" : "You") : "P" + (i + 1)) : "You");
     riders.push(e);
   });
   const total = cfg.total || 8;
@@ -2319,6 +2320,7 @@ async function faceIcon(r) {
 /* ---------------- Simulation step ---------------- */
 function stepRace(race, inputs, dt) {
   const tr = race.track;
+  if (race.hold) { rebuildBuckets(race); return; }
   if (race.countdown > 0) {
     race.countdown -= dt;
     const n = Math.ceil(race.countdown);
@@ -2488,6 +2490,7 @@ function updateRider(race, e, inp, dt) {
     for (const o of s.objs) {
       if (o.taken > race.time || Math.abs(e.x - o.x) > 0.34 || e.h > 1100) continue;
       o.taken = race.time + 6;
+      if (race.net && !e.remote) race.net.send({ t: "ev", k: "take", s: s.i, o: s.objs.indexOf(o) });
       if (o.kind === "crate") {
         if (e.items.length < 3) e.items.push(Math.random() < 0.25 ? e.rider.item : tr.biome.item);
         popup(e, "+ " + ITEMS[e.items[e.items.length - 1]].name.toUpperCase(), "#ffd23f");
@@ -2598,6 +2601,11 @@ function collideSprites(race, e, s) {
 
 function damage(race, e, amt, by, kind, silent) {
   if (e.wipeT > 0 || e.finished) return;
+  if (e.remote) {
+    // the owner of that rider applies damage on their own device
+    if (race.net && (kind === "melee" || kind === "bump")) race.net.queueHit(e, amt, by, kind);
+    return;
+  }
   if (e.invuln > 0 && (kind === "melee" || kind === "item" || kind === "crash")) return;
   if (kind === "melee") { if (e.meleeImm > 0) return; e.meleeImm = 0.38; }
   // bots hit humans a bit softer (scaled by difficulty) so a good rider isn't ganged into constant wipeouts
@@ -2637,6 +2645,7 @@ function attack(race, e) {
     e.comboT = 1.5;
     const kick = e.comboN % 3 === 0;
     e.atkSide = side; e.atkKick = kick; e.atkT = 0.3; e.atkCD = kick ? 0.6 : 0.42;
+    if (race.net && best.remote) race.net.hitInfo = { slow: kick ? 0.72 : 0.9, push: side * (kick ? 3.2 : 1.4) * Math.min(2, e.mass / best.mass) };
     damage(race, best, (kick ? 17 : 9) * e.pow, e, "melee");
     best.speed *= kick ? 0.72 : 0.9;
     best.vx += side * (kick ? 3.2 : 1.4) * Math.min(2, e.mass / best.mass);
@@ -2654,14 +2663,21 @@ function attack(race, e) {
   }
 }
 
+let projSeq = 0;
 function throwItem(race, e, dir) {
   const id = e.items.shift();
+  spawnProjectiles(race, e, id, dir, e.z, e.x, e.speed, null);
+  if (race.net) race.net.send({ t: "ev", k: "throw", i: race.riders.indexOf(e), item: id, dir, z: e.z, x: e.x, sp: e.speed, id: race.lastProjId });
+}
+function spawnProjectiles(race, e, id, dir, z, x, sp, netId) {
   const it = ITEMS[id];
   const n = it.spread || 1;
+  const base = netId || (race.net ? race.net.role + ":" : "") + (++projSeq);
+  race.lastProjId = base;
   for (let k = 0; k < n; k++) {
     race.projs.push({
-      type: "proj", item: id, owner: e, z: e.z + dir * 160, x: e.x + (n > 1 ? (k - 1) * 0.3 : 0), h: 320,
-      vz: dir > 0 ? e.speed + it.spd : e.speed * 0.35, vx: n > 1 ? (k - 1) * 0.5 : 0, life: dir > 0 ? 2.6 : 6, dir, big: id === "boulder",
+      type: "proj", item: id, owner: e, z: z + dir * 160, x: x + (n > 1 ? (k - 1) * 0.3 : 0), h: 320, id: base + "/" + k,
+      vz: dir > 0 ? sp + it.spd : sp * 0.35, vx: n > 1 ? (k - 1) * 0.5 : 0, life: dir > 0 ? 2.6 : 6, dir, big: id === "boulder",
     });
   }
   race.events.push({ snd: "throw", e });
@@ -2681,7 +2697,7 @@ function updateProjectiles(race, dt) {
     p.h = p.dir > 0 ? 300 + Math.sin(p.life * 6) * 40 : Math.max(120, p.h - 400 * dt);
     let hit = false;
     for (const o of race.riders) {
-      if (o === p.owner || o.wipeT > 0 || o.finished || o.h > 700) continue;
+      if (o === p.owner || o.wipeT > 0 || o.finished || o.h > 700 || o.remote) continue;
       if (Math.abs(o.z - p.z) < 200 && Math.abs(o.x - p.x) < 0.3) {
         if (o.invuln > 0) { hit = true; break; }
         damage(race, o, it.dmg, p.owner, "item");
@@ -2692,6 +2708,7 @@ function updateProjectiles(race, dt) {
         for (let k = 0; k < 10; k++) spawnFx(race, p.z, p.x + rnd(-0.2, 0.2), p.h + rnd(-100, 100), it.col, 50, 0.5, 600);
         race.events.push({ snd: "hit", e: o, by: p.owner });
         if (p.owner.human) popup(p.owner, "DIRECT HIT!", "#ffd23f");
+        if (race.net) race.net.send({ t: "ev", k: "pop", id: p.id, v: race.riders.indexOf(o) });
         hit = true; break;
       }
     }
@@ -3076,18 +3093,293 @@ function btn(ctx, b, label, col, down, icon, cd = 0, fill) {
 }
 
 // ===== net.js =====
-/* Online 2-player — placeholder until the online update ships. */
-function openOnline() {
-  modal(`<h3>ONLINE 2-PLAYER</h3><p>Racing a friend on their own phone with a room code is coming in the next update.</p>
-    <p>For now, try <b>2 PLAYERS · ONE SCREEN</b> on an iPad or a big phone.</p>
-    <div class="acts"><button class="btn sm ghost" data-a="close">OK</button></div>`, (box) => {
-    box.querySelector('[data-a="close"]').onclick = () => { SFX.play("back"); closeModal(); };
+/* Online 2-player over a direct phone-to-phone WebRTC link (PeerJS).
+   A free public PeerJS server only introduces the two phones; race data then flows directly between them.
+   Host: simulates the bots and its own rider.  Guest: simulates its own rider; bots follow the host.
+   Each player is the authority for their own rider's health (hits are sent to the victim's device). */
+
+const NET_PREFIX = "wildriders-v1-";
+const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const NetCfg = (() => {
+  // ?peerhost=localhost&peerport=9000 lets tests use a local PeerServer
+  const q = new URLSearchParams(location.search);
+  if (q.get("peerhost")) return { host: q.get("peerhost"), port: +(q.get("peerport") || 9000), path: q.get("peerpath") || "/", secure: false, debug: 1 };
+  return { debug: 1 };
+})();
+
+function loadPeerLib() {
+  if (window.Peer) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = "peerjs.min.js";
+    s.onload = () => res(); s.onerror = () => rej(new Error("lib"));
+    document.head.appendChild(s);
   });
 }
-function netLeave() {}
-function netRematch() {}
+
+function openOnline() {
+  modal(`<h3>2 PLAYERS · ONLINE</h3>
+    <p>Race a friend on their own phone or iPad — anywhere, Wi-Fi or cellular. Both of you need internet. Bots fill the other 6 spots.</p>
+    <p style="color:var(--mute);font-size:12.5px">One player hosts and gets a 4-letter code. The other taps JOIN and types it. Works best when both are on Wi-Fi; some cellular networks block direct connections.</p>
+    <div class="acts"><button class="btn" style="--c:#2b9cff" data-a="host">HOST A RACE</button><button class="btn" style="--c:#ff8a1c" data-a="join">JOIN A RACE</button><button class="btn sm ghost" data-a="close">CANCEL</button></div>`, (box) => {
+    box.querySelector('[data-a="close"]').onclick = () => { SFX.play("back"); closeModal(); };
+    const go = (role) => { SFX.play("click"); closeModal(); App.mode = "online"; App.netRole = role; App.step = "rider"; App.pick = { riders: [], vehs: [], track: null }; openRider(); };
+    box.querySelector('[data-a="host"]').onclick = () => go("host");
+    box.querySelector('[data-a="join"]').onclick = () => go("guest");
+  });
+}
+
+function netStatus(title, msg, extra = "", onCancel) {
+  modal(`<h3>${title}</h3>${msg}${extra}<div class="acts"><button class="btn sm ghost" data-a="cancel">CANCEL</button></div>`, (box) => {
+    box.querySelector('[data-a="cancel"]').onclick = () => { SFX.play("back"); netLeave(); closeModal(); onCancel && onCancel(); };
+  });
+}
+
+function makeCode() { let c = ""; for (let i = 0; i < 4; i++) c += CODE_CHARS[(Math.random() * CODE_CHARS.length) | 0]; return c; }
+
+function myHello() {
+  return { t: "hello", ver: 1, rider: App.pick.riders[0] || App.save.last.rider, veh: App.pick.vehs[0] || App.save.last.veh, upg: App.save.upg[App.pick.vehs[0] || App.save.last.veh] || [0, 0, 0] };
+}
+
+/* ---------------- host ---------------- */
+async function netHost() {
+  netLeave();
+  netStatus("CONNECTING…", "<p>Setting up your room.</p>");
+  try { await loadPeerLib(); } catch (_) { return netFail("Couldn't load online play. Check your internet connection."); }
+  const N = (App.net = { role: "host", code: makeCode(), conn: null, peer: null, ready: false, loaded: false, tries: 0 });
+  const tryOpen = () => {
+    const peer = new Peer(NET_PREFIX + N.code, NetCfg);
+    N.peer = peer;
+    peer.on("open", () => {
+      netStatus("ROOM CODE", `<div class="codebox">${N.code}</div>
+        <p>Tell your friend: open Wild Riders → <b>2 PLAYERS · ONLINE</b> → <b>JOIN</b> → type <b>${N.code}</b>.</p>
+        <p style="color:var(--mute)">Waiting for your friend to join…</p>`);
+    });
+    peer.on("error", (err) => {
+      if (err.type === "unavailable-id" && N.tries++ < 4) { peer.destroy(); N.code = makeCode(); return tryOpen(); }
+      if (App.net !== N) return;
+      netFail(err.type === "network" || err.type === "server-error" || err.type === "socket-error" ? "Couldn't reach the matchmaking server. Check your internet and try again." : "Online error: " + err.type);
+    });
+    peer.on("connection", (conn) => {
+      if (N.conn) { conn.on("open", () => { conn.send({ t: "full" }); setTimeout(() => conn.close(), 300); }); return; }
+      N.conn = conn;
+      wireConn(N, conn);
+    });
+  };
+  tryOpen();
+}
+
+/* ---------------- guest ---------------- */
+function netJoinPrompt() {
+  modal(`<h3>JOIN A RACE</h3><p>Type the 4-letter code shown on your friend's screen.</p>
+    <input class="codein" id="join-code" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD">
+    <div class="acts"><button class="btn" style="--c:#2bd96a" data-a="join">JOIN</button><button class="btn sm ghost" data-a="cancel">CANCEL</button></div>`, (box) => {
+    const inp = box.querySelector("#join-code");
+    setTimeout(() => inp.focus(), 50);
+    inp.addEventListener("input", () => (inp.value = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, "")));
+    const go = () => { const c = inp.value.trim().toUpperCase(); if (c.length !== 4) { toast("CODES ARE 4 LETTERS"); return; } SFX.play("click"); netJoin(c); };
+    box.querySelector('[data-a="join"]').onclick = go;
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+    box.querySelector('[data-a="cancel"]').onclick = () => { SFX.play("back"); closeModal(); };
+  });
+}
+
+async function netJoin(code) {
+  netLeave();
+  netStatus("JOINING " + code + "…", "<p>Connecting to your friend's phone.</p>");
+  try { await loadPeerLib(); } catch (_) { return netFail("Couldn't load online play. Check your internet connection."); }
+  const N = (App.net = { role: "guest", code, conn: null, peer: null });
+  const peer = new Peer(NetCfg);
+  N.peer = peer;
+  peer.on("open", () => {
+    const conn = peer.connect(NET_PREFIX + code, { reliable: true, serialization: "json" });
+    N.conn = conn;
+    wireConn(N, conn);
+    N.timer = setTimeout(() => { if (!N.opened && App.net === N) netFail("Couldn't connect to that room. Check the code — and try both phones on Wi-Fi."); }, 14000);
+  });
+  peer.on("error", (err) => {
+    if (App.net !== N) return;
+    netFail(err.type === "peer-unavailable" ? `No room called <b>${code}</b>. Check the code with your friend.` : err.type === "network" || err.type === "server-error" || err.type === "socket-error" ? "Couldn't reach the matchmaking server. Check your internet." : "Online error: " + err.type);
+  });
+}
+
+function netFail(msg) {
+  netLeave();
+  modal(`<h3>OOPS</h3><p>${msg}</p><div class="acts"><button class="btn sm" style="--c:#2b9cff" data-a="ok">OK</button></div>`, (box) => {
+    box.querySelector('[data-a="ok"]').onclick = () => { closeModal(); if (!App.race) { startDemo(); renderTitle(); } };
+  });
+}
+
+/* ---------------- connection + protocol ---------------- */
+function wireConn(N, conn) {
+  conn.on("open", () => {
+    N.opened = true;
+    clearTimeout(N.timer);
+    if (N.role === "guest") { conn.send(myHello()); netStatus("CONNECTED!", "<p>Waiting for the host to start the race…</p>"); }
+  });
+  conn.on("data", (m) => netOnMessage(N, m));
+  conn.on("close", () => netLost(N));
+  conn.on("error", () => netLost(N));
+}
+
+function netSend(m) { const N = App.net; if (N && N.conn && N.conn.open) { try { N.conn.send(m); } catch (_) {} } }
+
+function netOnMessage(N, m) {
+  if (App.net !== N || !m || !m.t) return;
+  const race = App.race;
+  switch (m.t) {
+    case "full": netFail("That room already has two riders."); break;
+    case "hello": // host receives guest's rider choice → start
+      N.guest = m;
+      netStartAsHost();
+      break;
+    case "start": netStartAsGuest(m.cfg); break;
+    case "ready": N.ready = true; netMaybeGo(); break;
+    case "go": if (race) { race.hold = false; closeModal(); } break;
+    case "s": if (race) netApplyState(race, m); break;
+    case "ev": if (race) netApplyEvent(race, m); break;
+    case "rematch": if (N.role === "host") netStartAsHost(); break;
+    case "bye": netLost(N, true); break;
+  }
+}
+
+function netStartAsHost() {
+  const N = App.net;
+  const g = N.guest;
+  const me = myHello();
+  const cfg = {
+    trackId: App.pick.track || App.save.last.track, total: 8, difficulty: App.save.settings.diff, botSeed: (Math.random() * 100000) | 0, online: true,
+    humans: [{ riderId: me.rider, vehId: me.veh, upg: me.upg, netId: 0 }, { riderId: g.rider, vehId: g.veh, upg: g.upg, netId: 1, remote: true }],
+  };
+  N.ready = false; N.loaded = false;
+  netSend({ t: "start", cfg });
+  closeModal();
+  netLaunch(cfg);
+}
+
+function netStartAsGuest(cfg) {
+  // same race, but from the guest's side: rider 0 (host) is remote, rider 1 is us
+  const mine = JSON.parse(JSON.stringify(cfg));
+  mine.humans[0].remote = true; mine.humans[1].remote = false;
+  closeModal();
+  netLaunch(mine);
+}
+
+async function netLaunch(cfg) {
+  const N = App.net;
+  App.mode = "online";
+  if (App.race) { SFX.enginesOff(); App.race = null; }
+  show(null);
+  $("#loading .tip").textContent = "TIP: Online hits land on your friend's phone — punch them off the trail!";
+  $("#loading").classList.remove("hidden");
+  stopDemo();
+  App.lastCfg = cfg;
+  await launchRace(cfg);
+  const race = App.race;
+  race.hold = true;
+  race.net = { role: N.role, send: netSend, queueHit: (e, amt, by, kind) => netSendHit(race, e, amt, by, kind), hitInfo: null };
+  if (N.role === "guest") race.riders.forEach((e) => { if (!e.human) e.remote = true; });
+  N.sendT = 0;
+  netStatus("GET READY", `<p>Waiting for ${N.role === "host" ? "your friend" : "the host"} to finish loading…</p>`);
+  if (N.role === "guest") netSend({ t: "ready" });
+  else { N.loaded = true; netMaybeGo(); }
+}
+
+function netMaybeGo() {
+  const N = App.net;
+  if (!N || N.role !== "host" || !N.loaded || !N.ready || !App.race) return;
+  netSend({ t: "go" });
+  App.race.hold = false;
+  closeModal();
+}
+
+function riderState(e) {
+  return [Math.round(e.z), +e.x.toFixed(3), Math.round(e.h), Math.round(e.speed), +e.lean.toFixed(2), Math.round(e.hp * 10) / 10, Math.round(e.boost),
+    (e.boosting ? 1 : 0) | (e.padT > 0 ? 2 : 0) | (e.finished ? 4 : 0) | (e.atkKick ? 8 : 0), +Math.max(0, e.wipeT).toFixed(2), +Math.max(0, e.atkT).toFixed(2), e.atkSide,
+    e.trick ? TRICKS.indexOf(e.trick.def) : -1, e.trick ? +(e.trick.t / e.trick.dur).toFixed(2) : 0, +Math.max(0, e.hurtT).toFixed(2), +e.finishTime.toFixed(2)];
+}
 function netBeforeStep() {}
-function netAfterFrame() {}
+function netAfterFrame(race, dt) {
+  const N = App.net;
+  if (!N || !race.net || race.hold) return;
+  N.sendT -= dt;
+  if (N.sendT > 0) return;
+  N.sendT = 1 / 20;
+  const m = { t: "s", r: {} };
+  race.riders.forEach((e, i) => { if (!e.remote) m.r[i] = riderState(e); });
+  netSend(m);
+}
+function netApplyState(race, m) {
+  for (const k in m.r) {
+    const e = race.riders[+k];
+    if (!e || !e.remote) continue;
+    const a = m.r[k];
+    const first = !e.net;
+    e.net = { z: a[0], x: a[1], h: a[2], speed: a[3], lean: a[4], hp: a[5], boost: a[6], boosting: !!(a[7] & 1), padT: a[7] & 2 ? 0.5 : 0, finished: !!(a[7] & 4), atkKick: !!(a[7] & 8),
+      wipeT: a[8], atkT: a[9], atkSide: a[10], trick: a[11] >= 0 ? TRICKS[a[11]].id : null, trickT: a[12], hurtT: a[13], finishTime: a[14], age: 0 };
+    if (first) { e.z = a[0]; e.x = a[1]; }
+    if (e.net.finished && !e.finished) race.finishOrder.push(e);
+  }
+}
+function netApplyEvent(race, m) {
+  if (m.k === "throw") {
+    const e = race.riders[m.i];
+    if (e) spawnProjectiles(race, e, m.item, m.dir, m.z, m.x, m.sp, m.id);
+  } else if (m.k === "pop") {
+    race.projs = race.projs.filter((p) => p.id !== m.id);
+    const v = race.riders[m.v];
+    if (v) for (let k = 0; k < 8; k++) spawnFx(race, v.z, v.x + rnd(-0.2, 0.2), 300 + rnd(-100, 100), "#fff6a8", 50, 0.5, 600);
+  } else if (m.k === "take") {
+    const s = race.track.segs[m.s];
+    if (s && s.objs[m.o]) s.objs[m.o].taken = race.time + 6;
+  } else if (m.k === "hit") {
+    const e = race.riders[m.v], by = race.riders[m.by];
+    if (!e || e.remote) return;
+    damage(race, e, m.dmg, by || null, m.kind);
+    if (m.slow) e.speed *= m.slow;
+    if (m.push) e.vx += m.push;
+    e.hurtT = Math.max(e.hurtT, 0.45);
+    if (e.human) e.shake = m.kick ? 10 : 5;
+    if (m.kind === "melee") race.events.push({ snd: m.dmg > 12 ? "kick" : "punch", e: by || e, target: e });
+  }
+}
+function netSendHit(race, e, amt, by, kind) {
+  const info = race.net.hitInfo || {};
+  race.net.hitInfo = null;
+  netSend({ t: "ev", k: "hit", v: race.riders.indexOf(e), by: race.riders.indexOf(by), dmg: +amt.toFixed(2), kind, slow: info.slow || 0, push: info.push || 0, kick: amt > 12 });
+}
+
+function netLost(N, bye) {
+  if (App.net !== N || N.lost) return;
+  N.lost = true;
+  const race = App.race;
+  if (race && race.net) {
+    // keep racing: the friend's rider (and, for a guest, the bots) switch to computer control
+    race.riders.forEach((e) => { if (e.remote) { e.remote = false; if (e.human) { e.human = false; e.name = (e.name || "") + " (left)"; } e.ai = e.ai || { skill: 0.85, aggr: 0.5, t: 0, tx: 0, inp: {} }; } });
+    race.net = null;
+    race.hold = false;
+    closeModal();
+    toast(bye ? "YOUR FRIEND LEFT" : "CONNECTION LOST");
+  } else if (N.opened) {
+    netFail(bye ? "Your friend left the room." : "The connection dropped.");
+  }
+}
+
+function netLeave() {
+  const N = App.net;
+  if (!N) return;
+  App.net = null;
+  try { if (N.conn && N.conn.open) N.conn.send({ t: "bye" }); } catch (_) {}
+  setTimeout(() => { try { N.conn && N.conn.close(); } catch (_) {} try { N.peer && N.peer.destroy(); } catch (_) {} }, 150);
+  clearTimeout(N.timer);
+}
+
+function netRematch() {
+  const N = App.net;
+  if (!N || N.lost) { toast("NOT CONNECTED"); startDemo(); renderTitle(); return; }
+  if (N.role === "host") netStartAsHost();
+  else { netSend({ t: "rematch" }); netStatus("REMATCH", "<p>Asking the host to start another race…</p>"); }
+}
 
 // ===== ui.js =====
 /* Menus, progression and screen flow. */
@@ -3169,7 +3461,7 @@ function riderStats(r) {
 }
 function openRider() {
   const p = App.step === "rider2" ? 1 : 0;
-  $("#rider-h").textContent = App.mode === "split" ? `PLAYER ${p + 1} · CHOOSE RIDER` : "CHOOSE YOUR RIDER";
+  $("#rider-h").textContent = App.mode === "split" ? `PLAYER ${p + 1} · CHOOSE RIDER` : App.mode === "online" ? (App.netRole === "host" ? "HOSTING · CHOOSE RIDER" : "JOINING · CHOOSE RIDER") : "CHOOSE YOUR RIDER";
   const cur = App.pick.riders[p] || (p ? App.save.last.rider2 : App.save.last.rider);
   App.pick.riders[p] = cur;
   const wrap = $("#rider-cards");
@@ -3272,6 +3564,7 @@ function openVeh() {
     saveGame();
     if (garage) return renderTitle();
     if (App.mode === "split" && p === 0) { App.step = "rider2"; return openRider(); }
+    if (App.mode === "online" && App.netRole === "guest") return netJoinPrompt();
     App.step = "track";
     openTrack();
   };
@@ -3334,7 +3627,7 @@ function openTrack() {
   wrap.style.gridAutoColumns = "minmax(210px, 1fr)";
   const t = TRACKS.find((x) => x.id === cur), b = BIOMES[t.biome];
   $("#track-desc").innerHTML = `<b>${t.name}</b> — ${b.hazard} <span style="color:var(--sun)">${STAR_RULE}</span>`;
-  $("#track-go").onclick = () => { SFX.play("click"); App.save.last.track = cur; saveGame(); startRace(); };
+  $("#track-go").onclick = () => { SFX.play("click"); App.save.last.track = cur; saveGame(); if (App.mode === "online") return netHost(); startRace(); };
   show("scr-track");
   scrollSel(wrap);
 }
@@ -3432,12 +3725,14 @@ async function launchRace(cfg) {
   race.humans.forEach((h, i) => SFX.engineStart(i, h.veh.id));
   SFX.music(race.track.biome.music);
   resize();
-  if (!App.save.seenHelp) { App.paused = true; openHelp(() => { App.paused = false; }); }
+  if (!App.save.seenHelp && !cfg.online) { App.paused = true; openHelp(() => { App.paused = false; }); }
 }
 
 function pauseRace() {
   if (!App.race || App.paused) return;
-  App.paused = true;
+  const online = !!App.race.net;
+  App.paused = !online;            // online races keep running for your friend
+  if (online) App.pauseMenu = true;
   SFX.enginesOff();
   modal(`<h3>PAUSED</h3><p>${App.race.track.def.name} · ${App.race.track.biome.name}</p>
     <div class="acts"><button class="btn" style="--c:#2bd96a" data-a="resume">RESUME</button><button class="btn sm" style="--c:#ff8a1c" data-a="restart">RESTART</button><button class="btn sm" style="--c:#13a89e" data-a="help">CONTROLS</button><button class="btn sm ghost" data-a="quit">QUIT</button></div>
@@ -3446,6 +3741,7 @@ function pauseRace() {
     box.querySelector('[data-a="resume"]').onclick = resumeRace;
     box.querySelector('[data-a="restart"]').onclick = () => { closeModal(); quitRace(true); };
     box.querySelector('[data-a="help"]').onclick = () => openHelp(() => { App.paused = false; pauseRace(); });
+    if (online) box.querySelector('[data-a="restart"]').classList.add("hidden");
     box.querySelector('[data-a="quit"]').onclick = () => { closeModal(); quitRace(false); };
     $$("[data-m]", box).forEach((b) => (b.onclick = () => { App.save.settings.music = b.dataset.m === "1"; saveGame(); applySettings(); App.paused = false; pauseRace(); }));
     $$("[data-s]", box).forEach((b) => (b.onclick = () => { App.save.settings.sfx = b.dataset.s === "1"; saveGame(); applySettings(); App.paused = false; pauseRace(); }));
@@ -3453,6 +3749,7 @@ function pauseRace() {
 }
 function resumeRace() {
   closeModal();
+  App.pauseMenu = false;
   if (!App.race) return;
   App.race.humans.forEach((h, i) => SFX.engineStart(i, h.veh.id));
   App.paused = false;
@@ -3702,7 +3999,7 @@ async function boot() {
   wireMenus();
   SFX.setMusic(App.save.settings.music); SFX.setSfx(App.save.settings.sfx);
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) { if (App.race && !App.paused) pauseRace(); SFX.suspend(); }
+    if (document.hidden) { if (App.race && !App.paused && !App.pauseMenu) pauseRace(); SFX.suspend(); }
     else SFX.resume();
   });
   // iOS needs a user gesture before any sound

@@ -2,7 +2,7 @@
 
 Downhill bike & ATV racing for iPhone and iPad (landscape), in the spirit of PS2-era downhill racers.
 Anime riders, punches and kicks, throwables, health that slows you down, boost pads, ramps, tricks,
-six nature biomes, bots, and two-player split screen. Installable to the Home Screen and fully offline.
+six nature biomes, bots, two-player split screen, and online 2-player with room codes. Installable to the Home Screen and fully offline.
 
 **Play:** https://rajpateljunior.github.io/wild-riders/ (open in Safari → Share → Add to Home Screen)
 
@@ -11,6 +11,13 @@ six nature biomes, bots, and two-player split screen. Installable to the Home Sc
   and rasterized to canvas; all sound is synthesized with WebAudio.
 - Pseudo-3D (segment) road renderer in canvas 2D, fixed 60 Hz simulation, seeded track generation.
 - PWA: `manifest.webmanifest`, `sw.js` (cache-first, cache name stamped from a content hash).
+
+## Online 2-player
+Direct phone-to-phone WebRTC via PeerJS (`peerjs.min.js`, v1.5.4, MIT). The free public PeerJS server only
+introduces the two devices; race data flows directly between them. The host simulates bots; each player owns
+their own rider's health (hits are sent to the victim's device). Some cellular networks block direct
+connections — the fallback would be a relay (e.g. Firebase Realtime Database).
+Test locally with `node tools/online.js <outdir>` against a local PeerServer on 127.0.0.1:9000.
 
 ## Editing
 Source lives in `src/`. After editing, rebuild:
@@ -41,5 +48,6 @@ Commit `src/`, `index.html` and `sw.js` together.
 - `node tools/menus.js <outdir> 844 390` — menu screenshots.
 - `node tools/touch.js` — multi-touch steering/boost/punch check.
 - `node tools/offline.js` — service worker + offline race.
+- `node tools/online.js <outdir>` — two browsers race each other online (needs a local PeerServer).
 
 (Serve the folder first: `python3 -m http.server 8765`.)

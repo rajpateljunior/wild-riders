@@ -77,7 +77,7 @@ function riderStats(r) {
 }
 function openRider() {
   const p = App.step === "rider2" ? 1 : 0;
-  $("#rider-h").textContent = App.mode === "split" ? `PLAYER ${p + 1} · CHOOSE RIDER` : "CHOOSE YOUR RIDER";
+  $("#rider-h").textContent = App.mode === "split" ? `PLAYER ${p + 1} · CHOOSE RIDER` : App.mode === "online" ? (App.netRole === "host" ? "HOSTING · CHOOSE RIDER" : "JOINING · CHOOSE RIDER") : "CHOOSE YOUR RIDER";
   const cur = App.pick.riders[p] || (p ? App.save.last.rider2 : App.save.last.rider);
   App.pick.riders[p] = cur;
   const wrap = $("#rider-cards");
@@ -180,6 +180,7 @@ function openVeh() {
     saveGame();
     if (garage) return renderTitle();
     if (App.mode === "split" && p === 0) { App.step = "rider2"; return openRider(); }
+    if (App.mode === "online" && App.netRole === "guest") return netJoinPrompt();
     App.step = "track";
     openTrack();
   };
@@ -242,7 +243,7 @@ function openTrack() {
   wrap.style.gridAutoColumns = "minmax(210px, 1fr)";
   const t = TRACKS.find((x) => x.id === cur), b = BIOMES[t.biome];
   $("#track-desc").innerHTML = `<b>${t.name}</b> — ${b.hazard} <span style="color:var(--sun)">${STAR_RULE}</span>`;
-  $("#track-go").onclick = () => { SFX.play("click"); App.save.last.track = cur; saveGame(); startRace(); };
+  $("#track-go").onclick = () => { SFX.play("click"); App.save.last.track = cur; saveGame(); if (App.mode === "online") return netHost(); startRace(); };
   show("scr-track");
   scrollSel(wrap);
 }
@@ -340,12 +341,14 @@ async function launchRace(cfg) {
   race.humans.forEach((h, i) => SFX.engineStart(i, h.veh.id));
   SFX.music(race.track.biome.music);
   resize();
-  if (!App.save.seenHelp) { App.paused = true; openHelp(() => { App.paused = false; }); }
+  if (!App.save.seenHelp && !cfg.online) { App.paused = true; openHelp(() => { App.paused = false; }); }
 }
 
 function pauseRace() {
   if (!App.race || App.paused) return;
-  App.paused = true;
+  const online = !!App.race.net;
+  App.paused = !online;            // online races keep running for your friend
+  if (online) App.pauseMenu = true;
   SFX.enginesOff();
   modal(`<h3>PAUSED</h3><p>${App.race.track.def.name} · ${App.race.track.biome.name}</p>
     <div class="acts"><button class="btn" style="--c:#2bd96a" data-a="resume">RESUME</button><button class="btn sm" style="--c:#ff8a1c" data-a="restart">RESTART</button><button class="btn sm" style="--c:#13a89e" data-a="help">CONTROLS</button><button class="btn sm ghost" data-a="quit">QUIT</button></div>
@@ -354,6 +357,7 @@ function pauseRace() {
     box.querySelector('[data-a="resume"]').onclick = resumeRace;
     box.querySelector('[data-a="restart"]').onclick = () => { closeModal(); quitRace(true); };
     box.querySelector('[data-a="help"]').onclick = () => openHelp(() => { App.paused = false; pauseRace(); });
+    if (online) box.querySelector('[data-a="restart"]').classList.add("hidden");
     box.querySelector('[data-a="quit"]').onclick = () => { closeModal(); quitRace(false); };
     $$("[data-m]", box).forEach((b) => (b.onclick = () => { App.save.settings.music = b.dataset.m === "1"; saveGame(); applySettings(); App.paused = false; pauseRace(); }));
     $$("[data-s]", box).forEach((b) => (b.onclick = () => { App.save.settings.sfx = b.dataset.s === "1"; saveGame(); applySettings(); App.paused = false; pauseRace(); }));
@@ -361,6 +365,7 @@ function pauseRace() {
 }
 function resumeRace() {
   closeModal();
+  App.pauseMenu = false;
   if (!App.race) return;
   App.race.humans.forEach((h, i) => SFX.engineStart(i, h.veh.id));
   App.paused = false;

@@ -55,13 +55,14 @@ async function createRace(cfg, onProgress) {
 
   const riders = [];
   const used = {};
+  let localIdx = 0;
   cfg.humans.forEach((hm, i) => {
     const r = RIDERS.find((x) => x.id === hm.riderId);
     const dup = used[r.id];
     used[r.id] = (used[r.id] || 0) + 1;
     const e = makeRiderEntity(riderVariant(r, dup), VEHICLES.find((v) => v.id === hm.vehId), { human: !hm.remote, remote: hm.remote, pIndex: i, upg: hm.upg, netId: hm.netId });
-    e.human = true; e.local = !hm.remote; e.pIndex = i;
-    e.name = hm.name || (cfg.humans.length > 1 ? "P" + (i + 1) : "You");
+    e.human = true; e.local = !hm.remote; e.pIndex = hm.remote ? i : localIdx++; e.mark = i;
+    e.name = hm.name || (cfg.humans.length > 1 ? (cfg.online ? (hm.remote ? "Friend" : "You") : "P" + (i + 1)) : "You");
     riders.push(e);
   });
   const total = cfg.total || 8;
@@ -137,6 +138,7 @@ async function faceIcon(r) {
 /* ---------------- Simulation step ---------------- */
 function stepRace(race, inputs, dt) {
   const tr = race.track;
+  if (race.hold) { rebuildBuckets(race); return; }
   if (race.countdown > 0) {
     race.countdown -= dt;
     const n = Math.ceil(race.countdown);
@@ -306,6 +308,7 @@ function updateRider(race, e, inp, dt) {
     for (const o of s.objs) {
       if (o.taken > race.time || Math.abs(e.x - o.x) > 0.34 || e.h > 1100) continue;
       o.taken = race.time + 6;
+      if (race.net && !e.remote) race.net.send({ t: "ev", k: "take", s: s.i, o: s.objs.indexOf(o) });
       if (o.kind === "crate") {
         if (e.items.length < 3) e.items.push(Math.random() < 0.25 ? e.rider.item : tr.biome.item);
         popup(e, "+ " + ITEMS[e.items[e.items.length - 1]].name.toUpperCase(), "#ffd23f");
@@ -416,6 +419,11 @@ function collideSprites(race, e, s) {
 
 function damage(race, e, amt, by, kind, silent) {
   if (e.wipeT > 0 || e.finished) return;
+  if (e.remote) {
+    // the owner of that rider applies damage on their own device
+    if (race.net && (kind === "melee" || kind === "bump")) race.net.queueHit(e, amt, by, kind);
+    return;
+  }
   if (e.invuln > 0 && (kind === "melee" || kind === "item" || kind === "crash")) return;
   if (kind === "melee") { if (e.meleeImm > 0) return; e.meleeImm = 0.38; }
   // bots hit humans a bit softer (scaled by difficulty) so a good rider isn't ganged into constant wipeouts
@@ -455,6 +463,7 @@ function attack(race, e) {
     e.comboT = 1.5;
     const kick = e.comboN % 3 === 0;
     e.atkSide = side; e.atkKick = kick; e.atkT = 0.3; e.atkCD = kick ? 0.6 : 0.42;
+    if (race.net && best.remote) race.net.hitInfo = { slow: kick ? 0.72 : 0.9, push: side * (kick ? 3.2 : 1.4) * Math.min(2, e.mass / best.mass) };
     damage(race, best, (kick ? 17 : 9) * e.pow, e, "melee");
     best.speed *= kick ? 0.72 : 0.9;
     best.vx += side * (kick ? 3.2 : 1.4) * Math.min(2, e.mass / best.mass);
@@ -472,14 +481,21 @@ function attack(race, e) {
   }
 }
 
+let projSeq = 0;
 function throwItem(race, e, dir) {
   const id = e.items.shift();
+  spawnProjectiles(race, e, id, dir, e.z, e.x, e.speed, null);
+  if (race.net) race.net.send({ t: "ev", k: "throw", i: race.riders.indexOf(e), item: id, dir, z: e.z, x: e.x, sp: e.speed, id: race.lastProjId });
+}
+function spawnProjectiles(race, e, id, dir, z, x, sp, netId) {
   const it = ITEMS[id];
   const n = it.spread || 1;
+  const base = netId || (race.net ? race.net.role + ":" : "") + (++projSeq);
+  race.lastProjId = base;
   for (let k = 0; k < n; k++) {
     race.projs.push({
-      type: "proj", item: id, owner: e, z: e.z + dir * 160, x: e.x + (n > 1 ? (k - 1) * 0.3 : 0), h: 320,
-      vz: dir > 0 ? e.speed + it.spd : e.speed * 0.35, vx: n > 1 ? (k - 1) * 0.5 : 0, life: dir > 0 ? 2.6 : 6, dir, big: id === "boulder",
+      type: "proj", item: id, owner: e, z: z + dir * 160, x: x + (n > 1 ? (k - 1) * 0.3 : 0), h: 320, id: base + "/" + k,
+      vz: dir > 0 ? sp + it.spd : sp * 0.35, vx: n > 1 ? (k - 1) * 0.5 : 0, life: dir > 0 ? 2.6 : 6, dir, big: id === "boulder",
     });
   }
   race.events.push({ snd: "throw", e });
@@ -499,7 +515,7 @@ function updateProjectiles(race, dt) {
     p.h = p.dir > 0 ? 300 + Math.sin(p.life * 6) * 40 : Math.max(120, p.h - 400 * dt);
     let hit = false;
     for (const o of race.riders) {
-      if (o === p.owner || o.wipeT > 0 || o.finished || o.h > 700) continue;
+      if (o === p.owner || o.wipeT > 0 || o.finished || o.h > 700 || o.remote) continue;
       if (Math.abs(o.z - p.z) < 200 && Math.abs(o.x - p.x) < 0.3) {
         if (o.invuln > 0) { hit = true; break; }
         damage(race, o, it.dmg, p.owner, "item");
@@ -510,6 +526,7 @@ function updateProjectiles(race, dt) {
         for (let k = 0; k < 10; k++) spawnFx(race, p.z, p.x + rnd(-0.2, 0.2), p.h + rnd(-100, 100), it.col, 50, 0.5, 600);
         race.events.push({ snd: "hit", e: o, by: p.owner });
         if (p.owner.human) popup(p.owner, "DIRECT HIT!", "#ffd23f");
+        if (race.net) race.net.send({ t: "ev", k: "pop", id: p.id, v: race.riders.indexOf(o) });
         hit = true; break;
       }
     }
