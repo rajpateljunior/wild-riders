@@ -2,20 +2,59 @@
 
 const SAVE_KEY = "wild-riders-save-v1";
 function defaultSave() {
-  return { v: 1, coins: 500, stars: {}, best: {}, riders: ["kaito", "priya"], vehs: ["mtb", "bmx"], upg: {},
+  return { v: 1, tl: 2, coins: 500, stars: {}, best: {}, riders: ["kaito", "priya"], vehs: ["mtb", "bmx"], upg: {},
     last: { rider: "kaito", rider2: "priya", veh: "mtb", veh2: "bmx", track: "f1" },
     settings: { music: true, sfx: true, diff: 1, gfx: "auto" }, seenHelp: false, races: 0 };
 }
 function loadSave() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
-    if (s && s.v === 1) return Object.assign(defaultSave(), s, { settings: Object.assign(defaultSave().settings, s.settings || {}), last: Object.assign(defaultSave().last, s.last || {}) });
+    if (s && s.v === 1) return migrateSave(Object.assign(defaultSave(), { tl: 1 }, s, { settings: Object.assign(defaultSave().settings, s.settings || {}), last: Object.assign(defaultSave().last, s.last || {}) }));
   } catch (_) {}
   return defaultSave();
+}
+// Still save format v1. `tl` = track-layout generation: the trails were redesigned in generation 2, so best times
+// from older layouts are cleared once (stars, coins, riders, rides and upgrades are kept).
+function migrateSave(s) {
+  if ((s.tl || 1) < 2) { s.best = {}; s.tl = 2; }
+  return s;
 }
 function saveGame() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(App.save)); } catch (_) {} }
 function totalStars() { return Object.values(App.save.stars).reduce((a, b) => a + b, 0); }
 function biomeUnlocked(i) { return totalStars() >= BIOMES[i].unlock; }
+// Riders and rides unlock strictly in order: only the first one you don't own yet can be bought.
+function nextToUnlock(list, owned) { return list.find((x) => !owned.includes(x.id)) || null; }
+
+/* Secret "cutie mode" switch: hold the 2 PLAYERS · ONE SCREEN button for 2 seconds. Stored outside the save
+   (so it never travels in a save code). A tiny pink dot on that button is the only sign it's on. */
+const CUTIE_KEY = "wr-cz";
+function cutieOn() { try { return localStorage.getItem(CUTIE_KEY) === "1"; } catch (_) { return false; } }
+function setCutie(on) { try { localStorage.setItem(CUTIE_KEY, on ? "1" : "0"); } catch (_) {} cutieMark(); }
+function cutieMark() { const b = document.querySelector('[data-act="split"]'); if (b) b.classList.toggle("cz", cutieOn()); }
+function wireCutieSwitch() {
+  const b = document.querySelector('[data-act="split"]');
+  if (!b) return;
+  let timer = null;
+  const start = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      b.dataset.held = "1";
+      setCutie(!cutieOn());
+      const h = document.createElement("div");
+      h.className = "czpop"; h.textContent = cutieOn() ? "♥" : "♡";
+      const r = b.getBoundingClientRect();
+      h.style.left = r.right - 30 + "px"; h.style.top = r.top - 4 + "px";
+      document.body.appendChild(h); setTimeout(() => h.remove(), 900);
+      if (navigator.vibrate) try { navigator.vibrate(20); } catch (_) {}
+    }, 2000);
+  };
+  const cancel = () => { clearTimeout(timer); timer = null; };
+  b.addEventListener("pointerdown", start);
+  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => b.addEventListener(ev, cancel));
+  b.addEventListener("contextmenu", (e) => e.preventDefault());
+  cutieMark();
+}
 function encodeSave() { return "WILDR1-" + btoa(unescape(encodeURIComponent(JSON.stringify(App.save)))); }
 function decodeSave(code) {
   try {
@@ -82,13 +121,15 @@ function openRider() {
   App.pick.riders[p] = cur;
   const wrap = $("#rider-cards");
   wrap.innerHTML = "";
+  const nextR = nextToUnlock(RIDERS, App.save.riders);
   RIDERS.forEach((r) => {
     const owned = App.save.riders.includes(r.id);
     const c = document.createElement("div");
     c.className = "card" + (r.id === cur ? " sel" : "");
     c.style.setProperty("--c1", r.main); c.style.setProperty("--c2", shade(r.main, -0.6));
     c.innerHTML = `<div class="art">${portraitSVG(r)}</div><div class="info"><div class="nm">${r.name}</div><div class="tg">${r.tag} · #${r.num}</div>${statBars(riderStats(r))}</div>` +
-      (owned ? "" : `<div class="lock">LOCKED<span class="coins"><i class="coin"></i>${r.cost.toLocaleString()}</span></div>`) +
+      (owned ? "" : r === nextR ? `<div class="lock">LOCKED<span class="coins"><i class="coin"></i>${r.cost.toLocaleString()}</span></div>`
+        : `<div class="lock">LOCKED<span class="after">Unlock ${nextR.name} first</span></div>`) +
       (App.mode === "split" && p === 1 && App.pick.riders[0] === r.id ? `<div class="who" style="background:var(--teal)">P1</div>` : "");
     c.onclick = () => { SFX.play("click"); App.pick.riders[p] = r.id; openRider(); };
     wrap.appendChild(c);
@@ -98,10 +139,11 @@ function openRider() {
   $("#rider-desc").innerHTML = `<b>${r.full}</b> — ${r.blurb} Signature throw: <b>${ITEMS[r.item].name}</b>.`;
   const go = $("#rider-go");
   if (owned) { go.textContent = "NEXT ›"; go.disabled = false; go.style.setProperty("--c", "#ff3d7f"); }
+  else if (r !== nextR) { go.textContent = "UNLOCK " + nextR.name.toUpperCase() + " FIRST"; go.disabled = true; go.style.setProperty("--c", "#6b6280"); }
   else { go.textContent = "BUY " + r.cost.toLocaleString(); go.disabled = App.save.coins < r.cost; go.style.setProperty("--c", "#ffb300"); }
   go.onclick = () => {
     if (!owned) {
-      if (App.save.coins < r.cost) return;
+      if (r !== nextR || App.save.coins < r.cost) return;
       App.save.coins -= r.cost; App.save.riders.push(r.id); saveGame(); SFX.play("unlock"); toast(r.name.toUpperCase() + " UNLOCKED!");
       return openRider();
     }
@@ -137,6 +179,7 @@ function openVeh() {
   App.pick.vehs[p] = cur;
   const wrap = $("#veh-cards");
   wrap.innerHTML = "";
+  const nextV = nextToUnlock(VEHICLES, App.save.vehs);
   VEHICLES.forEach((v) => {
     const owned = App.save.vehs.includes(v.id);
     const upg = App.save.upg[v.id] || [0, 0, 0];
@@ -144,7 +187,8 @@ function openVeh() {
     c.className = "card" + (v.id === cur ? " sel" : "");
     c.style.setProperty("--c1", "#3a2d55"); c.style.setProperty("--c2", "#1a1230");
     c.innerHTML = `<div class="art" style="padding:6px 8px 0">${vehicleSideSVG(v.id, rider)}</div><div class="info"><div class="nm">${v.name}</div><div class="tg">${v.short}</div>${statBars(vehStats(v, upg))}</div>` +
-      (owned ? "" : `<div class="lock">LOCKED<span class="coins"><i class="coin"></i>${v.cost.toLocaleString()}</span></div>`);
+      (owned ? "" : v === nextV ? `<div class="lock">LOCKED<span class="coins"><i class="coin"></i>${v.cost.toLocaleString()}</span></div>`
+        : `<div class="lock">LOCKED<span class="after">Unlock ${nextV.short} first</span></div>`);
     c.onclick = () => { SFX.play("click"); App.pick.vehs[p] = v.id; openVeh(); };
     wrap.appendChild(c);
   });
@@ -172,11 +216,12 @@ function openVeh() {
     });
   }
   const go = $("#veh-go");
-  if (!owned) { go.textContent = "BUY " + v.cost.toLocaleString(); go.disabled = App.save.coins < v.cost; go.style.setProperty("--c", "#ffb300"); }
+  if (!owned && v !== nextV) { go.textContent = "UNLOCK " + nextV.short + " FIRST"; go.disabled = true; go.style.setProperty("--c", "#6b6280"); }
+  else if (!owned) { go.textContent = "BUY " + v.cost.toLocaleString(); go.disabled = App.save.coins < v.cost; go.style.setProperty("--c", "#ffb300"); }
   else { go.textContent = garage ? "DONE" : "NEXT ›"; go.disabled = false; go.style.setProperty("--c", "#ff3d7f"); }
   go.onclick = () => {
     if (!owned) {
-      if (App.save.coins < v.cost) return;
+      if (v !== nextV || App.save.coins < v.cost) return;
       App.save.coins -= v.cost; App.save.vehs.push(v.id); saveGame(); SFX.play("unlock"); toast(v.name.toUpperCase() + " UNLOCKED!");
       return openVeh();
     }
@@ -247,7 +292,7 @@ function openTrack() {
   });
   wrap.style.gridAutoColumns = "minmax(210px, 1fr)";
   const t = TRACKS.find((x) => x.id === cur), b = BIOMES[t.biome];
-  $("#track-desc").innerHTML = `<b>${t.name}</b> — ${b.hazard} <span style="color:var(--sun)">${STAR_RULE}</span>`;
+  $("#track-desc").innerHTML = `<b>${t.name}</b> — ${t.blurb || b.hazard} <span style="color:var(--sun)">${STAR_RULE}</span>`;
   $("#track-go").onclick = () => { SFX.play("click"); App.save.last.track = cur; saveGame(); if (App.mode === "online") return netHost(); startRace(); };
   show("scr-track");
   scrollSel(wrap);
@@ -282,15 +327,15 @@ function applySettings() {
 function openHelp(after) {
   modal(`<h3>HOW TO RIDE</h3>
     <div class="ctl-help">
-      <b>STEER</b><span>Put your left thumb anywhere on the left side and slide it left or right.</span>
+      <b>GO &amp; STEER</b><span>Put your left thumb anywhere on the left side. Push it UP to go (further up = faster), slide left or right to steer, pull DOWN to brake. Let go and you roll to a stop.</span>
       <b>PUNCH</b><span>Tap PUNCH when a rival is beside you. Every 3rd hit in a row is a big KICK.</span>
       <b>THROW</b><span>Holding an item with nobody beside you? PUNCH throws it ahead. Swipe DOWN on it to throw behind.</span>
       <b>TRICKS</b><span>In the air the button becomes TRICK. Tap or swipe up / down / sideways for different tricks. Land before it finishes and you bail!</span>
       <b>BOOST</b><span>Hold BOOST to burn your meter. Fill it with tricks, drifts, drafting and takedowns.</span>
-      <b>DRIFT</b><span>Hold DRIFT while steering through corners to slide and charge boost.</span>
+      <b>DRIFT</b><span>Hold DRIFT while steering through corners to slide and charge boost. Ease off before hairpins (the yellow arrow signs).</span>
       <b>HEALTH</b><span>Hits and crashes drain health, and less health means a lower top speed. Grab green repair kits. At zero you wipe out.</span>
     </div>
-    <p class="kbd-note" style="font-size:12px;color:var(--mute)">Keyboard: WASD / arrows steer, Space punch, Shift boost, S drift. Two players: P1 WASD + F/G, P2 arrows + L/K.</p>
+    <p class="kbd-note" style="font-size:12px;color:var(--mute)">Keyboard: W / ↑ go, S / ↓ brake, A D / ← → steer, Space punch, Shift boost, E drift. Two players: P1 WASD + F punch, G boost, E drift · P2 arrows + L punch, K boost, J drift.</p>
     <div class="acts"><button class="btn" style="--c:#2bd96a" data-a="ok">LET'S RIDE</button></div>`, (box) => {
     box.querySelector('[data-a="ok"]').onclick = () => { SFX.play("click"); closeModal(); App.save.seenHelp = true; saveGame(); after && after(); };
   });
@@ -310,7 +355,7 @@ function openSaveCode() {
       const s = decodeSave(box.querySelector("#sc-in").value);
       if (!s) { toast("THAT CODE DOESN'T WORK"); return; }
       if (!armed) { armed = true; ev.target.textContent = "TAP AGAIN TO REPLACE"; return; }
-      App.save = Object.assign(defaultSave(), s); saveGame(); applySettings(); closeModal(); toast("PROGRESS LOADED!"); renderTitle();
+      App.save = migrateSave(Object.assign(defaultSave(), { tl: 1 }, s)); saveGame(); applySettings(); closeModal(); toast("PROGRESS LOADED!"); renderTitle();
     };
     box.querySelector('[data-a="close"]').onclick = () => { SFX.play("back"); closeModal(); };
   });
@@ -319,7 +364,7 @@ function openSaveCode() {
 /* ---------- race flow ---------- */
 async function startRace() {
   const tips = ["Tricks fill your boost meter — but land before they finish!", "Every 3rd punch in a row is a heavy KICK.", "Low health = lower top speed. Repair kits are green.",
-    "Forks hide boost pads on the riskier side.", "Draft right behind a rival to charge boost.", "Swipe down on PUNCH to throw an item backward.", "ATVs shove lighter riders out of the way."];
+    "Forks hide boost pads on the riskier side.", "Push the stick UP to go — let go and you coast to a stop.", "Yellow arrow signs = hairpin. Ease off or drift!", "Draft right behind a rival to charge boost.", "Swipe down on PUNCH to throw an item backward.", "Quads shove lighter riders out of the way."];
   $("#loading .tip").textContent = "TIP: " + pick(tips);
   $("#loading .lb i").style.width = "5%";
   $("#loading").classList.remove("hidden");
@@ -330,6 +375,7 @@ async function startRace() {
   const humans = [{ riderId: App.pick.riders[0] || App.save.last.rider, vehId: App.pick.vehs[0] || App.save.last.veh, upg: App.save.upg[App.pick.vehs[0] || App.save.last.veh] }];
   if (App.mode === "split") humans.push({ riderId: App.pick.riders[1] || App.save.last.rider2, vehId: App.pick.vehs[1] || App.save.last.veh2, upg: App.save.upg[App.pick.vehs[1] || App.save.last.veh2] });
   const cfg = { trackId: App.pick.track || App.save.last.track, humans, total: 8, difficulty: App.save.settings.diff };
+  if (App.mode === "split" && cutieOn()) cfg.fav = 1;           // secret switch: Player 2 always wins
   App.lastCfg = cfg;
   await launchRace(cfg);
 }
@@ -469,7 +515,9 @@ function stopDemo() { App.demo = null; }
 
 /* ---------- menu wiring ---------- */
 function wireMenus() {
+  wireCutieSwitch();
   $$("[data-act]").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.held) { delete b.dataset.held; return; }      // that was the secret long-press, not a tap
     const a = b.dataset.act;
     SFX.unlock();
     if (a === "race" || a === "split") { App.mode = a; App.step = "rider"; App.pick = { riders: [], vehs: [], track: null }; SFX.play("click"); openRider(); }

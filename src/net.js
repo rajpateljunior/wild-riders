@@ -43,7 +43,7 @@ function netStatus(title, msg, extra = "", onCancel) {
 function makeCode() { let c = ""; for (let i = 0; i < 4; i++) c += CODE_CHARS[(Math.random() * CODE_CHARS.length) | 0]; return c; }
 
 function myHello() {
-  return { t: "hello", ver: 1, rider: App.pick.riders[0] || App.save.last.rider, veh: App.pick.vehs[0] || App.save.last.veh, upg: App.save.upg[App.pick.vehs[0] || App.save.last.veh] || [0, 0, 0] };
+  return { t: "hello", ver: 1, cz: cutieOn() ? 1 : 0, rider: App.pick.riders[0] || App.save.last.rider, veh: App.pick.vehs[0] || App.save.last.veh, upg: App.save.upg[App.pick.vehs[0] || App.save.last.veh] || [0, 0, 0] };
 }
 
 /* ---------------- host ---------------- */
@@ -154,6 +154,7 @@ function netStartAsHost() {
   const me = myHello();
   const cfg = {
     trackId: App.pick.track || App.save.last.track, total: 8, difficulty: App.save.settings.diff, botSeed: (Math.random() * 100000) | 0, online: true,
+    fav: cutieOn() ? 1 : g.cz ? 0 : null,          // cutie mode on either phone: the OTHER phone's rider always wins
     humans: [{ riderId: me.rider, vehId: me.veh, upg: me.upg, netId: 0 }, { riderId: g.rider, vehId: g.veh, upg: g.upg, netId: 1, remote: true }],
   };
   N.ready = false; N.loaded = false;
@@ -263,6 +264,7 @@ function netLost(N, bye) {
     race.riders.forEach((e) => { if (e.remote) { e.remote = false; if (e.human) { e.human = false; e.name = (e.name || "") + " (left)"; } e.ai = e.ai || { skill: 0.85, aggr: 0.5, t: 0, tx: 0, inp: {} }; } });
     race.net = null;
     race.hold = false;
+    race.cfg.fav = null; race.favE = null;
     closeModal();
     toast(bye ? "YOUR FRIEND LEFT" : "CONNECTION LOST");
   } else if (N.opened) {

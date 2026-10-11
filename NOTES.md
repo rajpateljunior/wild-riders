@@ -1,6 +1,6 @@
 # Wild Riders: NOTES
 
-Last reviewed: 2026-10-11 (updated after the vehicle-screen shift fix and camera raise). Build and test commands are in `README.md`; this file covers decisions, data and risks.
+Last reviewed: 2026-10-11 (big update: throttle stick, 6 vehicles in unlock order, smaller ATV, camera tilt + zoom-out, hand-designed trails, secret cutie mode). Build and test commands are in `README.md`; this file covers decisions, data and risks.
 
 ## What it is
 A Downhill Domination–style bike and ATV racer for iPhone, iPad and desktop. Anime riders, punches and kicks, throwables, health that slows you down, boost pads, ramps, tricks, six biomes (12 tracks), bots, two-player split screen, and online 2-player with room codes.
@@ -11,6 +11,12 @@ Live: https://rajpateljunior.github.io/wild-riders/ · Repo: `rajpateljunior/wil
 - Pseudo-3D segment road renderer on canvas 2D, fixed 60 Hz simulation, seeded track generation.
 - Combat with health: damage slows you down. Each biome has its own throwable.
 - Stars per track: top 3 = ★, top 2 = ★★, win = ★★★. Biomes unlock by total stars.
+- Controls: you must push the left stick UP to go (further = faster), slide sideways to steer, pull DOWN to brake; let go and you roll to a stop. DRIFT button kept. Keyboard: W/↑ gas, S/↓ brake, E/J drift.
+- Riders and rides unlock strictly in order (only the first one you don't own can be bought). Already-owned out-of-order items are kept.
+- ATV was far too big (its sprite was scaled by its hit width). Every vehicle now draws the rider at the same size (`sw` in VEHICLES); ATV redesigned.
+- Camera tilts down with the slope ahead (`RENDER.PITCH_DOWN`) and the view is zoomed out ~14% (`RENDER.ZOOM` 0.86).
+- Every trail is hand-designed (`plan` in TRACKS) with its own bends, hairpins, switchbacks, tunnels, bridges, cliffs, rivers and scenery zones; the 2nd trail of each biome has its own sky (`look`).
+- Secret cutie mode (Raj's request): hold the 2 PLAYERS · ONE SCREEN button for 2 s (tiny pink dot = on; hold again = off). In split screen Player 2 always wins; online, the OTHER phone's rider always wins (works whether Raj hosts or joins; her phone shows nothing). Raj can still place 2nd/3rd. Must not look like a glitch.
 - Online play: direct phone-to-phone WebRTC via PeerJS with room codes. Host simulates bots; each player owns their own health.
 - No image or audio files: art is SVG drawn in code, sound is WebAudio.
 
@@ -21,30 +27,42 @@ Live: https://rajpateljunior.github.io/wild-riders/ · Repo: `rajpateljunior/wil
 - Vendored libs and assets: `peerjs.min.js` (v1.5.4), `fonts/` (Bangers, Chakra Petch), `icons/`.
 - Service worker is cache-first with background refresh and ignores cross-origin requests.
 
+## Cutie mode (how it works — keep it subtle)
+- Flag lives in `localStorage` key `wr-cz` (not in the save, so it never travels in a save code). `cutieOn()` / `setCutie()` / `wireCutieSwitch()` in `src/ui.js`.
+- Race config `cfg.fav` = index in `cfg.humans` of the favoured player (split: 1; online: set by the host from its own switch or the guest's `hello.cz`). Each device only adjusts riders it simulates (`cutieStep` in `src/game.js`):
+  - her: catch-up top-speed bonus when behind (`assist`, up to ~16% late), softer knocks (damage ×0.55, crashes slow her less), luckier crates; bots mostly leave her alone.
+  - everyone else: bots rubber-band to her; a soft top-speed squeeze (≤14%) when the lead is big for the distance left; in the last 30% a stronger pace-match; nobody may cross the line before her (held 160 units short). Per-race random winning margin (`czM`, ~0.3–1 s). Late in the race bots pick on the other human a bit more.
+  - places: once she has finished she is always ranked 1st (covers online clock skew).
+- Simulated (24 split races, weak and decent partner; 2 full online races both ways): she won every one; Raj usually 2nd. If she stops completely, everyone else waits just short of the line (accepted by Raj: "she should still win regardless").
+
 ## Data tables (`src/data.js`)
 - `RIDERS`: kaito and priya (free), bruno 1200, yuki 1500, zara 1800, rex 2200 coins.
-- `VEHICLES`: mtb and bmx (free), dirt bike 2000, ATV 2600.
+- `VEHICLES` (unlock order): mtb, bmx (free), Enduro E-Bike 1500 (boost regen), dirt bike 2000, ATV 2600, Sport Quad 3400. Fields: `w` hit width, `sw` drawn width, `shove`, `regen`.
 - `ITEMS`: 12 throwables (pinecone, pear, snowball, coconut, magma, iceshard, shuriken, chili, boulder, snowburst, sandbomb, paint).
 - `BIOMES` (stars to unlock): Redwood Run 0, Saffron Dunes 3, Glacier Peak 7, Monsoon Ghats 11, Ember Caldera 15, Aurora Tundra 19.
-- `TRACKS`: 12 tracks, two per biome (`f1 f2 d1 d2 g1 g2 m1 m2 v1 v2 t1 t2`), seeded, with length, curviness, hills, ramps, forks, pads, hazards.
+- `TRACKS`: 12 tracks, two per biome (`f1 f2 d1 d2 g1 g2 m1 m2 v1 v2 t1 t2`). Each has a `plan` of beats (S straight, T turn, E esses, H hairpin, SW switchbacks, C chute, X crest, ST staircase) with zone `z` and feature `f` (tunnel, falls, cave, bridge, canyon, mtn, cliffL/R, waterL/R, lavaL/R, lake, ford). `track.js` scales beats to `len`; ramps, pads, forks, hazards are still seeded on top. Beat key reference is in the comment above TRACKS.
+- `BIOMES` also carry `rock`, `chasm`, `water`, `bridgeOver`, `plank` colours; `BIOME_SCENERY[biome].zones` are the scenery sets; `biomeKit()` in `art_world.js` draws walls, tunnel ribs/mouths, rails, hairpin chevrons per biome.
 - `PAYOUT` (coins by place): 600, 420, 300, 220, 170, 130, 100, 80. `UPG_COST` per level: 400, 900, 1700. `UPGRADES`: gearing, tires, armor. `TRICKS`: 4.
 
 ## Save format
-- `localStorage` key `wild-riders-save-v1`, object with `v: 1`: `{ v, coins, stars:{trackId:n}, best:{trackId:…}, riders:[ids], vehs:[ids], upg:{…}, last:{…}, settings:{music,sfx,diff,gfx}, seenHelp, races }`. Starts with 500 coins, riders kaito and priya, vehicles mtb and bmx.
+- `localStorage` key `wild-riders-save-v1`, object with `v: 1`: `{ v, tl, coins, stars:{trackId:n}, best:{trackId:…}, riders:[ids], vehs:[ids], upg:{…}, last:{…}, settings:{music,sfx,diff,gfx}, seenHelp, races }`. Starts with 500 coins, riders kaito and priya, vehicles mtb and bmx.
 - `loadSave()` merges onto `defaultSave()` but **only accepts `v === 1`**. Any save-format change must keep reading v1 saves, and if the version is bumped the loader must migrate rather than fall back to defaults (which would wipe progress).
+- `tl` = trail-layout generation (2 since the redesign). `migrateSave()` clears `best` times once when `tl` < 2; everything else is kept. Old save codes still load.
 - Copy-and-paste save code: prefix `WILDR1-` followed by base64 of the JSON (`encodeSave` / `decodeSave`, also require `v === 1`).
 - Install hint dismissal: `localStorage` key `wr-install-dismissed`.
 
 ## Camera
 `RENDER.CAM_LIFT` in `src/render.js` raises the camera (0 = original low view; now 0.6, Raj asked for "slightly higher, not bird's-eye"; was 0.3). The horizon moves up with it so the rider stays put on screen. Do not go much past ~0.8 without checking the sky strip and HUD.
+`RENDER.ZOOM` (0.86) widens the view; the horizon is offset so the rider stays at the same screen spot. Pitch: `camFollow` computes `e.pitch` from the slope 10–26 segments ahead; `renderView` shears world heights by `pitch × distance`, so downhill road fills the view and the backdrop rises. `PITCH_DOWN` 0.82 / `PITCH_UP` 0.45.
 
 ## UI gotcha
 Never use `scrollIntoView` inside a screen: on iOS/Chromium it also scrolls the `overflow:hidden` `.screen` sideways, which shifted the whole Choose Your Ride screen right (Dirt Bike selected). `scrollSel()` in `src/ui.js` scrolls only the card strip and resets the screen's scroll.
 
 ## Tests (Playwright, Chromium)
-Listed in `README.md`: bot drives all tracks, screenshots, menus, touch, offline, online. Serve the folder first (`python3 -m http.server 8765`). Re-run this session: offline reload passes; a custom check confirmed the vehicle screen no longer shifts (852x393 and 1180x820) and that the old build did shift by 104px.
+Listed in `README.md`: bot drives all tracks, screenshots, menus, touch, throttle stick, offline, online. Serve the folder first (`python3 -m http.server 8765`). This session: all 12 trails finishable by the bot; throttle test passes; online + offline pass; cutie-mode simulations as above.
 
 ## Known issues / untested
+- New stick feel (push up to go) and hairpin difficulty not tried on a real iPhone yet. Tuning knobs: dead zone / full-throttle point in `input.js` (`touchGas`), coast rate in `updateRider`, hairpin strength `PIN` in `track.js`.
 - Not verified on a real iPhone or iPad by this session: touch feel, iOS audio, Home Screen fullscreen behavior. The latest commit fixed a landscape cut-off in the iOS Home Screen app; I did not re-test it.
 - Online play: some cellular networks block direct WebRTC connections. The README names a relay (e.g. Firebase Realtime Database) as the fallback, not built. Depends on the free public PeerJS server staying available.
 - Online play was tested only by `tools/online.js` against a local PeerServer, not over the real internet from this session.
@@ -52,3 +70,4 @@ Listed in `README.md`: bot drives all tracks, screenshots, menus, touch, offline
 ## Ideas not yet done
 - Relay fallback for online play (see above).
 - Add Raj's wishlist here.
+- Canyon walls on short hairpins only last ~1 s; could extend walls a little before/after.

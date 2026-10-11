@@ -7,7 +7,7 @@ const CAM_D = 0.84;       // focal factor (≈ 100° fov)
 const PLAYER_DIST = CAM_H * CAM_D;
 
 function buildTrack(def) {
-  const biome = BIOMES[def.biome];
+  const biome = Object.assign({}, BIOMES[def.biome], def.look || {});   // look = per-trail sky tint
   const R = rng(def.seed);
   const segs = [];
   let y = 0;
@@ -37,35 +37,106 @@ function buildTrack(def) {
   function easeIn(t) { return t * t; }
   function easeInOut(t) { return -Math.cos(t * Math.PI) / 2 + 0.5; }
 
-  // ---- 1. Layout ----
-  section(0, 40, 0, 0, 0);                         // start straight
+  // ---- 1. Layout: expand this track's hand-written plan (see TRACKS in data.js) ----
   const H = def.hilly, C = def.curvy;
-  while (segs.length < def.len) {
-    const r = R();
-    const len = 40 + ((R() * 90) | 0);
-    const dir = R() < 0.5 ? -1 : 1;
-    const drop = -(SEG * (8 + R() * 34) * H);       // mostly downhill
-    if (r < 0.38) section(14, len, 14, dir * (2 + R() * 4.5) * C, drop);
-    else if (r < 0.55) { section(10, len / 2, 10, dir * (3 + R() * 3) * C, drop * 0.5); section(10, len / 2, 10, -dir * (3 + R() * 3) * C, drop * 0.5); }
-    else if (r < 0.72) { section(12, 16, 12, 0, SEG * (6 + R() * 10) * H); section(10, len, 10, dir * R() * 2 * C, drop * 1.4); } // crest then plunge
-    else if (r < 0.86) section(8, len, 8, dir * R() * 1.2 * C, drop * 1.6);                                                     // steep chute
-    else section(10, len, 10, 0, -SEG * 4);                                                                                    // breather
+  const plan = def.plan;
+  const PIN = 7.2;                                  // hairpin bend strength (you have to ease off to make it)
+  const fixedLen = (b) => b.t === "H" ? 54 : b.t === "SW" ? b.k * 54 + (b.k - 1) * 30 : b.t === "ST" ? b.k * 44 : 0;
+  let sumScal = 0, sumFixed = 40;
+  plan.forEach((b) => { const f = fixedLen(b); if (f) sumFixed += f; else sumScal += b.n; });
+  const scale = clamp((def.len - sumFixed) / sumScal, 0.5, 3);
+  const dn = (v) => -SEG * v * H;                   // "d" (segments of drop) -> world dy (negative = downhill)
+  const beats = [];
+  section(0, 40, 0, 0, 0);                          // start straight
+  for (let bi = 0, from = 0; bi < plan.length; bi++) {
+    const b = plan[bi];
+    if (bi === 0) from = 0; else from = segs.length;
+    const cap = b.f === "bridge" ? 120 : b.f === "tunnel" || b.f === "falls" || b.f === "cave" ? 190 : b.f === "lake" ? 160 : 9999;
+    const n = Math.min(cap, Math.max(24, Math.round((b.n || 0) * scale)));
+    const d = (b.d || 0) * (fixedLen(b) ? 1 : scale);
+    const flatF = b.f === "bridge" || b.f === "lake" || b.f === "ford";
+    switch (b.t) {
+      case "S": section(0, n, 0, flatF ? 0 : (R() - 0.5) * 0.7 * C, dn(d)); break;
+      case "T": { const e = Math.min(18, Math.floor(n / 4)); section(e, n - 2 * e, e, b.dir * b.c * C, dn(d)); break; }
+      case "E": {
+        const per = Math.floor(n / b.k), e = Math.min(12, Math.floor(per / 4));
+        for (let i = 0; i < b.k; i++) section(e, per - 2 * e, e, (b.dir || 1) * (i % 2 ? -1 : 1) * b.c * C * (0.85 + R() * 0.3), dn(d / b.k));
+        break;
+      }
+      case "H": { const i0 = segs.length; section(10, 34, 10, b.dir * PIN, dn(d)); for (let k = i0; k < segs.length; k++) segs[k].pin = b.dir; break; }
+      case "SW":
+        for (let i = 0; i < b.k; i++) {
+          const dir = b.dir * (i % 2 ? -1 : 1), i0 = segs.length;
+          section(10, 34, 10, dir * PIN, dn(d));
+          for (let k = i0; k < segs.length; k++) segs[k].pin = dir;
+          if (i < b.k - 1) section(0, 30, 0, 0, dn(d * 0.9));
+        }
+        break;
+      case "C": section(8, n - 16, 8, (R() < 0.5 ? -1 : 1) * R() * 1.0 * C, dn(d)); break;
+      case "X": { section(12, 16, 12, 0, SEG * 7 * H); const rest = Math.max(40, n - 40); section(10, rest - 20, 10, (R() - 0.5) * 1.6 * C, dn(d)); break; }
+      case "ST":
+        for (let i = 0; i < b.k; i++) { section(5, 8, 5, 0, dn(d)); section(0, 26, 0, (R() - 0.5) * 1.2 * C, dn(1)); }
+        break;
+    }
+    beats.push({ from, to: segs.length, b });
   }
   const finishIdx = segs.length;
   section(0, 200, 0, 0, -SEG * 10);                // run-out after the finish
   const N = segs.length;
+  beats[beats.length - 1].to = N;
+
+  // tag every segment with its scenery zone and feature
+  for (const { from, to, b } of beats) {
+    let side = b.dir || 1;
+    for (let k = from; k < to; k++) {
+      const s = segs[k];
+      s.zone = b.z || null;
+      s.feat = (b.f === "ford" ? null : b.f) || null;
+      if (b.f === "mtn") { if (s.curve > 0.4) side = 1; else if (s.curve < -0.4) side = -1; s.fside = side; }
+    }
+    if (b.f === "ford") {
+      const mid = ((from + to) / 2) | 0;
+      for (let k = 0; k < 16; k++) { const s = segs[mid - 8 + k]; s.surface = { type: "water", x0: -2, x1: 2, k, len: 16 }; s.noObs = 1; }
+    }
+  }
+  // turn features into side ground, walls and limits.  gL/gR: what lies beside the trail; wl/wr: hard edge (x) or 0
+  const sideType = (t) => (t === "chasm" && biome.lavaSide ? "lava" : t);
+  for (let i = 0; i < N; i++) {
+    const s = segs[i], f = s.feat;
+    s.gL = s.gR = null; s.wl = s.wr = 0; s.wallL = s.wallR = 0; s.railL = s.railR = 0;
+    if (!f) continue;
+    if (f === "tunnel" || f === "falls" || f === "cave") { s.tun = f; s.gL = s.gR = "rock"; s.wl = s.wr = s.w + 0.32; s.wallL = s.wallR = 1; }
+    else if (f === "bridge") { s.bridge = 1; s.gL = s.gR = sideType(biome.bridgeOver); s.wl = s.wr = s.w + 0.14; s.railL = s.railR = 1; }
+    else if (f === "canyon") { s.wallL = s.wallR = 2; s.wl = s.wr = s.w + 0.55; }
+    else if (f === "mtn" || f === "cliffL" || f === "cliffR") {
+      const wall = f === "mtn" ? s.fside : f === "cliffL" ? -1 : 1;
+      if (wall < 0) { s.wallL = 1; s.wl = s.w + 0.4; s.gR = sideType("chasm"); s.railR = 1; s.wr = s.w + 0.14; }
+      else { s.wallR = 1; s.wr = s.w + 0.4; s.gL = sideType("chasm"); s.railL = 1; s.wl = s.w + 0.14; }
+      if (biome.lavaSide) { if (s.gL === "lava") { s.railL = 1; } if (s.gR === "lava") { s.railR = 1; } }
+    }
+    else if (f === "waterL") s.gL = "water";
+    else if (f === "waterR") s.gR = "water";
+    else if (f === "lavaL") s.gL = "lava";
+    else if (f === "lavaR") s.gR = "lava";
+    else if (f === "lake") { s.gL = s.gR = "ice"; s.surface = { type: "ice", x0: -2.2, x1: 2.2, k: i, len: 9999 }; s.noObs = 1; }
+  }
+  const featBlocks = (s) => !!(s.feat && s.feat !== "waterL" && s.feat !== "waterR" && s.feat !== "lavaL" && s.feat !== "lavaR" && s.feat !== "canyon" && s.feat !== "mtn" && s.feat !== "cliffL" && s.feat !== "cliffR");
 
   // ---- 2. Features ----
-  const freeAt = (i, span = 6) => { for (let k = i - span; k <= i + span; k++) { const s = segs[k]; if (!s || s.ramp || s.split || s.surface || s.vent || s.decal) return false; } return true; };
+  const freeAt = (i, span = 6) => { for (let k = i - span; k <= i + span; k++) { const s = segs[k]; if (!s || s.ramp || s.split || s.surface || s.vent || s.decal || s.pin || featBlocks(s)) return false; } return true; };
   const placeable = (i) => i > 70 && i < finishIdx - 60;
 
   // split sections (a fork with a median; the riskier side carries pads and a repair kit)
   for (let n = 0; n < def.splits; n++) {
-    const i0 = 160 + (((finishIdx - 360) / def.splits) * (n + 0.35 + R() * 0.3)) | 0;
+    let i0 = -1;
     const len = 90 + ((R() * 50) | 0);
-    let ok = true;
-    for (let k = i0 - 10; k < i0 + len + 10; k++) if (!segs[k] || segs[k].split || segs[k].ramp) ok = false;
-    if (!ok) continue;
+    for (let tries = 0; tries < 40 && i0 < 0; tries++) {
+      const c = 160 + (((finishIdx - 360) / def.splits) * (n + 0.1 + R() * 0.8)) | 0;
+      let ok = true;
+      for (let k = c - 10; k < c + len + 10; k++) if (!segs[k] || segs[k].split || segs[k].ramp || segs[k].feat || segs[k].pin || segs[k].surface || Math.abs(segs[k].curve) > 3.2) { ok = false; break; }
+      if (ok) i0 = c;
+    }
+    if (i0 < 0) continue;
     const risky = R() < 0.5 ? -1 : 1;
     for (let k = 0; k < len; k++) {
       const s = segs[i0 + k];
@@ -124,17 +195,12 @@ function buildTrack(def) {
         const i = 110 + ((R() * (finishIdx - 230)) | 0);
         if (!placeable(i) || !freeAt(i, 18)) continue;
         const len = 18 + ((R() * 26) | 0);
+        let clash = false;
+        for (let k = 0; k < len; k++) { const s2 = segs[i + k]; if (!s2 || s2.surface || s2.feat === "bridge" || s2.tun) clash = true; }
+        if (clash) continue;
         const hw = surf === "lava" ? 0.22 : 0.35 + R() * 0.35;
         const x = (R() * 2 - 1) * (1 - hw) * 0.9;
         for (let k = 0; k < len; k++) { const s = segs[i + k]; s.surface = { type: surf, x0: x - hw, x1: x + hw, k, len }; }
-        break;
-      }
-    }
-    if (biome.id === "ghats") {   // full-width river crossings
-      for (let n = 0; n < 3; n++) for (let tries = 0; tries < 20; tries++) {
-        const i = 200 + ((R() * (finishIdx - 320)) | 0);
-        if (!placeable(i) || !freeAt(i, 16)) continue;
-        for (let k = 0; k < 14; k++) segs[i + k].surface = { type: "water", x0: -2, x1: 2, k, len: 14 };
         break;
       }
     }
@@ -158,7 +224,7 @@ function buildTrack(def) {
     for (let tries = 0; tries < 20; tries++) {
       const i = 100 + ((R() * (finishIdx - 180)) | 0);
       const s = segs[i];
-      if (!placeable(i) || s.ramp || s.vent || (segs[i - 1] && segs[i - 1].ramp)) continue;
+      if (!placeable(i) || s.ramp || s.vent || s.noObs || s.bridge || s.pin || s.split || (segs[i - 1] && segs[i - 1].ramp)) continue;
       // keep landing zones after ramps clear
       let nearRamp = false;
       for (let k = i - 34; k < i; k++) if (segs[k] && (segs[k].ramp || segs[k].vent)) nearRamp = true;
@@ -181,22 +247,46 @@ function buildTrack(def) {
     segs[i].objs.push({ kind: "repair", x: R() < 0.5 ? -0.8 : 0.8 });
   }
 
-  // ---- 3. Scenery ----
+  // ---- 3. Scenery: per-zone sets, walls, tunnels, rails and turn signs ----
   const set = BIOME_SCENERY[biome.id];
-  const wsum = set.near.reduce((a, b) => a + b[1], 0);
-  const pickNear = () => { let t = R() * wsum; for (const [id, w] of set.near) { if ((t -= w) <= 0) return id; } return set.near[0][0]; };
+  const zonePickers = {};
+  const picker = (zone) => {
+    const key = zone || "_";
+    if (zonePickers[key]) return zonePickers[key];
+    const zd = (zone && set.zones && set.zones[zone]) || { near: set.near, dens: 0.62 };
+    const wsum = zd.near.reduce((a, b) => a + b[1], 0);
+    return (zonePickers[key] = { dens: zd.dens, pick: () => { let t = R() * wsum; for (const [id, w] of zd.near) { if ((t -= w) <= 0) return id; } return zd.near[0][0]; } });
+  };
+  let tunRun = 0;
   for (let i = 0; i < N; i++) {
     const s = segs[i];
     const edge = s.w;
-    if (R() < 0.62) s.sprites.push({ id: pickNear(), x: -(edge + 0.5 + R() * 1.5) });
-    if (R() < 0.62) s.sprites.push({ id: pickNear(), x: edge + 0.5 + R() * 1.5 });
-    if (i % 4 === 0) {
-      const side = R() < 0.5 ? -1 : 1;
-      s.sprites.push({ id: set.far[(R() * set.far.length) | 0], x: side * (edge + 2.4 + R() * 4) });
+    const zp = picker(s.zone);
+    // tunnels: portal at each mouth, ribs every 2 segments, lights on the walls
+    if (s.tun) {
+      const prev = segs[i - 1], next = segs[i + 1];
+      if (!prev || !prev.tun) s.sprites.push({ id: "portal", x: 0, gate: 1 });
+      else if (!next || !next.tun) s.sprites.push({ id: "portal", x: 0, gate: 1 });
+      else if (i % 2 === 0) s.sprites.push({ id: "rib", x: 0, gate: 1 });
+      tunRun++;
+      if (s.tun === "cave" && i % 5 === 0) s.sprites.push({ id: "crystal", x: (i % 10 ? -1 : 1) * (edge + 0.34) });
+      else if (i % 14 === 0) s.sprites.push({ id: "lantern", x: (i % 28 ? -1 : 1) * (edge + 0.3) });
+      if (s.tun === "falls" && (!prev || !prev.tun || !next || !next.tun)) s.sprites.push({ id: "curtain", x: 0, gate: 1 });
+    } else tunRun = 0;
+    for (const side of [-1, 1]) {
+      const wall = side < 0 ? s.wallL : s.wallR, rail = side < 0 ? s.railL : s.railR, g = side < 0 ? s.gL : s.gR;
+      if (wall) { s.sprites.push({ id: "wall", x: side * (edge + (wall === 2 ? 1.25 : s.tun ? 0.85 : 0.95)) }); continue; }
+      if (rail) { if (i % 2 === 0) s.sprites.push({ id: "rail", x: side * (edge + 0.16) }); continue; }
+      if (g) { if (g === "water" && set.zones && R() < 0.12) s.sprites.push({ id: "reeds", x: side * (edge + 0.32) }); continue; }
+      if (R() < zp.dens) s.sprites.push({ id: zp.pick(), x: side * (edge + 0.5 + R() * 1.5) });
+      if (i % 4 === 0 && R() < 0.5 + zp.dens * 0.5) s.sprites.push({ id: set.far[(R() * set.far.length) | 0], x: side * (edge + 2.4 + R() * 4) });
     }
-    if (biome.id === "tundra" && i % 24 === 0) { s.sprites.push({ id: "lantern", x: -(edge + 0.22) }); s.sprites.push({ id: "lantern", x: edge + 0.22 }); }
-    if (biome.id === "glacier" && i % 30 === 15) s.sprites.push({ id: "gate", x: (i % 60 < 30 ? -1 : 1) * (edge + 0.15) });
-    if (i % 140 === 70 && set.special.includes("banner")) s.sprites.push({ id: "banner", x: (i % 280 < 140 ? -1 : 1) * (edge + 0.2) });
+    // hairpin chevrons on the outside of the bend
+    if (s.pin && i % 6 === 0) s.sprites.push({ id: s.pin > 0 ? "chevR" : "chevL", x: -s.pin * (edge + 0.42) });
+    const open = !s.feat;
+    if (open && biome.id === "tundra" && i % 24 === 0 && s.zone !== "lake") { s.sprites.push({ id: "lantern", x: -(edge + 0.22) }); s.sprites.push({ id: "lantern", x: edge + 0.22 }); }
+    if (open && biome.id === "glacier" && s.zone === "resort" && i % 30 === 15) s.sprites.push({ id: "gate", x: (i % 60 < 30 ? -1 : 1) * (edge + 0.15) });
+    if (open && i % 140 === 70 && set.special.includes("banner")) s.sprites.push({ id: "banner", x: (i % 280 < 140 ? -1 : 1) * (edge + 0.2) });
   }
   // start & finish dressing
   segs[16].sprites.push({ id: "startgate", x: 0, gate: 1 });
@@ -205,7 +295,7 @@ function buildTrack(def) {
     segs[i].sprites.push({ id: "crowd", x: -(segs[i].w + 0.9) }, { id: "crowd", x: segs[i].w + 0.9 });
   }
   return {
-    def, biome, segs, N,
+    def, biome, segs, N, beats,
     length: N * SEG,
     finishZ: finishIdx * SEG,
     startZ: 22 * SEG,

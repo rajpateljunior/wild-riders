@@ -175,6 +175,12 @@ button, .trk, .seg button, .back { touch-action: manipulation; }
   .stats { font-size: 9px; gap: 2px 6px; }
   .footer { min-height: 46px; }
 }
+.lock .after { font: 700 12px "Chakra Petch", sans-serif; color: #c9c2d8; }
+/* secret switch indicator: a tiny pink dot in the button's corner */
+[data-act="split"] { position: relative; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+[data-act="split"].cz::after { content: ""; position: absolute; right: 7px; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: #ff79b0; box-shadow: 0 0 4px #ff79b0; }
+.czpop { position: fixed; z-index: 50; color: #ff79b0; font-size: 22px; pointer-events: none; animation: czpop .9s ease-out forwards; }
+@keyframes czpop { from { transform: translateY(0) scale(.6); opacity: 1; } to { transform: translateY(-26px) scale(1.2); opacity: 0; } }
 
 </style>
 </head>
@@ -326,15 +332,22 @@ const RIDERS = [
     paint: "#38e05a", paint2: "#141318", cost: 2200 },
 ];
 
+/* Vehicles, in unlock order (each one unlocks only after the one before it).
+   w = hit width (world units), sw = drawn width of the 240px rider sprite (world units), so the rider is the same size on every ride.
+   shove = pushes lighter riders aside on contact; regen = boost meter refill per second. */
 const VEHICLES = [
   { id: "mtb", name: "Downhill MTB", short: "MTB", blurb: "Nimble full-suspension bike. Great at tricks and tight lines.",
-    max: 1.0, acc: 1.0, grip: 1.1, armor: 0.0, trick: 1.15, mass: 1.0, w: 520, h: 860, cost: 0 },
+    max: 1.0, acc: 1.0, grip: 1.1, armor: 0.0, trick: 1.15, mass: 1.0, w: 520, sw: 650, cost: 0 },
   { id: "bmx", name: "BMX", short: "BMX", blurb: "Tiny and twitchy. Biggest trick boost, lowest top speed.",
-    max: 0.95, acc: 1.15, grip: 1.2, armor: -0.1, trick: 1.45, mass: 0.8, w: 460, h: 780, cost: 0 },
+    max: 0.95, acc: 1.15, grip: 1.2, armor: -0.1, trick: 1.45, mass: 0.8, w: 460, sw: 600, cost: 0 },
+  { id: "ebike", name: "Enduro E-Bike", short: "E-BIKE", blurb: "Electric kick off the line, and the battery slowly refills your boost. Light frame, so hits hurt.",
+    max: 1.0, acc: 1.3, grip: 1.05, armor: -0.08, trick: 1.0, mass: 1.05, w: 540, sw: 660, regen: 2.4, cost: 1500 },
   { id: "dirt", name: "Dirt Bike", short: "DIRT", blurb: "Raw engine power. The fastest machine on the mountain.",
-    max: 1.08, acc: 1.1, grip: 0.95, armor: 0.1, trick: 0.9, mass: 1.3, w: 600, h: 880, cost: 2000 },
+    max: 1.08, acc: 1.1, grip: 0.95, armor: 0.1, trick: 0.9, mass: 1.3, w: 600, sw: 740, cost: 2000 },
   { id: "atv", name: "ATV Quad", short: "ATV", blurb: "Four-wheeled tank. Shrugs off hits and shoves riders aside.",
-    max: 1.03, acc: 0.9, grip: 0.86, armor: 0.3, trick: 0.6, mass: 1.8, w: 900, h: 820, cost: 2600 },
+    max: 1.03, acc: 0.9, grip: 0.86, armor: 0.3, trick: 0.6, mass: 1.8, w: 680, sw: 780, shove: 1, cost: 2600 },
+  { id: "squad", name: "Sport Quad", short: "SPORT", blurb: "A race-tuned quad: lighter and faster than the ATV, still shoves bikes aside, but less armor.",
+    max: 1.07, acc: 1.02, grip: 0.95, armor: 0.14, trick: 0.75, mass: 1.5, w: 650, sw: 760, shove: 1, cost: 3400 },
 ];
 
 // Throwables. dmg = health damage, spd = forward speed bonus (units/s), slow = speed multiplier on hit.
@@ -358,49 +371,166 @@ const BIOMES = [
   { id: "forest", name: "Redwood Run", sub: "Ancient forest", item: "pinecone", unlock: 0,
     sky: ["#7fc4e8", "#cfe9d9", "#fbe9b7"], fog: "#b9d9c4", sun: "#fff3c4", sunY: 0.18, sunX: 0.72,
     road: ["#9b6a43", "#8c5e3a"], rut: "#6e4a2c", edge: ["#5c3d26", "#e8d7b8"], ground: ["#3f7d36", "#37722f"],
+    rock: ["#6f6a5e", "#4f8a3a"], chasm: ["#2c4a3b", "#284434"], water: ["#3f8fb8", "#58a6cc"], bridgeOver: "water", plank: ["#9a6a3c", "#8a5c32"],
     weather: "shafts", music: 0,
     hazard: "Fallen logs and root gardens. Hit the side lines for shortcuts." },
   { id: "desert", name: "Saffron Dunes", sub: "Red-rock desert", item: "pear", unlock: 3,
     sky: ["#2f8fd8", "#8fd0f0", "#ffe2a8"], fog: "#f3cf9a", sun: "#fffbe0", sunY: 0.12, sunX: 0.3,
     road: ["#e0a865", "#d39b58"], rut: "#b9814a", edge: ["#a8562f", "#f6e2b8"], ground: ["#e9b46e", "#dfa962"],
+    rock: ["#c4562b", "#e07a45"], chasm: ["#7a3518", "#6e2f15"], water: ["#3fa0c8", "#5cb6d8"], bridgeOver: "chasm", plank: ["#a8743f", "#966536"],
     weather: "sand", music: 1,
     hazard: "Soft sand drags you down. Sandstorms roll in without warning." },
   { id: "glacier", name: "Glacier Peak", sub: "High alpine snow", item: "snowball", unlock: 7,
     sky: ["#3d74c9", "#a8cdf2", "#eef6ff"], fog: "#e3eefb", sun: "#ffffff", sunY: 0.1, sunX: 0.62,
     road: ["#e8f0fa", "#dbe6f4"], rut: "#b9c9df", edge: ["#7aa3cf", "#ffffff"], ground: ["#f4f8ff", "#e9f1fc"],
+    rock: ["#9fb8d6", "#ffffff"], chasm: ["#4f76a3", "#47699a"], water: ["#7fd0f0", "#9fdcf5"], bridgeOver: "chasm", plank: ["#8a6a4a", "#7a5c3e"],
     weather: "snow", music: 2,
     hazard: "Blue ice slides. On Avalanche! the mountain itself chases you." },
   { id: "ghats", name: "Monsoon Ghats", sub: "Rainforest & tea terraces", item: "coconut", unlock: 11,
     sky: ["#5f7f8c", "#9fb9b4", "#d8e4cf"], fog: "#a9c2b2", sun: "#f3f7e6", sunY: 0.2, sunX: 0.5,
     road: ["#a0522d", "#93491f"], rut: "#6f3518", edge: ["#5b2d15", "#e9dcb8"], ground: ["#2f8a3e", "#2a7e37"],
+    rock: ["#5a5a4a", "#3c8a3c"], chasm: ["#21483a", "#1d4133"], water: ["#4a8a9a", "#62a0ae"], bridgeOver: "water", plank: ["#8f5b31", "#7f4f2a"],
     weather: "rain", music: 3,
     hazard: "Mud pits and river crossings. Monsoon rain never stops." },
   { id: "volcano", name: "Ember Caldera", sub: "Active volcano", item: "magma", unlock: 15,
     sky: ["#1a0f1f", "#6b2130", "#ff7a3d"], fog: "#5b2a2a", sun: "#ffb36b", sunY: 0.32, sunX: 0.5,
     road: ["#3d3434", "#332b2b"], rut: "#241e1e", edge: ["#ff5a1f", "#1b1515"], ground: ["#2a2222", "#231c1c"],
+    rock: ["#3a2e2e", "#55403a"], chasm: ["#ff5a1f", "#ff7a2f"], water: ["#ff5a1f", "#ff8a2f"], bridgeOver: "chasm", plank: ["#4a4040", "#3e3535"], lavaSide: 1,
     weather: "ash", music: 4,
     hazard: "Lava cracks burn. Steam geysers launch you sky-high." },
   { id: "tundra", name: "Aurora Tundra", sub: "Arctic night", item: "iceshard", unlock: 19,
     sky: ["#050817", "#0d1b3d", "#1d3a5c"], fog: "#14284a", sun: "#e8f1ff", sunY: 0.16, sunX: 0.24,
     road: ["#c9d7ea", "#bccbe0"], rut: "#9fb0c9", edge: ["#4a6a96", "#e9f3ff"], ground: ["#8ea5c4", "#859cbb"],
+    rock: ["#3a4a66", "#dbe8ff"], chasm: ["#0a1426", "#08101f"], water: ["#2a4a7a", "#35588a"], bridgeOver: "water", plank: ["#5a4a3e", "#4e4035"],
     weather: "aurora", music: 5, dark: 1,
     hazard: "Pitch-black stretches lit only by your headlamp. Frozen lakes slide." },
 ];
 
-/* Tracks: 2 per biome. Section scripts are expanded by track.js. */
+/* Tracks: 2 per biome. Each has its own hand-written `plan` (a list of beats that track.js expands), so every
+   trail turns, drops and passes through places differently. Beat keys:
+     t: S straight · T turn · E esses (k alternating bends) · H hairpin · SW switchbacks (k hairpins) · C steep chute
+        X crest-then-plunge · ST staircase (k drop-and-flat steps)
+     dir: -1 left / 1 right · c: bend strength · n: length in segments (scaled to fit `len`) · d: total drop (segments)
+     z: scenery zone (BIOME_SCENERY[biome].zones) · f: feature — tunnel, falls (behind a waterfall), cave (crystal cave),
+        bridge, canyon (rock walls both sides), mtn (mountain wall on the inside of the bend, drop-off outside),
+        cliffL/cliffR (wall on that side, drop-off on the other), waterL/waterR, lavaL/lavaR (river beside the trail),
+        lake (frozen lake both sides), ford (river across the trail)
+   `look` tints the sky for the second trail of a biome (time of day). */
 const TRACKS = [
-  { id: "f1", biome: 0, name: "Fernline Descent", seed: 1101, len: 3300, curvy: 0.7, hilly: 0.8, ramps: 5, splits: 2, pads: 7, haz: 0.6 },
-  { id: "f2", biome: 0, name: "Giant's Staircase", seed: 1102, len: 3700, curvy: 0.85, hilly: 1.2, ramps: 8, splits: 3, pads: 8, haz: 0.85 },
-  { id: "d1", biome: 1, name: "Mesa Drop", seed: 2201, len: 3500, curvy: 0.6, hilly: 1.0, ramps: 6, splits: 2, pads: 8, haz: 0.7 },
-  { id: "d2", biome: 1, name: "Sandstorm Alley", seed: 2202, len: 3800, curvy: 0.9, hilly: 0.9, ramps: 6, splits: 3, pads: 9, haz: 0.9, storm: 1 },
-  { id: "g1", biome: 2, name: "Frostbite Run", seed: 3301, len: 3600, curvy: 0.8, hilly: 1.1, ramps: 7, splits: 2, pads: 8, haz: 0.8 },
-  { id: "g2", biome: 2, name: "Avalanche!", seed: 3302, len: 3900, curvy: 0.75, hilly: 1.4, ramps: 8, splits: 2, pads: 10, haz: 0.9, avalanche: 1 },
-  { id: "m1", biome: 3, name: "Tea Terrace Twist", seed: 4401, len: 3700, curvy: 1.0, hilly: 1.0, ramps: 6, splits: 3, pads: 8, haz: 0.85 },
-  { id: "m2", biome: 3, name: "Waterfall Gauntlet", seed: 4402, len: 4000, curvy: 0.95, hilly: 1.3, ramps: 8, splits: 3, pads: 9, haz: 1.0 },
-  { id: "v1", biome: 4, name: "Ashfall Chute", seed: 5501, len: 3800, curvy: 0.85, hilly: 1.2, ramps: 7, splits: 2, pads: 9, haz: 0.95 },
-  { id: "v2", biome: 4, name: "Geyser Gorge", seed: 5502, len: 4100, curvy: 1.0, hilly: 1.4, ramps: 9, splits: 3, pads: 10, haz: 1.05 },
-  { id: "t1", biome: 5, name: "Northern Lights", seed: 6601, len: 3900, curvy: 0.9, hilly: 1.1, ramps: 7, splits: 2, pads: 9, haz: 0.95 },
-  { id: "t2", biome: 5, name: "Midnight Lake", seed: 6602, len: 4200, curvy: 1.05, hilly: 1.2, ramps: 8, splits: 3, pads: 10, haz: 1.1 },
+  { id: "f1", biome: 0, name: "Fernline Descent", seed: 1101, len: 3300, curvy: 0.8, hilly: 0.8, ramps: 5, splits: 2, pads: 7, haz: 0.6,
+    blurb: "Flowing forest bends, a sunny meadow and a wooden bridge over the river.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "deep" }, { t: "T", dir: 1, c: 3, n: 180, d: 30, z: "deep" }, { t: "T", dir: -1, c: 3.5, n: 160, d: 28, z: "deep" },
+      { t: "S", n: 90, d: 10, z: "meadow" }, { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "meadow" }, { t: "T", dir: 1, c: 2.5, n: 130, d: 14, z: "river", f: "waterL" },
+      { t: "S", n: 70, d: 2, z: "river", f: "bridge" }, { t: "T", dir: -1, c: 4.5, n: 150, d: 34, z: "deep" }, { t: "X", n: 130, d: 40, z: "deep" },
+      { t: "T", dir: 1, c: 5, n: 130, d: 26, z: "camp" }, { t: "S", n: 90, d: 8, z: "camp" }, { t: "H", dir: -1, d: 6, z: "deep" },
+      { t: "C", n: 120, d: 60, z: "deep" }, { t: "T", dir: 1, c: 3, n: 170, d: 34, z: "meadow" }, { t: "E", dir: -1, k: 2, c: 3.5, n: 150, d: 24, z: "deep" },
+      { t: "T", dir: -1, c: 2, n: 150, d: 20, z: "river", f: "waterR" }, { t: "S", n: 100, d: 10, z: "deep" },
+    ] },
+  { id: "f2", biome: 0, name: "Giant's Staircase", seed: 1102, len: 3700, curvy: 0.9, hilly: 1.1, ramps: 7, splits: 2, pads: 8, haz: 0.85,
+    blurb: "Switchbacks down a cliff face, rock tunnels and a logging camp. Golden hour.",
+    look: { sky: ["#e98a4f", "#f6c08a", "#ffe6b0"], fog: "#e7c29a", sun: "#fff0c0", sunY: 0.3, sunX: 0.22 },
+    plan: [
+      { t: "S", n: 60, d: 6, z: "deep" }, { t: "T", dir: -1, c: 3, n: 140, d: 34, z: "deep", f: "mtn" }, { t: "SW", dir: 1, k: 3, d: 14, z: "deep", f: "mtn" },
+      { t: "ST", k: 4, d: 16, z: "camp" }, { t: "T", dir: 1, c: 4, n: 120, d: 30, f: "tunnel" }, { t: "C", n: 110, d: 64, z: "deep" },
+      { t: "SW", dir: -1, k: 2, d: 14, z: "deep", f: "mtn" }, { t: "T", dir: -1, c: 3, n: 140, d: 24, z: "camp" }, { t: "ST", k: 3, d: 18, z: "deep" },
+      { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 40, z: "deep" }, { t: "H", dir: 1, d: 8, z: "deep", f: "mtn" }, { t: "X", n: 120, d: 50, z: "meadow" },
+      { t: "T", dir: -1, c: 5, n: 130, d: 30, f: "tunnel" }, { t: "S", n: 80, d: 12, z: "meadow" }, { t: "SW", dir: 1, k: 2, d: 16, z: "deep", f: "mtn" },
+      { t: "C", n: 120, d: 70, z: "deep" }, { t: "S", n: 80, d: 8, z: "meadow" },
+    ] },
+  { id: "d1", biome: 1, name: "Mesa Drop", seed: 2201, len: 3500, curvy: 0.75, hilly: 1.0, ramps: 6, splits: 2, pads: 8, haz: 0.7,
+    blurb: "Winding red-rock canyons, an adobe village and a plunge off the mesa edge.",
+    plan: [
+      { t: "S", n: 90, d: 4, z: "open" }, { t: "T", dir: 1, c: 2, n: 200, d: 20, z: "open" }, { t: "E", dir: -1, k: 4, c: 4.5, n: 260, d: 36, f: "canyon" },
+      { t: "S", n: 100, d: 6, z: "pueblo" }, { t: "T", dir: -1, c: 3, n: 150, d: 20, z: "pueblo" }, { t: "X", n: 150, d: 60, z: "open" },
+      { t: "C", n: 130, d: 74, z: "open", f: "cliffR" }, { t: "T", dir: 1, c: 3.5, n: 160, d: 30, z: "open" }, { t: "E", dir: 1, k: 3, c: 5, n: 200, d: 30, f: "canyon" },
+      { t: "S", n: 120, d: 10, z: "oasis", f: "waterR" }, { t: "T", dir: -1, c: 2.5, n: 160, d: 20, z: "oasis" }, { t: "H", dir: 1, d: 6, f: "canyon" },
+      { t: "S", n: 160, d: 12, z: "open" }, { t: "T", dir: -1, c: 4, n: 150, d: 34, z: "open" }, { t: "S", n: 100, d: 8, z: "pueblo" },
+    ] },
+  { id: "d2", biome: 1, name: "Sandstorm Alley", seed: 2202, len: 3800, curvy: 0.9, hilly: 0.9, ramps: 6, splits: 3, pads: 9, haz: 0.9, storm: 1,
+    blurb: "Flat-out desert straights cut by hairpins and a dark slot canyon. Hazy sunset.",
+    look: { sky: ["#c9653a", "#ee9f62", "#ffd49a"], fog: "#f0bb85", sun: "#fff3d0", sunY: 0.26, sunX: 0.7 },
+    plan: [
+      { t: "S", n: 200, d: 14, z: "open" }, { t: "H", dir: -1, d: 6, f: "canyon" }, { t: "S", n: 240, d: 20, z: "open" }, { t: "H", dir: 1, d: 6, f: "canyon" },
+      { t: "S", n: 160, d: 12, z: "oasis", f: "waterL" }, { t: "T", dir: 1, c: 3, n: 140, d: 20, z: "oasis" }, { t: "S", n: 220, d: 22, z: "open" },
+      { t: "T", dir: -1, c: 4, n: 120, d: 20, f: "tunnel" }, { t: "S", n: 200, d: 18, z: "open" }, { t: "SW", dir: -1, k: 2, d: 10, f: "canyon" },
+      { t: "S", n: 240, d: 24, z: "pueblo" }, { t: "H", dir: 1, d: 6, f: "canyon" }, { t: "C", n: 140, d: 60, z: "open" }, { t: "S", n: 200, d: 14, z: "open" },
+    ] },
+  { id: "g1", biome: 2, name: "Frostbite Run", seed: 3301, len: 3600, curvy: 0.85, hilly: 1.1, ramps: 7, splits: 2, pads: 8, haz: 0.8,
+    blurb: "Ski-resort slalom past the lodges, an ice tunnel and a bridge over a crevasse.",
+    plan: [
+      { t: "S", n: 80, d: 6, z: "resort" }, { t: "E", dir: 1, k: 4, c: 3.5, n: 260, d: 40, z: "resort" }, { t: "S", n: 100, d: 10, z: "resort" },
+      { t: "T", dir: -1, c: 3, n: 160, d: 30, z: "bowl" }, { t: "X", n: 120, d: 40, z: "bowl" }, { t: "T", dir: 1, c: 4.5, n: 150, d: 30, f: "tunnel" },
+      { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 34, z: "icefall" }, { t: "S", n: 110, d: 14, z: "resort" }, { t: "H", dir: 1, d: 6, z: "icefall", f: "mtn" },
+      { t: "C", n: 140, d: 70, z: "bowl" }, { t: "S", n: 80, d: 6, z: "icefall", f: "bridge" }, { t: "T", dir: -1, c: 3, n: 150, d: 24, z: "resort" },
+      { t: "E", dir: 1, k: 3, c: 3.5, n: 200, d: 30, z: "resort" }, { t: "S", n: 120, d: 10, z: "resort" },
+    ] },
+  { id: "g2", biome: 2, name: "Avalanche!", seed: 3302, len: 3900, curvy: 0.75, hilly: 1.3, ramps: 8, splits: 2, pads: 10, haz: 0.9, avalanche: 1,
+    blurb: "Steep chutes, cliff ledges and an avalanche shed, with the mountain right behind you. Grey storm sky.",
+    look: { sky: ["#7489a8", "#bccadc", "#eef3fa"], fog: "#dfe7f2", sun: "#f4f7ff", sunY: 0.14, sunX: 0.4 },
+    plan: [
+      { t: "S", n: 60, d: 10, z: "bowl" }, { t: "C", n: 160, d: 90, z: "bowl" }, { t: "T", dir: -1, c: 3, n: 150, d: 50, z: "icefall", f: "mtn" },
+      { t: "C", n: 140, d: 84, z: "bowl" }, { t: "T", dir: 1, c: 4, n: 140, d: 40, f: "tunnel" }, { t: "C", n: 150, d: 90, z: "bowl" },
+      { t: "S", n: 80, d: 20, z: "icefall", f: "bridge" }, { t: "T", dir: -1, c: 4.5, n: 140, d: 50, z: "icefall", f: "mtn" }, { t: "X", n: 140, d: 70, z: "bowl" },
+      { t: "E", dir: 1, k: 3, c: 4, n: 210, d: 70, z: "icefall" }, { t: "C", n: 160, d: 96, z: "bowl" }, { t: "T", dir: 1, c: 3, n: 150, d: 50, z: "icefall", f: "mtn" },
+      { t: "S", n: 100, d: 20, z: "resort" },
+    ] },
+  { id: "m1", biome: 3, name: "Tea Terrace Twist", seed: 4401, len: 3700, curvy: 1.0, hilly: 1.0, ramps: 6, splits: 2, pads: 8, haz: 0.85,
+    blurb: "Non-stop S-bends through tea terraces, a festival village and two river fords.",
+    plan: [
+      { t: "S", n: 70, d: 6, z: "terrace" }, { t: "E", dir: -1, k: 5, c: 4, n: 320, d: 40, z: "terrace" }, { t: "S", n: 90, d: 8, z: "village" },
+      { t: "E", dir: 1, k: 3, c: 3.5, n: 200, d: 20, z: "village" }, { t: "T", dir: 1, c: 3, n: 140, d: 16, z: "terrace", f: "ford" },
+      { t: "E", dir: -1, k: 4, c: 4.5, n: 260, d: 40, z: "terrace" }, { t: "H", dir: -1, d: 6, z: "jungle", f: "mtn" }, { t: "E", dir: 1, k: 4, c: 4, n: 260, d: 34, z: "jungle" },
+      { t: "S", n: 90, d: 8, z: "village" }, { t: "E", dir: -1, k: 5, c: 4.5, n: 320, d: 44, z: "terrace" }, { t: "T", dir: -1, c: 3, n: 150, d: 20, z: "terrace", f: "ford" },
+      { t: "S", n: 90, d: 8, z: "village" },
+    ] },
+  { id: "m2", biome: 3, name: "Waterfall Gauntlet", seed: 4402, len: 4000, curvy: 0.95, hilly: 1.2, ramps: 8, splits: 2, pads: 9, haz: 1.0,
+    blurb: "Jungle gorge bridges, cliffside hairpins and two rides right behind the waterfalls. Misty morning.",
+    look: { sky: ["#6f8d9c", "#b6cbc6", "#e9efdb"], fog: "#c3d3c7", sun: "#fbfbea", sunY: 0.16, sunX: 0.62 },
+    plan: [
+      { t: "S", n: 80, d: 8, z: "jungle" }, { t: "T", dir: 1, c: 3.5, n: 170, d: 36, z: "jungle", f: "waterR" }, { t: "S", n: 90, d: 4, z: "jungle", f: "bridge" },
+      { t: "T", dir: -1, c: 4, n: 150, d: 34, z: "jungle", f: "mtn" }, { t: "SW", dir: 1, k: 2, d: 12, z: "jungle", f: "mtn" }, { t: "T", dir: -1, c: 3, n: 130, d: 20, f: "falls" },
+      { t: "E", dir: 1, k: 3, c: 4.5, n: 210, d: 40, z: "jungle" }, { t: "S", n: 90, d: 4, z: "jungle", f: "bridge" }, { t: "X", n: 130, d: 50, z: "jungle" },
+      { t: "H", dir: 1, d: 8, z: "jungle", f: "mtn" }, { t: "C", n: 130, d: 64, z: "jungle" }, { t: "T", dir: -1, c: 3, n: 150, d: 20, z: "village" },
+      { t: "E", dir: 1, k: 3, c: 4, n: 210, d: 34, z: "terrace" }, { t: "T", dir: 1, c: 3, n: 140, d: 20, f: "falls" }, { t: "S", n: 100, d: 10, z: "village" },
+    ] },
+  { id: "v1", biome: 4, name: "Ashfall Chute", seed: 5501, len: 3800, curvy: 0.85, hilly: 1.1, ramps: 7, splits: 2, pads: 9, haz: 0.95,
+    blurb: "Steep chutes beside lava rivers, big crest jumps and a glowing lava tube.",
+    plan: [
+      { t: "S", n: 70, d: 10, z: "ash" }, { t: "C", n: 180, d: 100, z: "ash" }, { t: "T", dir: -1, c: 3, n: 170, d: 40, z: "ash", f: "lavaR" },
+      { t: "X", n: 130, d: 60, z: "ash" }, { t: "C", n: 160, d: 100, z: "obsidian" }, { t: "T", dir: 1, c: 4, n: 150, d: 44, f: "tunnel" },
+      { t: "C", n: 150, d: 90, z: "ash", f: "lavaL" }, { t: "X", n: 130, d: 60, z: "obsidian" }, { t: "E", dir: -1, k: 3, c: 4, n: 200, d: 60, z: "obsidian" },
+      { t: "C", n: 170, d: 100, z: "ash" }, { t: "T", dir: 1, c: 3, n: 150, d: 40, z: "ash", f: "lavaL" }, { t: "S", n: 100, d: 14, z: "ash" },
+    ] },
+  { id: "v2", biome: 4, name: "Geyser Gorge", seed: 5502, len: 4100, curvy: 1.0, hilly: 1.2, ramps: 8, splits: 2, pads: 10, haz: 1.05,
+    blurb: "A narrow gorge, cliff switchbacks, an obsidian field and bridges over the lava lake. Violet night.",
+    look: { sky: ["#0d0817", "#35173d", "#9c3636"], fog: "#3d1f33", sun: "#ffc08a", sunY: 0.36, sunX: 0.7 },
+    plan: [
+      { t: "S", n: 70, d: 8, z: "ash" }, { t: "E", dir: 1, k: 4, c: 4.5, n: 260, d: 44, f: "canyon" }, { t: "S", n: 90, d: 10, z: "ash", f: "bridge" },
+      { t: "SW", dir: -1, k: 3, d: 12, z: "ash", f: "mtn" }, { t: "T", dir: 1, c: 4, n: 160, d: 30, f: "tunnel" }, { t: "S", n: 110, d: 14, z: "obsidian" },
+      { t: "E", dir: -1, k: 3, c: 5, n: 220, d: 40, f: "canyon" }, { t: "H", dir: -1, d: 8, z: "ash", f: "mtn" }, { t: "X", n: 130, d: 50, z: "obsidian" },
+      { t: "T", dir: 1, c: 3, n: 150, d: 24, z: "ash", f: "lavaR" }, { t: "S", n: 90, d: 8, z: "ash", f: "bridge" }, { t: "E", dir: 1, k: 4, c: 4.5, n: 260, d: 44, z: "ash" },
+      { t: "SW", dir: 1, k: 2, d: 12, z: "obsidian", f: "mtn" }, { t: "S", n: 110, d: 10, z: "obsidian" },
+    ] },
+  { id: "t1", biome: 5, name: "Northern Lights", seed: 6601, len: 3900, curvy: 0.9, hilly: 1.0, ramps: 7, splits: 2, pads: 9, haz: 0.95,
+    blurb: "Wide frozen plains, two crossings over a frozen lake and a lantern-lit igloo village.",
+    plan: [
+      { t: "S", n: 90, d: 6, z: "forest" }, { t: "T", dir: 1, c: 2.5, n: 220, d: 24, z: "plains" }, { t: "T", dir: -1, c: 2.5, n: 200, d: 24, z: "plains" },
+      { t: "S", n: 140, d: 6, z: "lake", f: "lake" }, { t: "T", dir: 1, c: 3, n: 150, d: 16, z: "village" }, { t: "S", n: 90, d: 6, z: "village" },
+      { t: "E", dir: -1, k: 4, c: 4, n: 260, d: 36, z: "forest" }, { t: "X", n: 130, d: 40, z: "plains" }, { t: "T", dir: -1, c: 3.5, n: 170, d: 30, z: "plains" },
+      { t: "S", n: 140, d: 6, z: "lake", f: "lake" }, { t: "E", dir: 1, k: 3, c: 4, n: 210, d: 30, z: "forest" }, { t: "H", dir: 1, d: 6, z: "forest" },
+      { t: "T", dir: -1, c: 3, n: 170, d: 20, z: "village" }, { t: "S", n: 110, d: 8, z: "village" },
+    ] },
+  { id: "t2", biome: 5, name: "Midnight Lake", seed: 6602, len: 4200, curvy: 1.0, hilly: 1.1, ramps: 8, splits: 2, pads: 10, haz: 1.1,
+    blurb: "Along the lakeshore, through glowing crystal caves and down icy switchbacks.",
+    look: { sky: ["#02060f", "#06182b", "#0f3846"], fog: "#0f2a3e" },
+    plan: [
+      { t: "S", n: 80, d: 6, z: "forest" }, { t: "T", dir: -1, c: 3, n: 200, d: 24, z: "forest", f: "waterL" }, { t: "T", dir: 1, c: 2.5, n: 180, d: 16, z: "village", f: "waterL" },
+      { t: "T", dir: 1, c: 4, n: 160, d: 30, f: "cave" }, { t: "SW", dir: -1, k: 3, d: 12, z: "forest", f: "mtn" }, { t: "S", n: 100, d: 6, z: "lake", f: "bridge" },
+      { t: "E", dir: 1, k: 3, c: 4.5, n: 210, d: 34, z: "forest" }, { t: "T", dir: -1, c: 3, n: 170, d: 20, z: "plains", f: "waterR" }, { t: "C", n: 140, d: 60, z: "forest" },
+      { t: "T", dir: 1, c: 4, n: 160, d: 30, f: "cave" }, { t: "E", dir: -1, k: 4, c: 4, n: 260, d: 34, z: "forest" }, { t: "S", n: 120, d: 6, z: "lake", f: "lake" },
+      { t: "H", dir: -1, d: 6, z: "forest" }, { t: "S", n: 110, d: 8, z: "village" },
+    ] },
 ];
 
 const PAYOUT = [600, 420, 300, 220, 170, 130, 100, 80];
@@ -454,7 +584,9 @@ const VGEO = {
   mtb:  { gl: [58, 126], gr: [182, 126], fl: [92, 238], fr: [148, 238], hipY: 168, shY: 104, head: [120, 72], pedal: 1 },
   bmx:  { gl: [72, 142], gr: [168, 142], fl: [96, 252], fr: [144, 252], hipY: 184, shY: 122, head: [120, 90], pedal: 1 },
   dirt: { gl: [50, 122], gr: [190, 122], fl: [86, 234], fr: [154, 234], hipY: 166, shY: 102, head: [120, 70], pedal: 0 },
-  atv:  { gl: [38, 140], gr: [202, 140], fl: [64, 226], fr: [176, 226], hipY: 188, shY: 114, head: [120, 82], pedal: 0 },
+  atv:  { gl: [40, 142], gr: [200, 142], fl: [66, 226], fr: [174, 226], hipY: 186, shY: 114, head: [120, 82], pedal: 0 },
+  ebike: { gl: [58, 124], gr: [182, 124], fl: [92, 236], fr: [148, 236], hipY: 166, shY: 102, head: [120, 70], pedal: 1 },
+  squad: { gl: [44, 148], gr: [196, 148], fl: [64, 232], fr: [176, 232], hipY: 192, shY: 120, head: [120, 88], pedal: 0 },
 };
 
 function backVehicleUnder(v, r) {
@@ -462,19 +594,29 @@ function backVehicleUnder(v, r) {
   const g = VGEO[v];
   const p = r.paint, p2 = r.paint2;
   let s = "";
-  if (v === "mtb" || v === "bmx") {
+  if (v === "mtb" || v === "bmx" || v === "ebike") {
     s += SV.poly([g.gl, [g.gl[0] + 22, g.gl[1] - 6], [120, g.gl[1] - 10], [g.gr[0] - 22, g.gr[1] - 6], g.gr], 6, "#2b2b33");
     s += SV.line(120, g.gl[1] - 8, 120, g.gl[1] + 26, 8, "#3a3a44");
+    if (v === "ebike") s += SV.rect(110, g.gl[1] - 22, 20, 12, 4, "#1e1e24", 2.5) + `<rect x="113" y="${g.gl[1] - 19}" width="14" height="6" rx="2" fill="#2bd9ff"/>`; // display
     // front tire peeking below handlebars
-    s += SV.rect(112, g.gl[1] + 34, 16, v === "bmx" ? 60 : 72, 8, "#1e1e22", 3);
+    s += SV.rect(v === "ebike" ? 110 : 112, g.gl[1] + 34, v === "ebike" ? 20 : 16, v === "bmx" ? 60 : 72, 8, "#1e1e22", 3);
   } else if (v === "dirt") {
     s += SV.path(`M78 ${g.gl[1] + 8} Q120 ${g.gl[1] - 26} 162 ${g.gl[1] + 8} L150 ${g.gl[1] + 30} Q120 ${g.gl[1] + 14} 90 ${g.gl[1] + 30}Z`, p, 3); // number board
     s += SV.poly([g.gl, [g.gl[0] + 30, g.gl[1] - 10], [g.gr[0] - 30, g.gr[1] - 10], g.gr], 7, "#2b2b33");
     s += SV.rect(106, g.gl[1] + 30, 28, 66, 12, "#1c1c20", 3);
+  } else if (v === "atv") {
+    // front tires, sculpted hood with racing stripe, bars with hand guards
+    s += SV.rect(30, 152, 42, 46, 14, "#17171b", 3) + SV.rect(168, 152, 42, 46, 14, "#17171b", 3);
+    s += SV.path(`M50 ${g.gl[1] + 22} L76 ${g.gl[1] - 6} L164 ${g.gl[1] - 6} L190 ${g.gl[1] + 22} L172 ${g.gl[1] + 46} L68 ${g.gl[1] + 46}Z`, p, 3);
+    s += `<path d="M108 ${g.gl[1] - 5} L104 ${g.gl[1] + 45} M132 ${g.gl[1] - 5} L136 ${g.gl[1] + 45}" stroke="${p2}" stroke-width="7"/>`;
+    s += SV.poly([g.gl, [74, g.gl[1] - 14], [166, g.gr[1] - 14], g.gr], 7, "#2b2b33");
+    s += SV.path(`M${g.gl[0] - 14} ${g.gl[1] - 12} L${g.gl[0] + 8} ${g.gl[1] - 18} L${g.gl[0] + 6} ${g.gl[1] + 4}Z`, p2, 2.5) + SV.path(`M${g.gr[0] + 14} ${g.gr[1] - 12} L${g.gr[0] - 8} ${g.gr[1] - 18} L${g.gr[0] - 6} ${g.gr[1] + 4}Z`, p2, 2.5);
   } else {
-    s += SV.poly([g.gl, [70, g.gl[1] - 12], [170, g.gr[1] - 12], g.gr], 7, "#2b2b33");
-    s += SV.path(`M58 ${g.gl[1] + 18} Q120 ${g.gl[1] - 12} 182 ${g.gl[1] + 18} L170 ${g.gl[1] + 44} L70 ${g.gl[1] + 44}Z`, p, 3);
-    s += SV.rect(30, 150, 44, 50, 14, "#1b1b20", 3) + SV.rect(166, 150, 44, 50, 14, "#1b1b20", 3); // front tires peeking
+    // sport quad: low nose, slim front tires, flat bars
+    s += SV.rect(36, 162, 36, 40, 12, "#17171b", 3) + SV.rect(168, 162, 36, 40, 12, "#17171b", 3);
+    s += SV.path(`M60 ${g.gl[1] + 24} L84 ${g.gl[1] + 2} L156 ${g.gl[1] + 2} L180 ${g.gl[1] + 24} L164 ${g.gl[1] + 42} L76 ${g.gl[1] + 42}Z`, p2, 3);
+    s += `<path d="M84 ${g.gl[1] + 4} L76 ${g.gl[1] + 40} M156 ${g.gl[1] + 4} L164 ${g.gl[1] + 40}" stroke="${p}" stroke-width="6"/>`;
+    s += SV.poly([g.gl, [80, g.gl[1] - 8], [160, g.gr[1] - 8], g.gr], 6, "#2b2b33");
   }
   return s;
 }
@@ -518,17 +660,49 @@ function backVehicleOver(v, r, f) {
     s += `<text x="120" y="190" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="17" fill="${OL}">${r.num}</text>`;
     s += SV.rect(112, 197, 16, 7, 3, "#ff3030", 2);
     s += SV.path("M82 172 L96 160 L104 176 L90 190Z", p2, 2.5) + SV.path("M158 172 L144 160 L136 176 L150 190Z", p2, 2.5); // side panels
+  } else if (v === "ebike") {
+    s += SV.poly([[104, 250], [114, 194], [120, 186]], 6, p) + SV.poly([[136, 250], [126, 194], [120, 186]], 6, p);
+    s += SV.rect(104, 196, 32, 98, 15, "#202026", 3) + knobs(102, 196, 294, 32);    // plus-size tyre
+    s += `<rect x="111" y="202" width="6" height="84" rx="3" fill="#4a4a55"/>`;
+    s += SV.ell(120, 248, 13, 13, "#2b2b33", 2.5) + `<circle cx="120" cy="248" r="7" fill="none" stroke="#2bd9ff" stroke-width="2.5"/>`; // hub motor
+    s += SV.path("M102 200 Q120 184 138 200 L136 210 Q120 196 104 210Z", p2, 2.5);
+    s += SV.rect(108, 150, 24, 30, 6, "#2a2a32", 2.5) + `<rect x="112" y="156" width="4" height="4" fill="#2bd96a"/><rect x="118" y="156" width="4" height="4" fill="#2bd96a"/><rect x="124" y="156" width="4" height="4" fill="#2bd96a"/>`; // battery
+    s += SV.path("M108 176 Q120 168 132 176 L128 186 L112 186Z", "#222", 2.5);
+    s += SV.rect(112, 212, 16, 6, 3, "#ff3b3b", 1.5) + `<rect x="115" y="213" width="10" height="3" rx="1.5" fill="#ffd0d0"/>`;
+  } else if (v === "atv") {
+    // ATV: chunky chevron-tread rear tyres, sculpted fenders with stripes, LED tail bar, twin exhausts, chrome rack
+    const tire = (x) => {
+      let t = SV.rect(x, 212, 56, 82, 18, "#17171b", 3);
+      for (let y = 220; y < 288; y += 10) t += `<path d="M${x + 6} ${y} L${x + 28} ${y + 6} L${x + 50} ${y}" stroke="#34343e" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+      return t + `<rect x="${x + 4}" y="216" width="6" height="72" rx="3" fill="#2c2c34"/>`;
+    };
+    s += tire(12) + tire(172);
+    s += SV.rect(70, 240, 100, 14, 6, "#3a3a44", 3);                                          // axle housing
+    s += SV.ell(100, 250, 9, 8, "#c7ccd6", 2.5) + SV.ell(140, 250, 9, 8, "#c7ccd6", 2.5) + SV.ell(100, 250, 4, 4, "#26262c", 0) + SV.ell(140, 250, 4, 4, "#26262c", 0); // twin exhausts
+    const fender = (dir) => {
+      const X = (x) => (dir < 0 ? x : 240 - x);
+      return SV.path(`M${X(6)} 216 L${X(16)} 192 L${X(48)} 180 L${X(84)} 186 L${X(88)} 222 L${X(62)} 214 L${X(14)} 226Z`, p, 3) +
+        `<path d="M${X(20)} 196 L${X(50)} 186 L${X(80)} 190" stroke="${p2}" stroke-width="6" fill="none" stroke-linecap="round"/>` +
+        `<path d="M${X(18)} 206 L${X(46)} 196" stroke="#fff" stroke-width="3" opacity=".55" stroke-linecap="round"/>`;
+    };
+    s += fender(-1) + fender(1);
+    s += SV.path("M78 194 L162 194 L168 232 L72 232Z", p2, 3);                                  // tail body
+    s += SV.rect(80, 202, 80, 12, 5, "#1a1a20", 2.5) + `<rect x="84" y="205" width="24" height="6" rx="3" fill="#ff2a2a"/><rect x="132" y="205" width="24" height="6" rx="3" fill="#ff2a2a"/><rect x="112" y="205" width="16" height="6" rx="3" fill="#fff4d6"/>`;
+    s += `<text x="120" y="229" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="12" fill="#fff" stroke="${OL}" stroke-width=".6">${r.num}</text>`;
+    s += SV.poly([[78, 194], [82, 174], [158, 174], [162, 194]], 4, "#c9ced8") + SV.line(100, 174, 100, 192, 3, "#c9ced8") + SV.line(140, 174, 140, 192, 3, "#c9ced8"); // rack
   } else {
-    // ATV: two big rear tires, rack, tail light, fenders
-    const tire = (x) => SV.rect(x, 214, 52, 80, 20, "#1b1b20", 3) + knobs(x - 2, 214, 294, 52) +
-      `<rect x="${x + 10}" y="222" width="8" height="64" rx="4" fill="#3a3a44"/>`;
-    s += tire(16) + tire(172);
-    s += SV.rect(68, 238, 104, 14, 6, "#4a4a55", 3); // axle housing
-    s += SV.path("M10 214 Q40 180 78 196 L82 226 L14 228Z", p, 3) + SV.path("M230 214 Q200 180 162 196 L158 226 L226 228Z", p, 3);
-    s += SV.rect(70, 196, 100, 30, 8, p2, 3);
-    s += SV.rect(80, 184, 80, 10, 3, "#8d929e", 2.5) + SV.line(84, 184, 84, 200, 3, "#8d929e") + SV.line(156, 184, 156, 200, 3, "#8d929e");
-    s += SV.rect(100, 204, 40, 12, 4, "#ff2a2a", 2.5) + `<rect x="104" y="206" width="14" height="4" rx="2" fill="#ffd0d0"/>`;
-    s += `<text x="120" y="238" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="11" fill="#fff">${r.num}</text>`;
+    // Sport Quad: slimmer tyres, angular tail cowl, single LED strip, side exhaust and a whip flag
+    const tire = (x) => SV.rect(x, 222, 46, 72, 16, "#17171b", 3) + knobs(x - 2, 222, 294, 46);
+    s += tire(22) + tire(172);
+    s += SV.rect(68, 246, 104, 12, 5, "#3a3a44", 3);
+    s += SV.path("M150 236 L176 226 L184 244 L160 252Z", "#c7ccd6", 3) + SV.ell(180, 236, 7, 9, "#26262c", 2);       // exhaust
+    s += SV.path("M14 222 L30 198 L80 192 L86 226 L60 218 L20 232Z", p2, 3) + SV.path("M226 222 L210 198 L160 192 L154 226 L180 218 L220 232Z", p2, 3);
+    s += `<path d="M28 204 L78 198 M212 204 L162 198" stroke="${p}" stroke-width="5" stroke-linecap="round"/>`;
+    s += SV.path("M74 200 L120 186 L166 200 L160 236 L80 236Z", p, 3);                     // tail cowl
+    s += SV.rect(86, 214, 68, 8, 4, "#1a1a20", 2) + `<rect x="90" y="216" width="60" height="4" rx="2" fill="#ff3b3b"/>`;
+    s += `<text x="120" y="210" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="12" fill="#fff" stroke="${OL}" stroke-width=".6">${r.num}</text>`;
+    s += `<path d="M196 230 L214 40" stroke="${OL}" stroke-width="5"/><path d="M196 230 L214 40" stroke="#d9dde6" stroke-width="2.5"/>`;
+    s += SV.path(`M214 40 L${238 - f * 4} ${50 + f * 3} L214 66Z`, "#ff8a1c", 2.5);           // whip flag
   }
   return s;
 }
@@ -653,7 +827,7 @@ function riderBackSVG(r, v, pose, f) {
       shY += 18; head = [120, g.head[1] + 24]; break;
   }
   const sk = r.skin, glove = "#2a2730", boot = r.id === "rex" ? "#141318" : shade(r.dark, 0.1);
-  const isMoto = v === "dirt" || v === "atv";
+  const isMoto = v === "dirt" || v === "atv" || v === "squad";
 
   // arms (behind torso)
   const arm = (sh, el, ha) => SV.poly([sh, el, ha], lw, r.main) + SV.circ(ha[0], ha[1], 8.5 * k, glove, 2.5);
@@ -848,7 +1022,20 @@ function vehicleSideSVG(v, r) {
     for (let i = 0; i < 18; i++) { const a = (i / 18) * TAU; w += `<rect x="${(x + Math.cos(a) * R - 3).toFixed(1)}" y="${(y + Math.sin(a) * R - 3).toFixed(1)}" width="6" height="6" rx="1.5" fill="#111"/>`; }
     return w + SV.circ(x, y, 6, "#7d828c", 2);
   };
-  if (v === "mtb" || v === "bmx") {
+  if (v === "ebike") {
+    const y = 150, x1 = 70, x2 = 236;
+    s += wheel(x1, y, 52, 11) + wheel(x2, y, 52, 11);
+    const bb = [150, y - 4], seat = [124, 72], head = [206, 66];
+    s += SV.poly([[x1, y], bb, seat, [x1, y]], 10, p) + SV.poly([seat, head], 10, p);
+    s += SV.path(`M${head[0] - 6} ${head[1] + 8} L${bb[0] + 14} ${bb[1] - 8} L${bb[0] - 2} ${bb[1] - 16} L${head[0] - 22} ${head[1] + 2}Z`, "#2a2a32", 3); // battery down tube
+    for (let i = 0; i < 4; i++) s += `<rect x="${172 - i * 9}" y="${96 + i * 9}" width="5" height="5" fill="#2bd96a"/>`;
+    s += SV.circ(bb[0], bb[1], 16, "#3a3a44", 3) + `<circle cx="${bb[0]}" cy="${bb[1]}" r="8" fill="none" stroke="#2bd9ff" stroke-width="3"/>`;  // mid motor
+    s += SV.poly([head, [x2, y]], 9, "#c9ced8");
+    s += SV.rect(120, 90, 30, 11, 5, "#2bd9ff", 2.5);
+    s += SV.line(seat[0], seat[1], seat[0] - 8, seat[1] - 18, 6, "#2b2b33") + SV.path(`M${seat[0] - 30} ${seat[1] - 22} L${seat[0] + 14} ${seat[1] - 22} L${seat[0] + 6} ${seat[1] - 14} L${seat[0] - 26} ${seat[1] - 14}Z`, "#222", 2.5);
+    s += SV.poly([head, [head[0] - 6, head[1] - 22], [head[0] - 22, head[1] - 26]], 6, "#2b2b33") + SV.rect(head[0] - 30, head[1] - 34, 16, 10, 3, "#1e1e24", 2);
+    s += SV.rect(212, 70, 16, 10, 3, "#fff6c2", 2);
+  } else if (v === "mtb" || v === "bmx") {
     const R = v === "bmx" ? 40 : 52, y = 150, x1 = v === "bmx" ? 80 : 70, x2 = v === "bmx" ? 220 : 236;
     s += wheel(x1, y, R, 7) + wheel(x2, y, R, 7);
     const bb = [150, y - 6], seat = [v === "bmx" ? 120 : 126, v === "bmx" ? 88 : 70], head = [v === "bmx" ? 196 : 206, v === "bmx" ? 82 : 66];
@@ -869,16 +1056,29 @@ function vehicleSideSVG(v, r) {
     s += SV.poly([[230, 58], [240, 150]], 9, "#c9ced8") + SV.poly([[222, 46], [244, 40], [252, 30]], 6, "#2b2b33");
     s += SV.path("M196 64 Q238 44 268 70 L256 80 Q230 64 202 76Z", p2, 3); // front fender
     s += `<text x="168" y="102" font-family="${FONT}" font-weight="900" font-size="16" fill="#fff" stroke="${OL}" stroke-width=".8">${r ? r.num : 1}</text>`;
+  } else if (v === "atv") {
+    const y = 158;
+    s += wheel(72, y, 44, 17) + wheel(236, y, 44, 17);
+    s += SV.rect(124, 112, 66, 34, 6, "#7d828c", 3);                                          // engine
+    s += SV.path("M24 126 L40 96 L96 88 L118 104 L192 104 L214 86 L272 94 L288 124 L272 132 L30 136Z", p, 3);   // fenders + body
+    s += `<path d="M44 102 L94 94 M220 92 L268 100" stroke="${p2}" stroke-width="6" stroke-linecap="round"/>`;
+    s += SV.path("M112 104 L196 104 L190 78 L122 78Z", "#1e1e24", 3);                         // seat
+    s += SV.rect(14, 82, 68, 9, 4, "#c9ced8", 2.5) + SV.rect(226, 80, 62, 9, 4, "#c9ced8", 2.5); // racks
+    s += SV.poly([[204, 80], [216, 52], [238, 46]], 7, "#2b2b33");
+    s += SV.rect(278, 104, 18, 10, 3, "#fff6c2", 2.5) + `<rect x="284" y="96" width="14" height="5" rx="2" fill="#fff6c2"/>`;   // LED light bar
+    s += SV.path("M118 136 L192 136 L184 150 L126 150Z", p2, 2.5);
+    s += SV.path("M50 120 Q30 112 18 120 L22 128 Q34 122 50 128Z", "#c7ccd6", 2.5);            // exhaust
   } else {
-    const y = 156;
-    s += wheel(70, y, 44, 16) + wheel(236, y, 44, 16);
-    s += SV.path("M30 120 Q60 70 110 96 L196 96 Q240 70 276 120 L270 132 L30 132Z", p, 3);
-    s += SV.path("M110 96 L196 96 L188 70 L118 70Z", "#1e1e24", 3);
-    s += SV.rect(120, 108, 70, 34, 6, "#7d828c", 3);
-    s += SV.rect(16, 92, 70, 10, 4, "#8d929e", 2.5) + SV.rect(222, 92, 64, 10, 4, "#8d929e", 2.5);
-    s += SV.poly([[200, 72], [214, 46], [236, 42]], 7, "#2b2b33");
-    s += SV.rect(270, 108, 14, 12, 4, "#fff6c2", 2.5);
-    s += SV.path("M118 132 L190 132 L182 146 L126 146Z", p2, 2.5);
+    const y = 160;
+    s += wheel(74, y, 40, 14) + wheel(234, y, 40, 14);
+    s += SV.path("M22 128 L44 104 L104 100 L124 112 L190 112 L214 98 L270 102 L290 128 L276 136 L32 138Z", p, 3);
+    s += `<path d="M48 110 L100 106 M218 104 L266 108" stroke="${p2}" stroke-width="6" stroke-linecap="round"/><path d="M40 122 L280 120" stroke="#fff" stroke-width="3" opacity=".6"/>`;
+    s += SV.path("M118 112 L194 112 L188 90 L124 90Z", "#1e1e24", 3);
+    s += SV.rect(126, 118, 60, 26, 6, "#7d828c", 3);
+    s += SV.poly([[206, 92], [218, 66], [240, 62]], 7, "#2b2b33");
+    s += SV.path("M40 112 Q20 104 10 112 L14 120 Q26 114 40 120Z", "#c7ccd6", 2.5);
+    s += `<path d="M30 104 L18 10" stroke="${OL}" stroke-width="4"/>` + SV.path("M18 10 L44 18 L18 30Z", "#ff8a1c", 2.5);    // whip flag
+    s += SV.rect(280, 112, 12, 8, 3, "#fff6c2", 2);
   }
   return SV.wrap(310, 210, s);
 }
@@ -1076,14 +1276,139 @@ def("crowd", 340, 170, 2300, () => {
 });
 def("banner", 160, 260, 900, () => SV.rect(70, 10, 10, 248, 3, "#d9dde6", 2.5) + SV.path("M80 14 Q140 30 150 20 L144 150 Q120 160 80 144Z", "#ff3d7f", 3) + `<text x="114" y="96" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="28" fill="#fff" transform="rotate(4 114 90)">GO</text>`);
 
-/* Which scenery each biome scatters. weights: [id, weight, side-distance range] */
+/* ---- zone scenery (villages, camps, meadows, lakeshores) ---- */
+def("flowers", 200, 70, 900, () => {
+  let s = "";
+  for (let i = 0; i < 6; i++) s += SV.path(`M${20 + i * 30} 70 Q${14 + i * 30} 40 ${26 + i * 30} 24 Q${30 + i * 30} 44 ${34 + i * 30} 70Z`, "#4f9b3c", 2);
+  const cols = ["#ff79b0", "#ffd23f", "#ffffff", "#b35cff", "#ff8a1c"];
+  for (let i = 0; i < 9; i++) { const x = 18 + i * 20, y = 18 + (i % 3) * 12; s += SV.circ(x, y, 8, cols[i % 5], 2) + `<circle cx="${x}" cy="${y}" r="3" fill="#ffd23f"/>`; }
+  return s;
+});
+def("bush", 180, 120, 950, () => SV.path("M10 118 Q2 70 40 58 Q52 18 96 24 Q140 14 152 56 Q182 66 172 118Z", "#3f8a32", 3) + `<path d="M40 70 q14 -10 28 0 M100 44 q14 -10 28 0 M120 84 q12 -8 24 0" stroke="#7fd05a" stroke-width="4" fill="none" stroke-linecap="round"/>` + SV.circ(70, 60, 6, "#e2433b", 2) + SV.circ(130, 74, 6, "#e2433b", 2), { solid: 1 });
+def("cabin", 260, 220, 2300, () => {
+  let s = SV.rect(30, 96, 200, 122, 4, "#8a5a32", 3);
+  for (let y = 108; y < 214; y += 18) s += `<path d="M30 ${y} L230 ${y}" stroke="#6b4423" stroke-width="3"/>`;
+  s += SV.path("M14 104 L130 22 L246 104Z", "#5a3a2a", 3) + `<path d="M40 92 L130 30 L220 92" stroke="#7a5038" stroke-width="5" fill="none"/>`;
+  s += SV.rect(178, 30, 26, 50, 3, "#7d7f74", 3) + SV.rect(100, 140, 40, 78, 4, "#4a2f1f", 3);
+  s += SV.rect(160, 128, 46, 38, 4, "#ffd36b", 3) + `<path d="M183 128 L183 166 M160 147 L206 147" stroke="#6b4423" stroke-width="3"/>`;
+  s += SV.rect(42, 128, 40, 34, 4, "#ffd36b", 3);
+  return s;
+}, { solid: 1, glow: "#ffd36b" });
+def("logpile", 240, 110, 1400, () => {
+  let s = "";
+  const pos = [[40, 86], [96, 86], [152, 86], [208, 86], [68, 40], [124, 40], [180, 40]];
+  for (const [x, y] of pos) s += SV.circ(x, y, 26, "#d9a86a", 3) + `<circle cx="${x}" cy="${y}" r="15" fill="none" stroke="#9b6a3a" stroke-width="2"/><circle cx="${x}" cy="${y}" r="5" fill="none" stroke="#9b6a3a" stroke-width="2"/>`;
+  return s;
+}, { solid: 1 });
+def("reeds", 120, 160, 650, () => {
+  let s = "";
+  for (let i = 0; i < 6; i++) { const x = 14 + i * 18; s += `<path d="M${x} 160 Q${x + (i % 2 ? 6 : -6)} 90 ${x + (i % 2 ? 2 : -2)} ${30 + (i % 3) * 14}" stroke="#4f8a3a" stroke-width="5" fill="none" stroke-linecap="round"/>`; if (i % 2 === 0) s += SV.rect(x - 6, 24 + (i % 3) * 14, 12, 30, 6, "#7b4a2a", 2); }
+  return s;
+});
+def("adobe", 270, 210, 2300, () => {
+  let s = SV.rect(20, 80, 230, 128, 6, "#e3b07a", 3) + SV.rect(70, 30, 140, 60, 6, "#d9a26a", 3);
+  for (const x of [34, 84, 134, 184, 234]) s += SV.rect(x - 5, 86, 12, 9, 2, "#7b4a2a", 2);
+  for (const x of [88, 140, 192]) s += SV.rect(x - 5, 36, 12, 9, 2, "#7b4a2a", 2);
+  s += SV.path("M118 208 L118 146 Q135 128 152 146 L152 208Z", "#5a3420", 3) + SV.rect(48, 128, 30, 30, 3, "#3a2a24", 3) + SV.rect(196, 128, 30, 30, 3, "#3a2a24", 3);
+  s += `<path d="M48 120 l30 0 M196 120 l30 0" stroke="#c4562b" stroke-width="4"/>`;
+  s += SV.ell(232, 70, 16, 12, "#c4562b", 2.5) + `<path d="M224 60 q8 -14 16 0" stroke="#e2433b" stroke-width="5" fill="none"/>`;
+  return s;
+}, { solid: 1 });
+def("lodge", 280, 270, 2500, () => {
+  let s = SV.rect(46, 130, 188, 138, 4, "#8a5a32", 3);
+  s += SV.path("M10 150 L140 12 L270 150Z", "#5a3a2a", 3) + SV.path("M10 150 L140 12 L270 150 L250 150 L140 34 L30 150Z", "#ffffff", 2.5);
+  s += SV.path("M84 150 L140 70 L196 150Z", "#ffd36b", 3) + `<path d="M140 70 L140 150 M112 110 L168 110" stroke="#6b4423" stroke-width="4"/>`;
+  s += SV.rect(118, 200, 44, 68, 4, "#4a2f1f", 3) + SV.rect(60, 180, 40, 34, 4, "#ffd36b", 3) + SV.rect(180, 180, 40, 34, 4, "#ffd36b", 3);
+  s += SV.rect(20, 220, 30, 48, 3, "#e2433b", 2.5) + `<text x="35" y="250" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="14" fill="#fff">SKI</text>`;
+  return s;
+}, { solid: 1, glow: "#ffd36b" });
+def("hut", 240, 210, 2000, () => {
+  let s = "";
+  for (const x of [50, 110, 170]) s += SV.rect(x, 150, 12, 58, 3, "#6b4423", 2.5);
+  s += SV.rect(30, 110, 180, 50, 4, "#c8924f", 3) + `<path d="M30 126 L210 126 M30 142 L210 142" stroke="#8c5e2c" stroke-width="3"/>`;
+  s += SV.path("M8 118 L120 30 L232 118 Q120 100 8 118Z", "#d9b25a", 3);
+  for (let i = 0; i < 8; i++) s += `<path d="M${30 + i * 26} ${112 - Math.abs(i - 3.5) * 4} L${40 + i * 26} ${90 - Math.abs(i - 3.5) * 10}" stroke="#a8843a" stroke-width="3"/>`;
+  s += SV.rect(100, 118, 34, 40, 4, "#3a2a24", 3) + SV.circ(184, 92, 9, "#e0193b", 2.5);
+  return s;
+}, { solid: 1 });
+def("igloo", 220, 130, 1500, () => {
+  let s = SV.path("M10 128 Q10 10 110 10 Q210 10 210 128Z", "#eef5ff", 3);
+  s += `<path d="M22 90 Q110 70 198 90 M14 110 Q110 92 206 110 M40 50 Q110 34 180 50" stroke="#b8cde8" stroke-width="3" fill="none"/>`;
+  s += SV.path("M80 128 L80 92 Q110 66 140 92 L140 128Z", "#cfe0f5", 3) + SV.path("M92 128 L92 100 Q110 84 128 100 L128 128Z", "#ffd36b", 2.5);
+  return s;
+}, { solid: 1, glow: "#ffd36b" });
+def("snowcabin", 260, 230, 2300, () => {
+  let s = SV.rect(30, 106, 200, 122, 4, "#6b4a36", 3);
+  for (let y = 118; y < 224; y += 18) s += `<path d="M30 ${y} L230 ${y}" stroke="#4e3524" stroke-width="3"/>`;
+  s += SV.path("M10 114 L130 26 L250 114Z", "#3a2a2a", 3) + SV.path("M10 114 L130 26 L250 114 Q130 96 10 114Z", "#f4f8ff", 2.5);
+  s += SV.rect(100, 150, 40, 78, 4, "#2a1f1a", 3) + SV.rect(160, 138, 46, 38, 4, "#ffd36b", 3) + SV.rect(42, 138, 40, 34, 4, "#ffd36b", 3);
+  return s;
+}, { solid: 1, glow: "#ffd36b" });
+
+/* ---- per-biome kit: rock walls, tunnel ribs and mouths, rails, hairpin chevrons, waterfall curtain ---- */
+function biomeKit(biome) {
+  const [rc, top] = biome.rock;
+  const dk = shade(rc, -0.3);
+  const id = biome.id;
+  const kit = {};
+  kit.wall = { w: 300, h: 420, ww: 3400, solid: 1, svg: () => {
+    let s = SV.path("M0 420 L0 64 L34 34 L72 46 L112 12 L160 30 L204 8 L252 34 L300 22 L300 420Z", rc, 3);
+    for (let i = 0; i < 6; i++) s += `<path d="M0 ${110 + i * 52} Q150 ${96 + i * 52 + (i % 2 ? 14 : -10)} 300 ${112 + i * 52}" stroke="${dk}" stroke-width="4" fill="none" opacity=".7"/>`;
+    s += `<path d="M90 60 L104 170 L84 260 M210 40 L196 150 L222 300 M150 200 L160 380" stroke="${shade(rc, -0.4)}" stroke-width="3" fill="none"/>`;
+    s += `<path d="M150 0 L300 0 L300 420 L170 420Z" fill="${shade(rc, -0.25)}" opacity=".35"/>`;
+    s += SV.path("M0 64 L34 34 L72 46 L112 12 L160 30 L204 8 L252 34 L300 22 L300 50 Q250 62 204 36 Q160 58 112 40 Q72 72 34 60 Q16 78 0 92Z", top, 2.5);
+    if (id === "volcano") s += `<path d="M60 140 L90 200 L70 280 M230 120 L250 210" stroke="#ff5a1f" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+    if (id === "tundra" || id === "glacier") s += `<path d="M120 120 L130 180" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity=".7"/>`;
+    return s;
+  } };
+  const ribCol = id === "glacier" ? "#8fb6dd" : id === "tundra" ? "#2c3c5a" : shade(rc, -0.35);
+  const timber = id === "forest" || id === "desert" || id === "ghats";
+  kit.rib = { w: 560, h: 400, ww: 5600, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M0 400 L0 30 Q0 0 30 0 L530 0 Q560 0 560 30 L560 400 Z M76 400 L76 176 Q76 74 280 64 Q484 74 484 176 L484 400 Z" fill="${ribCol}" stroke="${OL}" stroke-width="3"/>`;
+    s += `<path d="M76 400 L76 176 Q76 74 280 64 Q484 74 484 176 L484 400" stroke="${shade(ribCol, 0.25)}" stroke-width="6" fill="none" opacity=".6"/>`;
+    if (timber) s += SV.rect(60, 70, 30, 330, 4, "#7b4a2a", 3) + SV.rect(470, 70, 30, 330, 4, "#7b4a2a", 3) + SV.rect(40, 48, 480, 34, 6, "#8a5a32", 3);
+    if (id === "volcano") s += `<path d="M30 120 L50 220 L36 330 M530 100 L512 240" stroke="#ff5a1f" stroke-width="6" fill="none" stroke-linecap="round" opacity=".85"/>`;
+    if (id === "tundra" || id === "glacier") s += `<path d="M120 40 L136 80 M260 20 L270 54 M420 36 L404 76" stroke="#bff3ff" stroke-width="7" stroke-linecap="round"/>`;
+    return s;
+  } };
+  kit.portal = { w: 1600, h: 900, ww: 16000, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M0 900 L0 520 L120 380 L260 430 L420 200 L560 300 L700 90 L860 210 L1000 60 L1150 260 L1300 170 L1460 360 L1600 300 L1600 900 Z M592 900 L592 676 Q592 572 800 562 Q1008 572 1008 676 L1008 900 Z" fill="${rc}" stroke="${OL}" stroke-width="4"/>`;
+    s += `<path d="M700 90 L860 210 L1000 60 L1150 260 L1300 170 L1460 360 L1600 300 L1600 900 L1100 900Z" fill="${shade(rc, -0.25)}" opacity=".4"/>`;
+    for (let i = 0; i < 5; i++) s += `<path d="M0 ${560 + i * 70} Q400 ${540 + i * 70} 560 ${600 + i * 66} M1040 ${600 + i * 66} Q1300 ${540 + i * 70} 1600 ${560 + i * 70}" stroke="${dk}" stroke-width="5" fill="none" opacity=".6"/>`;
+    s += `<path d="M560 900 L560 670 Q560 540 800 528 Q1040 540 1040 670 L1040 900 L1008 900 L1008 676 Q1008 572 800 562 Q592 572 592 676 L592 900Z" fill="${timber ? "#8a5a32" : ribCol}" stroke="${OL}" stroke-width="3"/>`;
+    s += SV.path("M0 520 L120 380 L260 430 L420 200 L560 300 L700 90 L860 210 L1000 60 L1150 260 L1300 170 L1460 360 L1600 300 L1600 340 Q1460 400 1300 210 Q1150 300 1000 100 Q860 250 700 130 Q560 340 420 240 Q260 470 120 420 Q60 500 0 560Z", top, 3);
+    if (id === "ghats") for (const x of [380, 1220]) s += `<path d="M${x} 300 L${x - 10} 900 L${x + 60} 900 L${x + 50} 300Z" fill="#bfe9ff" opacity=".85"/><path d="M${x + 10} 320 L${x + 4} 890 M${x + 30} 320 L${x + 30} 890" stroke="#fff" stroke-width="4" opacity=".8"/>`;
+    if (id === "volcano") s += `<path d="M560 900 L560 670 Q560 540 800 528 Q1040 540 1040 670 L1040 900" stroke="#ff5a1f" stroke-width="8" fill="none" opacity=".7"/>`;
+    return s;
+  } };
+  kit.curtain = { w: 560, h: 400, ww: 5600, svg: () => {
+    let s = `<path d="M70 400 L70 170 Q70 64 280 56 Q490 64 490 170 L490 400Z" fill="#bfe9ff" opacity=".42"/>`;
+    for (let i = 0; i < 16; i++) s += `<path d="M${84 + i * 26} ${120 - Math.abs(i - 7.5) * 6} L${80 + i * 26} 400" stroke="#ffffff" stroke-width="${i % 3 ? 3 : 6}" opacity=".7"/>`;
+    return s;
+  } };
+  const metal = id === "glacier" || id === "tundra" || id === "volcano";
+  kit.rail = { w: 60, h: 130, ww: 320, svg: () => metal
+    ? SV.rect(22, 20, 16, 108, 4, "#c9ced8", 2.5) + SV.rect(16, 18, 28, 14, 4, "#e2433b", 2.5) + `<rect x="22" y="40" width="16" height="12" fill="#e2433b"/><rect x="22" y="68" width="16" height="12" fill="#e2433b"/>`
+    : SV.rect(20, 18, 20, 110, 4, "#7b4a2a", 2.5) + SV.rect(16, 30, 28, 10, 3, "#ffd23f", 2) + `<path d="M24 60 L36 60 M24 90 L36 90" stroke="#5e3519" stroke-width="3"/>` };
+  const chev = (dir) => () => {
+    let s = SV.rect(72, 90, 16, 78, 3, "#3a3a44", 2.5) + SV.rect(6, 10, 148, 86, 10, "#ffd23f", 3.5);
+    for (let i = 0; i < 3; i++) { const x = 30 + i * 40; s += dir > 0 ? `<path d="M${x} 24 L${x + 26} 53 L${x} 82 L${x + 12} 82 L${x + 38} 53 L${x + 12} 24Z" fill="${OL}"/>` : `<path d="M${x + 38} 24 L${x + 12} 53 L${x + 38} 82 L${x + 26} 82 L${x} 53 L${x + 26} 24Z" fill="${OL}"/>`; }
+    return s;
+  };
+  kit.chevR = { w: 160, h: 170, ww: 950, svg: chev(1) };
+  kit.chevL = { w: 160, h: 170, ww: 950, svg: chev(-1) };
+  return kit;
+}
+
+/* Which scenery each biome scatters. weights: [id, weight, side-distance range]
+   zones: the scenery sets a trail passes through (see each track's plan); dens = chance of a piece per side per segment */
 const BIOME_SCENERY = {
-  forest: { near: [["redwood", 3], ["pine", 3], ["fern", 4], ["mossrock", 1.5], ["mushroom", 1.5], ["stump", 1]], far: ["redwood", "pine"], obstacles: ["mossrock", "stump"], special: ["sign", "banner"] },
-  desert: { near: [["saguaro", 3], ["smallcactus", 3], ["deadtree", 1.5], ["boulder", 1.5], ["skull", 1]], far: ["mesa", "saguaro"], obstacles: ["boulder", "tumbleweed"], special: ["banner"] },
-  glacier: { near: [["snowpine", 5], ["serac", 1.5], ["snowrock", 1.5], ["snowman", 0.5], ["gate", 2]], far: ["snowpine", "serac"], obstacles: ["snowrock", "iceblock"], special: ["gate", "banner"] },
-  ghats: { near: [["palm", 3], ["banana", 3], ["teabush", 4], ["shrine", 0.6], ["bunting", 0.8], ["cow", 0.5], ["jrock", 1]], far: ["palm", "waterfall"], obstacles: ["jrock"], special: ["bunting", "banner"] },
-  volcano: { near: [["charred", 3], ["spire", 2], ["lavarock", 2], ["obsidian", 2]], far: ["spire", "charred"], obstacles: ["lavarock"], special: ["banner"] },
-  tundra: { near: [["darkpine", 5], ["crystal", 2], ["inukshuk", 0.7], ["lantern", 1.5], ["tsnowrock", 1.2]], far: ["darkpine", "crystal"], obstacles: ["tsnowrock"], special: ["lantern"] },
+  forest: { near: [["redwood", 3], ["pine", 3], ["fern", 4], ["mossrock", 1.5], ["mushroom", 1.5], ["stump", 1]], far: ["redwood", "pine"], obstacles: ["mossrock", "stump"], special: ["sign", "banner"], zones: { deep: { near: [["redwood", 5], ["pine", 3], ["fern", 3], ["mossrock", 1], ["mushroom", 1]], dens: 0.78 }, meadow: { near: [["flowers", 5], ["fern", 2], ["bush", 3], ["mushroom", 1.5], ["stump", 1], ["pine", 0.8]], dens: 0.55 }, camp: { near: [["cabin", 1.2], ["logpile", 2], ["stump", 2], ["pine", 2], ["fern", 1]], dens: 0.55 }, river: { near: [["reeds", 4], ["fern", 3], ["mossrock", 2], ["pine", 1.5]], dens: 0.6 } } },
+  desert: { near: [["saguaro", 3], ["smallcactus", 3], ["deadtree", 1.5], ["boulder", 1.5], ["skull", 1]], far: ["mesa", "saguaro"], obstacles: ["boulder", "tumbleweed"], special: ["banner"], zones: { open: { near: [["saguaro", 2], ["smallcactus", 3], ["deadtree", 1], ["skull", 1], ["boulder", 1]], dens: 0.35 }, pueblo: { near: [["adobe", 3], ["smallcactus", 2], ["saguaro", 1]], dens: 0.5 }, oasis: { near: [["palm", 4], ["reeds", 3], ["smallcactus", 1]], dens: 0.55 } } },
+  glacier: { near: [["snowpine", 5], ["serac", 1.5], ["snowrock", 1.5], ["snowman", 0.5], ["gate", 2]], far: ["snowpine", "serac"], obstacles: ["snowrock", "iceblock"], special: ["gate", "banner"], zones: { resort: { near: [["snowpine", 4], ["lodge", 1], ["gate", 2], ["snowman", 1]], dens: 0.6 }, bowl: { near: [["snowrock", 1], ["serac", 1], ["snowpine", 0.6]], dens: 0.25 }, icefall: { near: [["serac", 4], ["iceblock", 1], ["snowrock", 1]], dens: 0.6 } } },
+  ghats: { near: [["palm", 3], ["banana", 3], ["teabush", 4], ["shrine", 0.6], ["bunting", 0.8], ["cow", 0.5], ["jrock", 1]], far: ["palm", "waterfall"], obstacles: ["jrock"], special: ["bunting", "banner"], zones: { terrace: { near: [["teabush", 6], ["banana", 1], ["cow", 0.4]], dens: 0.72 }, village: { near: [["hut", 3], ["shrine", 0.8], ["bunting", 1.5], ["cow", 1], ["banana", 1], ["palm", 1]], dens: 0.6 }, jungle: { near: [["palm", 4], ["banana", 4], ["jrock", 1], ["fern", 2]], dens: 0.82 } } },
+  volcano: { near: [["charred", 3], ["spire", 2], ["lavarock", 2], ["obsidian", 2]], far: ["spire", "charred"], obstacles: ["lavarock"], special: ["banner"], zones: { ash: { near: [["charred", 4], ["spire", 1.5], ["lavarock", 1]], dens: 0.55 }, obsidian: { near: [["obsidian", 4], ["spire", 1], ["lavarock", 1.5]], dens: 0.55 } } },
+  tundra: { near: [["darkpine", 5], ["crystal", 2], ["inukshuk", 0.7], ["lantern", 1.5], ["tsnowrock", 1.2]], far: ["darkpine", "crystal"], obstacles: ["tsnowrock"], special: ["lantern"], zones: { forest: { near: [["darkpine", 5], ["lantern", 0.7], ["tsnowrock", 1]], dens: 0.7 }, plains: { near: [["inukshuk", 1], ["tsnowrock", 1.5], ["crystal", 0.8]], dens: 0.25 }, village: { near: [["igloo", 2.5], ["snowcabin", 1.2], ["lantern", 2], ["darkpine", 1]], dens: 0.55 }, lake: { near: [["crystal", 1], ["tsnowrock", 1]], dens: 0.15 } } },
 };
 
 /* ---- parallax backgrounds (2048 wide, tileable) ---- */
@@ -1174,10 +1499,13 @@ async function buildWorldSprites(biome) {
   set.far.forEach((id) => ids.add(id));
   set.obstacles.forEach((id) => ids.add(id));
   set.special.forEach((id) => ids.add(id));
+  ["lantern", "crystal", "reeds"].forEach((id) => ids.add(id));
+  if (set.zones) Object.values(set.zones).forEach((z) => z.near.forEach(([id]) => ids.add(id)));
+  const kit = biomeKit(biome);
   const out = { sprites: {}, items: {} };
-  await Promise.all([...ids].map(async (id) => {
-    const d = W[id];
-    const c = await svgToCanvas(SV.wrap(d.w, d.h, d.svg()), d.w, d.h);
+  await Promise.all([...ids].map((id) => [id, W[id]]).concat(Object.entries(kit)).map(async ([id, d]) => {
+    const scale = d.ww > 9000 ? 0.6 : 1;            // giant tunnel mouths don't need full resolution
+    const c = await svgToCanvas(SV.wrap(d.w, d.h, d.svg()), d.w * scale, d.h * scale);
     out.sprites[id] = { c, ww: d.ww, wh: d.ww * d.h / d.w, solid: d.solid, obstacle: d.obstacle, glow: d.glow, id };
   }));
   await Promise.all(Object.keys(ITEMS).map(async (id) => { out.items[id] = await svgToCanvas(itemSVG(id), 64, 64); }));
@@ -1395,7 +1723,7 @@ const CAM_D = 0.84;       // focal factor (≈ 100° fov)
 const PLAYER_DIST = CAM_H * CAM_D;
 
 function buildTrack(def) {
-  const biome = BIOMES[def.biome];
+  const biome = Object.assign({}, BIOMES[def.biome], def.look || {});   // look = per-trail sky tint
   const R = rng(def.seed);
   const segs = [];
   let y = 0;
@@ -1425,35 +1753,106 @@ function buildTrack(def) {
   function easeIn(t) { return t * t; }
   function easeInOut(t) { return -Math.cos(t * Math.PI) / 2 + 0.5; }
 
-  // ---- 1. Layout ----
-  section(0, 40, 0, 0, 0);                         // start straight
+  // ---- 1. Layout: expand this track's hand-written plan (see TRACKS in data.js) ----
   const H = def.hilly, C = def.curvy;
-  while (segs.length < def.len) {
-    const r = R();
-    const len = 40 + ((R() * 90) | 0);
-    const dir = R() < 0.5 ? -1 : 1;
-    const drop = -(SEG * (8 + R() * 34) * H);       // mostly downhill
-    if (r < 0.38) section(14, len, 14, dir * (2 + R() * 4.5) * C, drop);
-    else if (r < 0.55) { section(10, len / 2, 10, dir * (3 + R() * 3) * C, drop * 0.5); section(10, len / 2, 10, -dir * (3 + R() * 3) * C, drop * 0.5); }
-    else if (r < 0.72) { section(12, 16, 12, 0, SEG * (6 + R() * 10) * H); section(10, len, 10, dir * R() * 2 * C, drop * 1.4); } // crest then plunge
-    else if (r < 0.86) section(8, len, 8, dir * R() * 1.2 * C, drop * 1.6);                                                     // steep chute
-    else section(10, len, 10, 0, -SEG * 4);                                                                                    // breather
+  const plan = def.plan;
+  const PIN = 7.2;                                  // hairpin bend strength (you have to ease off to make it)
+  const fixedLen = (b) => b.t === "H" ? 54 : b.t === "SW" ? b.k * 54 + (b.k - 1) * 30 : b.t === "ST" ? b.k * 44 : 0;
+  let sumScal = 0, sumFixed = 40;
+  plan.forEach((b) => { const f = fixedLen(b); if (f) sumFixed += f; else sumScal += b.n; });
+  const scale = clamp((def.len - sumFixed) / sumScal, 0.5, 3);
+  const dn = (v) => -SEG * v * H;                   // "d" (segments of drop) -> world dy (negative = downhill)
+  const beats = [];
+  section(0, 40, 0, 0, 0);                          // start straight
+  for (let bi = 0, from = 0; bi < plan.length; bi++) {
+    const b = plan[bi];
+    if (bi === 0) from = 0; else from = segs.length;
+    const cap = b.f === "bridge" ? 120 : b.f === "tunnel" || b.f === "falls" || b.f === "cave" ? 190 : b.f === "lake" ? 160 : 9999;
+    const n = Math.min(cap, Math.max(24, Math.round((b.n || 0) * scale)));
+    const d = (b.d || 0) * (fixedLen(b) ? 1 : scale);
+    const flatF = b.f === "bridge" || b.f === "lake" || b.f === "ford";
+    switch (b.t) {
+      case "S": section(0, n, 0, flatF ? 0 : (R() - 0.5) * 0.7 * C, dn(d)); break;
+      case "T": { const e = Math.min(18, Math.floor(n / 4)); section(e, n - 2 * e, e, b.dir * b.c * C, dn(d)); break; }
+      case "E": {
+        const per = Math.floor(n / b.k), e = Math.min(12, Math.floor(per / 4));
+        for (let i = 0; i < b.k; i++) section(e, per - 2 * e, e, (b.dir || 1) * (i % 2 ? -1 : 1) * b.c * C * (0.85 + R() * 0.3), dn(d / b.k));
+        break;
+      }
+      case "H": { const i0 = segs.length; section(10, 34, 10, b.dir * PIN, dn(d)); for (let k = i0; k < segs.length; k++) segs[k].pin = b.dir; break; }
+      case "SW":
+        for (let i = 0; i < b.k; i++) {
+          const dir = b.dir * (i % 2 ? -1 : 1), i0 = segs.length;
+          section(10, 34, 10, dir * PIN, dn(d));
+          for (let k = i0; k < segs.length; k++) segs[k].pin = dir;
+          if (i < b.k - 1) section(0, 30, 0, 0, dn(d * 0.9));
+        }
+        break;
+      case "C": section(8, n - 16, 8, (R() < 0.5 ? -1 : 1) * R() * 1.0 * C, dn(d)); break;
+      case "X": { section(12, 16, 12, 0, SEG * 7 * H); const rest = Math.max(40, n - 40); section(10, rest - 20, 10, (R() - 0.5) * 1.6 * C, dn(d)); break; }
+      case "ST":
+        for (let i = 0; i < b.k; i++) { section(5, 8, 5, 0, dn(d)); section(0, 26, 0, (R() - 0.5) * 1.2 * C, dn(1)); }
+        break;
+    }
+    beats.push({ from, to: segs.length, b });
   }
   const finishIdx = segs.length;
   section(0, 200, 0, 0, -SEG * 10);                // run-out after the finish
   const N = segs.length;
+  beats[beats.length - 1].to = N;
+
+  // tag every segment with its scenery zone and feature
+  for (const { from, to, b } of beats) {
+    let side = b.dir || 1;
+    for (let k = from; k < to; k++) {
+      const s = segs[k];
+      s.zone = b.z || null;
+      s.feat = (b.f === "ford" ? null : b.f) || null;
+      if (b.f === "mtn") { if (s.curve > 0.4) side = 1; else if (s.curve < -0.4) side = -1; s.fside = side; }
+    }
+    if (b.f === "ford") {
+      const mid = ((from + to) / 2) | 0;
+      for (let k = 0; k < 16; k++) { const s = segs[mid - 8 + k]; s.surface = { type: "water", x0: -2, x1: 2, k, len: 16 }; s.noObs = 1; }
+    }
+  }
+  // turn features into side ground, walls and limits.  gL/gR: what lies beside the trail; wl/wr: hard edge (x) or 0
+  const sideType = (t) => (t === "chasm" && biome.lavaSide ? "lava" : t);
+  for (let i = 0; i < N; i++) {
+    const s = segs[i], f = s.feat;
+    s.gL = s.gR = null; s.wl = s.wr = 0; s.wallL = s.wallR = 0; s.railL = s.railR = 0;
+    if (!f) continue;
+    if (f === "tunnel" || f === "falls" || f === "cave") { s.tun = f; s.gL = s.gR = "rock"; s.wl = s.wr = s.w + 0.32; s.wallL = s.wallR = 1; }
+    else if (f === "bridge") { s.bridge = 1; s.gL = s.gR = sideType(biome.bridgeOver); s.wl = s.wr = s.w + 0.14; s.railL = s.railR = 1; }
+    else if (f === "canyon") { s.wallL = s.wallR = 2; s.wl = s.wr = s.w + 0.55; }
+    else if (f === "mtn" || f === "cliffL" || f === "cliffR") {
+      const wall = f === "mtn" ? s.fside : f === "cliffL" ? -1 : 1;
+      if (wall < 0) { s.wallL = 1; s.wl = s.w + 0.4; s.gR = sideType("chasm"); s.railR = 1; s.wr = s.w + 0.14; }
+      else { s.wallR = 1; s.wr = s.w + 0.4; s.gL = sideType("chasm"); s.railL = 1; s.wl = s.w + 0.14; }
+      if (biome.lavaSide) { if (s.gL === "lava") { s.railL = 1; } if (s.gR === "lava") { s.railR = 1; } }
+    }
+    else if (f === "waterL") s.gL = "water";
+    else if (f === "waterR") s.gR = "water";
+    else if (f === "lavaL") s.gL = "lava";
+    else if (f === "lavaR") s.gR = "lava";
+    else if (f === "lake") { s.gL = s.gR = "ice"; s.surface = { type: "ice", x0: -2.2, x1: 2.2, k: i, len: 9999 }; s.noObs = 1; }
+  }
+  const featBlocks = (s) => !!(s.feat && s.feat !== "waterL" && s.feat !== "waterR" && s.feat !== "lavaL" && s.feat !== "lavaR" && s.feat !== "canyon" && s.feat !== "mtn" && s.feat !== "cliffL" && s.feat !== "cliffR");
 
   // ---- 2. Features ----
-  const freeAt = (i, span = 6) => { for (let k = i - span; k <= i + span; k++) { const s = segs[k]; if (!s || s.ramp || s.split || s.surface || s.vent || s.decal) return false; } return true; };
+  const freeAt = (i, span = 6) => { for (let k = i - span; k <= i + span; k++) { const s = segs[k]; if (!s || s.ramp || s.split || s.surface || s.vent || s.decal || s.pin || featBlocks(s)) return false; } return true; };
   const placeable = (i) => i > 70 && i < finishIdx - 60;
 
   // split sections (a fork with a median; the riskier side carries pads and a repair kit)
   for (let n = 0; n < def.splits; n++) {
-    const i0 = 160 + (((finishIdx - 360) / def.splits) * (n + 0.35 + R() * 0.3)) | 0;
+    let i0 = -1;
     const len = 90 + ((R() * 50) | 0);
-    let ok = true;
-    for (let k = i0 - 10; k < i0 + len + 10; k++) if (!segs[k] || segs[k].split || segs[k].ramp) ok = false;
-    if (!ok) continue;
+    for (let tries = 0; tries < 40 && i0 < 0; tries++) {
+      const c = 160 + (((finishIdx - 360) / def.splits) * (n + 0.1 + R() * 0.8)) | 0;
+      let ok = true;
+      for (let k = c - 10; k < c + len + 10; k++) if (!segs[k] || segs[k].split || segs[k].ramp || segs[k].feat || segs[k].pin || segs[k].surface || Math.abs(segs[k].curve) > 3.2) { ok = false; break; }
+      if (ok) i0 = c;
+    }
+    if (i0 < 0) continue;
     const risky = R() < 0.5 ? -1 : 1;
     for (let k = 0; k < len; k++) {
       const s = segs[i0 + k];
@@ -1512,17 +1911,12 @@ function buildTrack(def) {
         const i = 110 + ((R() * (finishIdx - 230)) | 0);
         if (!placeable(i) || !freeAt(i, 18)) continue;
         const len = 18 + ((R() * 26) | 0);
+        let clash = false;
+        for (let k = 0; k < len; k++) { const s2 = segs[i + k]; if (!s2 || s2.surface || s2.feat === "bridge" || s2.tun) clash = true; }
+        if (clash) continue;
         const hw = surf === "lava" ? 0.22 : 0.35 + R() * 0.35;
         const x = (R() * 2 - 1) * (1 - hw) * 0.9;
         for (let k = 0; k < len; k++) { const s = segs[i + k]; s.surface = { type: surf, x0: x - hw, x1: x + hw, k, len }; }
-        break;
-      }
-    }
-    if (biome.id === "ghats") {   // full-width river crossings
-      for (let n = 0; n < 3; n++) for (let tries = 0; tries < 20; tries++) {
-        const i = 200 + ((R() * (finishIdx - 320)) | 0);
-        if (!placeable(i) || !freeAt(i, 16)) continue;
-        for (let k = 0; k < 14; k++) segs[i + k].surface = { type: "water", x0: -2, x1: 2, k, len: 14 };
         break;
       }
     }
@@ -1546,7 +1940,7 @@ function buildTrack(def) {
     for (let tries = 0; tries < 20; tries++) {
       const i = 100 + ((R() * (finishIdx - 180)) | 0);
       const s = segs[i];
-      if (!placeable(i) || s.ramp || s.vent || (segs[i - 1] && segs[i - 1].ramp)) continue;
+      if (!placeable(i) || s.ramp || s.vent || s.noObs || s.bridge || s.pin || s.split || (segs[i - 1] && segs[i - 1].ramp)) continue;
       // keep landing zones after ramps clear
       let nearRamp = false;
       for (let k = i - 34; k < i; k++) if (segs[k] && (segs[k].ramp || segs[k].vent)) nearRamp = true;
@@ -1569,22 +1963,46 @@ function buildTrack(def) {
     segs[i].objs.push({ kind: "repair", x: R() < 0.5 ? -0.8 : 0.8 });
   }
 
-  // ---- 3. Scenery ----
+  // ---- 3. Scenery: per-zone sets, walls, tunnels, rails and turn signs ----
   const set = BIOME_SCENERY[biome.id];
-  const wsum = set.near.reduce((a, b) => a + b[1], 0);
-  const pickNear = () => { let t = R() * wsum; for (const [id, w] of set.near) { if ((t -= w) <= 0) return id; } return set.near[0][0]; };
+  const zonePickers = {};
+  const picker = (zone) => {
+    const key = zone || "_";
+    if (zonePickers[key]) return zonePickers[key];
+    const zd = (zone && set.zones && set.zones[zone]) || { near: set.near, dens: 0.62 };
+    const wsum = zd.near.reduce((a, b) => a + b[1], 0);
+    return (zonePickers[key] = { dens: zd.dens, pick: () => { let t = R() * wsum; for (const [id, w] of zd.near) { if ((t -= w) <= 0) return id; } return zd.near[0][0]; } });
+  };
+  let tunRun = 0;
   for (let i = 0; i < N; i++) {
     const s = segs[i];
     const edge = s.w;
-    if (R() < 0.62) s.sprites.push({ id: pickNear(), x: -(edge + 0.5 + R() * 1.5) });
-    if (R() < 0.62) s.sprites.push({ id: pickNear(), x: edge + 0.5 + R() * 1.5 });
-    if (i % 4 === 0) {
-      const side = R() < 0.5 ? -1 : 1;
-      s.sprites.push({ id: set.far[(R() * set.far.length) | 0], x: side * (edge + 2.4 + R() * 4) });
+    const zp = picker(s.zone);
+    // tunnels: portal at each mouth, ribs every 2 segments, lights on the walls
+    if (s.tun) {
+      const prev = segs[i - 1], next = segs[i + 1];
+      if (!prev || !prev.tun) s.sprites.push({ id: "portal", x: 0, gate: 1 });
+      else if (!next || !next.tun) s.sprites.push({ id: "portal", x: 0, gate: 1 });
+      else if (i % 2 === 0) s.sprites.push({ id: "rib", x: 0, gate: 1 });
+      tunRun++;
+      if (s.tun === "cave" && i % 5 === 0) s.sprites.push({ id: "crystal", x: (i % 10 ? -1 : 1) * (edge + 0.34) });
+      else if (i % 14 === 0) s.sprites.push({ id: "lantern", x: (i % 28 ? -1 : 1) * (edge + 0.3) });
+      if (s.tun === "falls" && (!prev || !prev.tun || !next || !next.tun)) s.sprites.push({ id: "curtain", x: 0, gate: 1 });
+    } else tunRun = 0;
+    for (const side of [-1, 1]) {
+      const wall = side < 0 ? s.wallL : s.wallR, rail = side < 0 ? s.railL : s.railR, g = side < 0 ? s.gL : s.gR;
+      if (wall) { s.sprites.push({ id: "wall", x: side * (edge + (wall === 2 ? 1.25 : s.tun ? 0.85 : 0.95)) }); continue; }
+      if (rail) { if (i % 2 === 0) s.sprites.push({ id: "rail", x: side * (edge + 0.16) }); continue; }
+      if (g) { if (g === "water" && set.zones && R() < 0.12) s.sprites.push({ id: "reeds", x: side * (edge + 0.32) }); continue; }
+      if (R() < zp.dens) s.sprites.push({ id: zp.pick(), x: side * (edge + 0.5 + R() * 1.5) });
+      if (i % 4 === 0 && R() < 0.5 + zp.dens * 0.5) s.sprites.push({ id: set.far[(R() * set.far.length) | 0], x: side * (edge + 2.4 + R() * 4) });
     }
-    if (biome.id === "tundra" && i % 24 === 0) { s.sprites.push({ id: "lantern", x: -(edge + 0.22) }); s.sprites.push({ id: "lantern", x: edge + 0.22 }); }
-    if (biome.id === "glacier" && i % 30 === 15) s.sprites.push({ id: "gate", x: (i % 60 < 30 ? -1 : 1) * (edge + 0.15) });
-    if (i % 140 === 70 && set.special.includes("banner")) s.sprites.push({ id: "banner", x: (i % 280 < 140 ? -1 : 1) * (edge + 0.2) });
+    // hairpin chevrons on the outside of the bend
+    if (s.pin && i % 6 === 0) s.sprites.push({ id: s.pin > 0 ? "chevR" : "chevL", x: -s.pin * (edge + 0.42) });
+    const open = !s.feat;
+    if (open && biome.id === "tundra" && i % 24 === 0 && s.zone !== "lake") { s.sprites.push({ id: "lantern", x: -(edge + 0.22) }); s.sprites.push({ id: "lantern", x: edge + 0.22 }); }
+    if (open && biome.id === "glacier" && s.zone === "resort" && i % 30 === 15) s.sprites.push({ id: "gate", x: (i % 60 < 30 ? -1 : 1) * (edge + 0.15) });
+    if (open && i % 140 === 70 && set.special.includes("banner")) s.sprites.push({ id: "banner", x: (i % 280 < 140 ? -1 : 1) * (edge + 0.2) });
   }
   // start & finish dressing
   segs[16].sprites.push({ id: "startgate", x: 0, gate: 1 });
@@ -1593,7 +2011,7 @@ function buildTrack(def) {
     segs[i].sprites.push({ id: "crowd", x: -(segs[i].w + 0.9) }, { id: "crowd", x: segs[i].w + 0.9 });
   }
   return {
-    def, biome, segs, N,
+    def, biome, segs, N, beats,
     length: N * SEG,
     finishZ: finishIdx * SEG,
     startZ: 22 * SEG,
@@ -1611,8 +2029,10 @@ function roadY(track, z) {
 /* Pseudo-3D renderer: one call per viewport (split screen draws two). */
 
 // CAM_LIFT raises the camera (0 = original low view). The horizon moves up by the same amount, so the rider stays
-// at the same spot and size on screen while you look down on the road and the pack from higher up.
-const RENDER = { drawDist: 150, CAM_LIFT: 0.6 };
+// at the same spot on screen while you look down on the road and the pack from higher up.
+// ZOOM < 1 widens the view (everything a little smaller, more of the trail and the pack visible).
+// PITCH: how much the camera tilts to follow the slope ahead (1 = road ahead looks flat, 0 = camera never tilts).
+const RENDER = { drawDist: 150, CAM_LIFT: 0.6, ZOOM: 0.86, PITCH_DOWN: 0.82, PITCH_UP: 0.45 };
 
 function projK(w, h) {
   // world→pixel factor at scale 1; tuned so the road spans ~75% of the view at the rider
@@ -1628,13 +2048,17 @@ function renderView(ctx, vp, race, me, tnow) {
   ctx.translate(vp.x, vp.y);
 
   const shake = me.shake > 0 ? me.shake : 0;
-  const K = projK(w, h) * (1 - me.fovKick * 0.12);
-  const hz = h * 0.38 - RENDER.CAM_LIFT * K;
+  const K0 = projK(w, h);
+  const K = K0 * RENDER.ZOOM * (1 - me.fovKick * 0.12);
+  // keep the rider at the same spot on screen as before the zoom-out
+  const hz = h * 0.38 + K0 * 0.97 - (1 + RENDER.CAM_LIFT) * K;
   const camZ = me.z - PLAYER_DIST;
   const baseIdx = Math.floor(camZ / SEG);
   const base = track.segs[clamp(baseIdx, 0, track.N - 1)];
   const basePct = (camZ - baseIdx * SEG) / SEG;
-  const camY = roadY(track, me.z) + CAM_H * (1 + RENDER.CAM_LIFT) + me.h * 0.55;
+  // camera pitch: shear the world so the slope ahead reads as level (the camera "goes downhill with you")
+  const pitch = me.pitch || 0;
+  const camY = roadY(track, me.z) - pitch * PLAYER_DIST + CAM_H * (1 + RENDER.CAM_LIFT) + me.h * 0.55;
   const camX = me.camX * ROAD_W;
 
   // camera tilt + shake
@@ -1644,12 +2068,21 @@ function renderView(ctx, vp, race, me, tnow) {
   ctx.scale(zoom, zoom);
   ctx.translate(-w / 2, -h * 0.62);
 
-  // ---- sky & parallax ----
-  drawSky(ctx, w, h, hz, biome, tnow, me);
-  const slope = (base.y2 - base.y1) / SEG;
-  const hzShift = clamp(-slope * h * 0.35, -h * 0.12, h * 0.12);
-  drawLayer(ctx, assets.far, w, h, hz + hzShift * 0.6, me.bgX * 0.25, 0.62, biome);
-  drawLayer(ctx, assets.near, w, h, hz + hzShift, me.bgX * 0.55, 0.46, biome);
+  // ---- sky & parallax ----  (the true horizon rises when the camera tilts down)
+  const tun = me.tunT || 0;
+  const hzBg = hz + clamp(K * CAM_D * pitch * 0.55, -h * 0.2, h * 0.14);
+  drawSky(ctx, w, h, hzBg, biome, tnow, me);
+  drawLayer(ctx, assets.far, w, h, hzBg, me.bgX * 0.25, 0.62, biome);
+  drawLayer(ctx, assets.near, w, h, hzBg, me.bgX * 0.55, 0.46, biome);
+  ctx.fillStyle = biome.ground[1];
+  ctx.fillRect(-w * 0.2, hzBg - 1, w * 1.4, h * 1.2);
+  if (tun > 0.01) {
+    // inside a tunnel the sky becomes rock ceiling
+    const cg = ctx.createLinearGradient(0, 0, 0, hz + h * 0.1);
+    const rc = biome.id === "tundra" ? "#0c1a2c" : shade(biome.rock[0], -0.55);
+    cg.addColorStop(0, rgba(shade(rc, -0.3), tun)); cg.addColorStop(1, rgba(rc, tun));
+    ctx.fillStyle = cg; ctx.fillRect(-w * 0.2, -h * 0.2, w * 1.4, hz + h * 0.4);
+  }
 
   // ---- road ----
   const segs = track.segs;
@@ -1668,8 +2101,8 @@ function renderView(ctx, vp, race, me, tnow) {
     if (z1 <= 1) { x += dx; dx += s.curve; continue; }
     const sc1 = CAM_D / z1, sc2 = CAM_D / z2;
     s.sc1 = sc1; s.sc2 = sc2;
-    s.sx1 = w / 2 + sc1 * (x - camX) * K;  s.sy1 = hz - sc1 * (s.y1 - camY) * K;
-    s.sx2 = w / 2 + sc2 * (x + dx - camX) * K; s.sy2 = hz - sc2 * (s.y2 - camY) * K;
+    s.sx1 = w / 2 + sc1 * (x - camX) * K;  s.sy1 = hz - sc1 * (s.y1 - pitch * z1 - camY) * K;
+    s.sx2 = w / 2 + sc2 * (x + dx - camX) * K; s.sy2 = hz - sc2 * (s.y2 - pitch * z2 - camY) * K;
     s.rw1 = sc1 * ROAD_W * K; s.rw2 = sc2 * ROAD_W * K;
     s.clip = maxy;
     s.fog = 1 - Math.exp(-((n / dd) ** 2) * fogDensity);
@@ -1691,7 +2124,7 @@ function renderView(ctx, vp, race, me, tnow) {
       const S = assets.sprites[sp.id];
       if (!S || sp.dead) continue;
       drawSprite(ctx, S, s.sx1 + s.sc1 * sp.x * ROAD_W * K, s.sy1, s.sc1 * K, s.clip, alpha, sp.flat);
-      if (S.glow && biome.dark) glows.push([s.sx1 + s.sc1 * sp.x * ROAD_W * K, s.sy1 - S.wh * s.sc1 * K * 0.7, S.ww * s.sc1 * K * 1.2, S.glow]);
+      if (S.glow && (biome.dark || tun > 0.05)) glows.push([s.sx1 + s.sc1 * sp.x * ROAD_W * K, s.sy1 - S.wh * s.sc1 * K * 0.7, S.ww * s.sc1 * K * 1.2, S.glow]);
     }
     for (const o of s.objs) {
       if (o.taken > race.time) continue;
@@ -1699,7 +2132,7 @@ function renderView(ctx, vp, race, me, tnow) {
       const bob = Math.sin(tnow * 4 + s.i) * 60;
       const sc = s.sc1 * K;
       drawSprite(ctx, S, s.sx1 + s.sc1 * o.x * ROAD_W * K, s.sy1 - (180 + bob) * sc, sc, s.clip, alpha, false);
-      if (biome.dark) glows.push([s.sx1 + s.sc1 * o.x * ROAD_W * K, s.sy1 - 400 * sc, 700 * sc, S.glow]);
+      if (biome.dark || tun > 0.05) glows.push([s.sx1 + s.sc1 * o.x * ROAD_W * K, s.sy1 - 400 * sc, 700 * sc, S.glow]);
     }
     const list = buckets[s.i];
     if (list) {
@@ -1709,8 +2142,9 @@ function renderView(ctx, vp, race, me, tnow) {
   }
 
   // ---- weather & lighting ----
-  drawWeather(ctx, w, h, biome, race, me, tnow);
-  if (biome.dark) drawDarkness(ctx, w, h, hz, glows, me);
+  if (tun < 0.5) drawWeather(ctx, w, h, biome, race, me, tnow);
+  if (biome.dark || tun > 0.05) drawDarkness(ctx, w, h, hz, glows, me, biome.dark ? 1 : tun * 0.85);
+  if (tun > 0.05 && me.tunKind === "falls") drawFallsMist(ctx, w, h, tnow, tun);
   ctx.restore();
 
   // screen-space overlays (not tilted)
@@ -1778,16 +2212,22 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
   const { sx1, sy1, sx2, sy2 } = s;
   const y1 = Math.min(sy1, maxy);
   const rw1 = s.rw1 * s.w, rw2 = s.rw2 * s.w;
-  // ground band
-  ctx.fillStyle = biome.ground[s.dark];
-  ctx.fillRect(-w * 0.2, sy2, w * 1.4, y1 - sy2 + 1);
+  // ground band (each side can be river, lava, drop-off, rock or ice — see track features)
+  if (s.gL || s.gR) {
+    const mx = (sx1 + sx2) / 2;
+    ctx.fillStyle = sideGround(s.gL, s, biome, t); ctx.fillRect(-w * 0.2, sy2, mx + w * 0.2, y1 - sy2 + 1);
+    ctx.fillStyle = sideGround(s.gR, s, biome, t); ctx.fillRect(mx, sy2, w * 1.2 - mx, y1 - sy2 + 1);
+  } else {
+    ctx.fillStyle = biome.ground[s.dark];
+    ctx.fillRect(-w * 0.2, sy2, w * 1.4, y1 - sy2 + 1);
+  }
   // rumble edges
   const r1 = rw1 * 1.12, r2 = rw2 * 1.12;
-  quad(ctx, sx1 - r1, sy1, sx1 + r1, sy1, sx2 + r2, sy2, sx2 - r2, sy2, biome.edge[s.dark]);
-  // road
-  quad(ctx, sx1 - rw1, sy1, sx1 + rw1, sy1, sx2 + rw2, sy2, sx2 - rw2, sy2, biome.road[s.dark]);
+  quad(ctx, sx1 - r1, sy1, sx1 + r1, sy1, sx2 + r2, sy2, sx2 - r2, sy2, s.bridge ? "#3a2a20" : biome.edge[s.dark]);
+  // road (planks on bridges)
+  quad(ctx, sx1 - rw1, sy1, sx1 + rw1, sy1, sx2 + rw2, sy2, sx2 - rw2, sy2, s.bridge ? biome.plank[s.i % 2] : biome.road[s.dark]);
   // tire ruts
-  if (s.rw1 > 6) {
+  if (s.rw1 > 6 && !s.bridge) {
     for (const rx of [-0.42, 0.42]) {
       const a1 = sx1 + rx * s.rw1, a2 = sx2 + rx * s.rw2;
       quad(ctx, a1 - s.rw1 * 0.06, sy1, a1 + s.rw1 * 0.06, sy1, a2 + s.rw2 * 0.06, sy2, a2 - s.rw2 * 0.06, sy2, biome.rut);
@@ -1808,7 +2248,7 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
     let col2 = col;
     if (sf.type === "water") col2 = (s.i + Math.floor(t * 8)) % 3 === 0 ? "#7cc6f2" : col;
     if (sf.type === "lava") col2 = (s.i + Math.floor(t * 6)) % 2 ? "#ff7a1f" : "#ffb347";
-    if (sf.type === "ice") col2 = s.dark ? "#cdeffd" : "#b2e2fb";
+    if (sf.type === "ice") col2 = biome.dark ? (s.dark ? "#6f8fb8" : "#7a9ac2") : s.dark ? "#cdeffd" : "#b2e2fb";
     quad(ctx, sx1 + (c - hw) * s.rw1, sy1, sx1 + (c + hw) * s.rw1, sy1, sx2 + (c + hw) * s.rw2, sy2, sx2 + (c - hw) * s.rw2, sy2, col2);
     if (sf.type === "lava") { const hw2 = hw * 0.35; quad(ctx, sx1 + (c - hw2) * s.rw1, sy1, sx1 + (c + hw2) * s.rw1, sy1, sx2 + (c + hw2) * s.rw2, sy2, sx2 + (c - hw2) * s.rw2, sy2, "#ffe08a"); }
   }
@@ -1824,6 +2264,24 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
       ctx.beginPath(); ctx.moveTo(cx1 - hw * s.rw1 * 0.6, sy1); ctx.lineTo(cx2, sy2); ctx.lineTo(cx1 + hw * s.rw1 * 0.6, sy1); ctx.closePath(); ctx.fill();
     }
   }
+}
+
+function sideGround(type, s, biome, t) {
+  if (!type) return biome.ground[s.dark];
+  if (type === "water") return (s.i + Math.floor(t * 5)) % 4 === 0 ? biome.water[1] : biome.water[0];
+  if (type === "lava") return (s.i + Math.floor(t * 6)) % 3 === 0 ? "#ff8a2f" : "#ff5a1f";
+  if (type === "chasm") return biome.chasm[s.dark];
+  if (type === "ice") return biome.dark ? (s.dark ? "#4f6d96" : "#58779f") : (s.dark ? "#bfe0fb" : "#cfe8ff");
+  if (type === "rock") return shade(biome.rock[0], s.dark ? -0.5 : -0.42);
+  return biome.ground[s.dark];
+}
+
+function drawFallsMist(ctx, w, h, t, a) {
+  ctx.strokeStyle = `rgba(230,245,255,${0.35 * a})`; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i < 26; i++) { const x = ((i * 0.137 + t * 0.03) % 1) * w, y = ((t * 1.6 + i * 0.31) % 1) * h; ctx.moveTo(x, y); ctx.lineTo(x - 2, y + h * 0.12); }
+  ctx.stroke();
+  ctx.fillStyle = `rgba(120,190,220,${0.12 * a})`; ctx.fillRect(0, 0, w, h);
 }
 
 function quad(ctx, x1, y1, x2, y2, x3, y3, x4, y4, col) {
@@ -1881,14 +2339,14 @@ function riderPose(e, t) {
 
 function drawRider(ctx, e, px, py, sc, clipY, me, race, glows, t) {
   const spr = e.sprites[riderPose(e, t)];
-  const vw = e.veh.w * 1.25, vh = vw * (SPRITE_H / SPRITE_W);
+  const vw = e.veh.sw || e.veh.w * 1.25, vh = vw * (SPRITE_H / SPRITE_W);
   const dw = vw * sc, dh = vh * sc;
   if (dw < 2) return;
   const lift = e.h * sc;
   // shadow
   const shs = clamp(1 - e.h / 3000, 0.3, 1);
   ctx.fillStyle = "rgba(0,0,0,.32)";
-  ctx.beginPath(); ctx.ellipse(px, py, dw * 0.3 * shs * (e.veh.id === "atv" ? 1.5 : 1), dw * 0.07 * shs, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px, py, dw * 0.3 * shs * (e.veh.shove ? 1.4 : 1), dw * 0.07 * shs, 0, 0, TAU); ctx.fill();
   let rot = e.lean * 0.32 + (e.wobble > 0 ? Math.sin(t * 40) * 0.12 * e.wobble : 0);
   if (e.wipeT > 0) rot = e.wipeT * 9;
   if (e.trick && e.trick.def.pose === "spin") rot = (e.trick.t / e.trick.dur) * TAU;
@@ -1929,7 +2387,7 @@ function drawRider(ctx, e, px, py, sc, clipY, me, race, glows, t) {
     ctx.beginPath(); ctx.moveTo(px - 10, my - 16); ctx.lineTo(px + 10, my - 16); ctx.lineTo(px, my - 2); ctx.closePath(); ctx.fill();
     ctx.font = "16px Bangers, sans-serif"; ctx.textAlign = "center"; ctx.fillText("P" + (e.pIndex + 1), px, my - 20);
   }
-  if (race.track.biome.dark && e !== me) glows.push([px, y - dh * 0.85, Math.min(dw * 0.7, 90), "#fff2c0"]);
+  if ((race.track.biome.dark || (me.tunT || 0) > 0.05) && e !== me) glows.push([px, y - dh * 0.85, Math.min(dw * 0.7, 90), "#fff2c0"]);
 }
 
 function star(ctx, x, y, r) {
@@ -2003,21 +2461,21 @@ function drawWeather(ctx, w, h, biome, race, me, t) {
   }
 }
 
-function drawDarkness(ctx, w, h, hz, glows, me) {
-  // dark overlay with a headlamp cone, then additive glows
+function drawDarkness(ctx, w, h, hz, glows, me, k = 1) {
+  // dark overlay with a headlamp cone, then additive glows (k = strength; tunnels use a partial version)
   const g = ctx.createRadialGradient(w / 2, h * 0.68, h * 0.06, w / 2, h * 0.55, h * 0.95);
-  g.addColorStop(0, "rgba(5,10,30,0)"); g.addColorStop(0.45, "rgba(5,10,30,.35)"); g.addColorStop(1, "rgba(3,6,20,.82)");
+  g.addColorStop(0, "rgba(5,10,30,0)"); g.addColorStop(0.45, `rgba(5,10,30,${0.35 * k})`); g.addColorStop(1, `rgba(3,6,20,${0.82 * k})`);
   ctx.fillStyle = g; ctx.fillRect(-w * 0.2, -h * 0.2, w * 1.4, h * 1.4);
   ctx.globalCompositeOperation = "lighter";
   const beam = ctx.createLinearGradient(0, h * 0.85, 0, hz);
-  beam.addColorStop(0, "rgba(255,240,190,.2)"); beam.addColorStop(1, "rgba(255,240,190,0)");
+  beam.addColorStop(0, `rgba(255,240,190,${0.2 * k})`); beam.addColorStop(1, "rgba(255,240,190,0)");
   ctx.fillStyle = beam;
   ctx.beginPath(); ctx.moveTo(w * 0.45, h * 0.85); ctx.lineTo(w * 0.55, h * 0.85); ctx.lineTo(w * 0.78, hz + h * 0.02); ctx.lineTo(w * 0.22, hz + h * 0.02); ctx.closePath(); ctx.fill();
   for (let [x, y, r, c] of glows) {
     if (r < 2) continue;
     r = Math.min(r, h * 0.35);
     const gg = ctx.createRadialGradient(x, y, 0, x, y, r);
-    gg.addColorStop(0, rgba(c, 0.45)); gg.addColorStop(1, rgba(c, 0));
+    gg.addColorStop(0, rgba(c, 0.45 * Math.min(1, k + 0.2))); gg.addColorStop(1, rgba(c, 0));
     ctx.fillStyle = gg; ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
   ctx.globalCompositeOperation = "source-over";
@@ -2357,9 +2815,12 @@ function stepRace(race, inputs, dt) {
     race.stormWarn = Math.max(0, race.stormWarn - dt);
   }
 
-  // rubber-band reference = best local/remote human
+  // rubber-band reference = best local/remote human (in cutie mode: the favoured player)
   const humans = race.riders.filter((e) => e.human);
-  const humanZ = humans.length ? Math.max(...humans.map((e) => e.z)) : 0;
+  let humanZ = humans.length ? Math.max(...humans.map((e) => e.z)) : 0;
+  const fav = cutieFav(race);
+  if (fav && !fav.finished) humanZ = fav.z;
+  cutieStep(race, fav, dt);
 
   for (const e of race.riders) {
     if (e.remote) { remoteFollow(race, e, dt); continue; }
@@ -2373,7 +2834,10 @@ function stepRace(race, inputs, dt) {
   updateProjectiles(race, dt);
   updateFx(race, dt);
   // places
-  const sorted = race.riders.slice().sort((a, b) => (a.finished && b.finished) ? a.finishTime - b.finishTime : a.finished ? -1 : b.finished ? 1 : b.z - a.z);
+  const sorted = race.riders.slice().sort((a, b) => {
+    if (fav && fav.finished) { if (a === fav) return -1; if (b === fav) return 1; }
+    return (a.finished && b.finished) ? a.finishTime - b.finishTime : a.finished ? -1 : b.finished ? 1 : b.z - a.z;
+  });
   sorted.forEach((e, i) => (e.place = i + 1));
   // end
   const localHumans = race.riders.filter((e) => e.human && e.local);
@@ -2427,7 +2891,11 @@ function updateRider(race, e, inp, dt) {
     else if (sf.type === "lava") { damage(race, e, 14 * dt, null, "lava", true); e.burnT = Math.max(e.burnT, 0.8); spawnFx(race, e.z - 40, e.x, 60, "#ff7a1f", 60, 0.5, 600); }
   }
   const offroad = Math.abs(e.x) > seg.w + 0.03 || (seg.split > 0.4 && Math.abs(e.x) < 0.2 * seg.split);
-  if (offroad && e.h <= 0) {
+  const sideG = Math.abs(e.x) > seg.w + 0.03 ? (e.x < 0 ? seg.gL : seg.gR) : null;
+  if (offroad && e.h <= 0 && sideG === "ice") { slip = true; surfMax *= 0.9; }
+  else if (offroad && e.h <= 0 && sideG === "water") { surfMax *= 0.55; if (Math.random() < 0.6) spawnFx(race, e.z - 40, e.x + rnd(-0.15, 0.15), 120, "#d8f1ff", 70, 0.5, 900); }
+  else if (offroad && e.h <= 0 && sideG === "lava") { surfMax *= 0.6; damage(race, e, 16 * dt, null, "lava", true); e.burnT = Math.max(e.burnT, 0.8); spawnFx(race, e.z - 40, e.x, 60, "#ff7a1f", 60, 0.5, 600); }
+  else if (offroad && e.h <= 0) {
     surfMax *= 0.58;
     if (e.human) e.shake = Math.max(e.shake, 2 * pct);
     if (Math.random() < 0.4) spawnFx(race, e.z - 60, e.x + rnd(-0.1, 0.1), 50, tr.biome.ground[0], 80, 0.6);
@@ -2435,18 +2903,26 @@ function updateRider(race, e, inp, dt) {
   e.wrongWay = offroad && Math.abs(e.x) > seg.w + 1.2 && e.human;
 
   // ----- speed -----
-  let max = e.maxSpd * (0.72 + 0.28 * (e.hp / e.maxHp)) * surfMax;
+  let max = e.maxSpd * (0.72 + 0.28 * (e.hp / e.maxHp)) * surfMax * (1 + (e.assist || 0));
   e.boosting = false;
   if (inp.boost && e.boost > 0.5 && !e.finished) { e.boosting = true; e.boost = Math.max(0, e.boost - 30 * dt); }
   const bonus = Math.max(e.boosting ? 0.28 : 0, e.padT > 0 ? 0.36 : 0) + (e.boosting && e.padT > 0 ? 0.06 : 0);
   max *= 1 + bonus;
   if (e.drafting) { max *= 1.04; e.boost = Math.min(100, e.boost + 8 * dt); }
+  if (e.veh.regen && !e.finished) e.boost = Math.min(100, e.boost + e.veh.regen * dt);
   if (e.finished) max *= 0.7;
+  // throttle: humans push the stick up to go (0..1); bots and finished riders always ride (undefined = full)
+  let thr = inp.throttle === undefined ? 1 : clamp(inp.throttle, 0, 1);
+  if (e.boosting || e.padT > 0) thr = 1;
+  const target = max * thr;
   let accel = e.accel * (e.boosting || e.padT > 0 ? 2.4 : 1);
   const drifting = !!inp.brake && Math.abs(inp.steer || 0) > 0.35 && pct > 0.4 && e.h <= 0;
   if (inp.brake) e.speed -= BASE_SPEED * (drifting ? 0.18 : 0.9) * dt;
-  if (e.speed < max) e.speed = Math.min(max, e.speed + accel * dt * (1 - Math.min(0.8, pct * 0.35)));
-  else e.speed -= (e.speed - max) * 2.2 * dt;
+  if (inp.stop && e.h <= 0) e.speed -= BASE_SPEED * 1.15 * dt;
+  if (e.speed < target) e.speed = Math.min(target, e.speed + accel * dt * (1 - Math.min(0.8, pct * 0.35)));
+  else if (e.speed > max) e.speed -= (e.speed - max) * 2.2 * dt;
+  else if (e.h <= 0) e.speed = Math.max(target, e.speed - BASE_SPEED * (0.3 + 0.25 * pct) * dt);   // off the throttle: roll to a stop
+  if (e.speedCap !== undefined && e.speed > e.speedCap) e.speed = Math.max(e.speedCap, e.speed - BASE_SPEED * 0.6 * dt);
   if (e.speed < 0) e.speed = 0;
   if (drifting) {
     e.boost = Math.min(100, e.boost + 11 * dt);
@@ -2456,12 +2932,21 @@ function updateRider(race, e, inp, dt) {
 
   // ----- steering -----
   const steer = clamp(inp.steer || 0, -1, 1) * (e.blindT > 0 && !e.human ? 0.4 : 1);
-  const rate = 2.15 * e.handling * (drifting ? 1.5 : 1) * (e.h > 0 ? 0.55 : 1) * (0.4 + 0.6 * Math.min(1, pct * 1.5));
+  const rate = 2.15 * e.handling * (drifting ? 1.5 : 1) * (e.h > 0 ? 0.55 : 1) * (0.4 + 0.6 * Math.min(1, pct * 1.5)) * Math.min(1, 0.08 + pct * 5);
   const gripK = e.h > 0 ? 2.5 : slip ? 1.2 : 9 * e.grip;
   e.vx += (steer * rate - e.vx) * Math.min(1, gripK * dt);
   e.x += e.vx * dt;
   if (e.h <= 0) e.x -= CENT * pct * pct * seg.curve * dt * (slip ? 1.35 : 1) * (drifting ? 0.5 : 1);
   e.x = clamp(e.x, -(seg.w + 2.4), seg.w + 2.4);
+  // rock walls, tunnel sides and bridge / cliff rails
+  if ((seg.wl && e.x < -seg.wl) || (seg.wr && e.x > seg.wr)) {
+    const side = e.x < 0 ? -1 : 1, lim = side < 0 ? seg.wl : seg.wr;
+    e.x = side * lim; e.vx = -side * Math.min(1.2, Math.abs(e.vx) * 0.4 + 0.3);
+    e.speed *= 1 - 0.9 * dt;
+    if (e.human) e.shake = Math.max(e.shake, 3);
+    if (Math.random() < 0.3) spawnFx(race, e.z + 40, e.x, 120, "#fff6a8", 30, 0.3, 500);
+    if (!e.wallT || e.wallT < race.time) { e.wallT = race.time + 0.4; race.events.push({ snd: "bump", e }); }
+  }
   e.lean = lerp(e.lean, steer * (drifting ? 1.25 : 0.8) + (e.vx - steer * rate) * 0.08, Math.min(1, dt * 8));
 
   // ----- air & tricks -----
@@ -2503,7 +2988,9 @@ function updateRider(race, e, inp, dt) {
       o.taken = race.time + 6;
       if (race.net && !e.remote) race.net.send({ t: "ev", k: "take", s: s.i, o: s.objs.indexOf(o) });
       if (o.kind === "crate") {
-        if (e.items.length < 3) e.items.push(Math.random() < 0.25 ? e.rider.item : tr.biome.item);
+        const lucky = e === cutieFav(race);
+        if (e.items.length < 3) e.items.push(Math.random() < (lucky ? 0.6 : 0.25) ? e.rider.item : tr.biome.item);
+        if (lucky) e.boost = Math.min(100, e.boost + 12);
         popup(e, "+ " + ITEMS[e.items[e.items.length - 1]].name.toUpperCase(), "#ffd23f");
         race.events.push({ snd: "pickup", e });
       } else {
@@ -2533,6 +3020,8 @@ function updateRider(race, e, inp, dt) {
   }
 
   // finish
+  const favE = cutieFav(race);
+  if (favE && e !== favE && !favE.finished && !e.finished && !e.remote && e.z >= tr.finishZ - 160) { e.z = tr.finishZ - 160; e.speed = Math.min(e.speed, favE.speed * 0.5); }
   if (!e.finished && e.z >= tr.finishZ) {
     e.finished = true; e.finishTime = race.time; race.finishOrder.push(e);
     e.trick = null;
@@ -2546,6 +3035,14 @@ function updateRider(race, e, inp, dt) {
 function camFollow(race, e, dt, inp) {
   if (!e.human && !e.cam) return;
   const seg = segAt(race.track, e.z);
+  // camera pitch follows the slope just ahead (looks a little further ahead so drops show before you reach them)
+  const tr = race.track, y0 = roadY(tr, e.z);
+  const sl = Math.min((roadY(tr, e.z + 10 * SEG) - y0) / (10 * SEG), (roadY(tr, e.z + 26 * SEG) - y0) / (26 * SEG) * 0.9 + (roadY(tr, e.z + 10 * SEG) - y0) / (10 * SEG) * 0.1);
+  const tgt = clamp(sl < 0 ? sl * RENDER.PITCH_DOWN : sl * RENDER.PITCH_UP, -0.75, 0.3);
+  e.pitch = lerp(e.pitch || 0, tgt, Math.min(1, dt * 2.6));
+  const inTun = segAt(tr, e.z - PLAYER_DIST).tun || seg.tun;
+  e.tunT = lerp(e.tunT || 0, inTun ? 1 : 0, Math.min(1, dt * 4));
+  if (inTun) e.tunKind = inTun;
   e.camX = lerp(e.camX, e.x * 0.82, Math.min(1, dt * 7));
   e.tilt = lerp(e.tilt, -(inp.steer || 0) * 0.03 - seg.curve * 0.0045 * (e.speed / e.maxSpd), Math.min(1, dt * 3));
   e.bgX += seg.curve * (e.speed / BASE_SPEED) * dt * 160;
@@ -2598,7 +3095,7 @@ function collideSprites(race, e, s) {
       continue;
     }
     damage(race, e, 10 + (e.speed / BASE_SPEED) * 8, null, "crash");
-    e.speed *= 0.32;
+    e.speed *= e === cutieFav(race) ? 0.55 : 0.32;
     const dir = e.x < sp.x ? -1 : 1;
     e.x = sp.x + dir * (half + rHalf + 0.02);
     e.vx = dir * 2.2;
@@ -2621,6 +3118,7 @@ function damage(race, e, amt, by, kind, silent) {
   if (kind === "melee") { if (e.meleeImm > 0) return; e.meleeImm = 0.38; }
   // bots hit humans a bit softer (scaled by difficulty) so a good rider isn't ganged into constant wipeouts
   if (by && !by.human && e.human) amt *= [0.6, 0.78, 0.95][race.cfg.difficulty ?? 1];
+  if (e === cutieFav(race)) amt *= 0.55;
   e.hp -= amt * (1 - e.armor);
   if (!silent) { e.flash = 1; e.hurtT = Math.max(e.hurtT, 0.35); e.wobble = Math.max(e.wobble, 0.5); }
   if (e.hp <= 0) {
@@ -2750,7 +3248,7 @@ function riderCollisions(race) {
         a.vx -= s * 0.8 * (b.mass / tot); b.vx += s * 0.8 * (a.mass / tot);
         const back = dz > 0 ? a : b, front = dz > 0 ? b : a;
         if (back.speed > front.speed) back.speed = front.speed * 0.98;
-        if (back.veh.id === "atv" && front.mass < back.mass) { front.speed *= 0.97; damage(race, front, 0.3, null, "bump", true); }
+        if (back.veh.shove && front.mass < back.mass) { front.speed *= 0.97; damage(race, front, 0.3, null, "bump", true); }
         if ((a.human || b.human) && Math.random() < 0.08) race.events.push({ snd: "bump", e: a.human ? a : b });
       }
     }
@@ -2764,6 +3262,52 @@ function spawnFx(race, z, x, h, col, size, life, vh = 0) {
 function updateFx(race, dt) {
   for (const f of race.fx) { f.life -= dt; f.h += f.vh * dt; f.vh -= 1800 * dt; if (f.h < 0) { f.h = 0; f.vh = 0; } f.x += f.vx * dt; }
   race.fx = race.fx.filter((f) => f.life > 0);
+}
+
+/* ---------------- Cutie mode (secret) ----------------
+   cfg.fav = index (in cfg.humans) of the player who always wins. Each device only adjusts the riders it simulates:
+   the favoured player gets a gentle catch-up and softer knocks; everyone else is quietly held back near the end
+   so nobody crosses the line before her. */
+function cutieFav(race) {
+  if (race.cfg.fav === undefined || race.cfg.fav === null) return null;
+  if (race.favE === undefined) race.favE = race.riders.find((e) => e.human && e.mark === race.cfg.fav) || null;
+  return race.favE;
+}
+function cutieStep(race, fav, dt) {
+  for (const e of race.riders) { e.speedCap = undefined; e.assist = 0; }
+  if (!fav) return;
+  const tr = race.track;
+  if (!fav.remote && !fav.finished) {
+    let lead = -1e9;
+    for (const o of race.riders) if (o !== fav && !o.finished) lead = Math.max(lead, o.z);
+    const gap = lead - fav.z;
+    const urgency = clamp(1 - (tr.finishZ - fav.z) / ((tr.finishZ - tr.startZ) * 0.35), 0, 1);
+    fav.assist = gap > 0 ? clamp(gap / 22000, 0, 0.08 + 0.08 * urgency) : 0;
+  }
+  if (fav.finished) return;                                       // once she's home, everyone else races freely
+  for (const e of race.riders) {
+    if (e === fav || e.remote || e.finished) continue;
+    if (race.czM === undefined) race.czM = 3000 + Math.random() * 9000;   // this race's winning margin (~0.3–1 s), so it isn't always a photo finish
+    const remain = Math.max(1, tr.finishZ - e.z), lead = e.z - fav.z;
+    const q = (lead + race.czM) / remain;                         // how far ahead of her (plus margin), relative to what's left
+    let cap;
+    // soft squeeze: a slightly lower top speed (never more than ~14%) once the lead is big for the distance left
+    if (q > 0.05) cap = e.maxSpd * (1 - clamp((q - 0.05) * 1.3, 0, 0.14));
+    // backup: if she's far behind, match her pace so she can still catch up before the line
+    //         (only in the last ~30% of the trail, so a pause mid-race never freezes everyone)
+    const late = remain < (tr.finishZ - tr.startZ) * 0.3;
+    if ((late && q > 0.17) || (lead > -race.czM * 0.3 && remain < 9000))
+      cap = Math.min(cap || 1e9, Math.max(remain < 9000 ? 0 : e.maxSpd * 0.3, fav.speed * (remain < 9000 ? 0.9 : 0.97) - Math.max(0, lead + race.czM - remain * 0.17) * 0.25));
+    if (cap !== undefined) {
+      e.speedCap = cap;
+      if (e.human && e.speed > cap + 300 && e.h <= 0) {
+        // looks like the trail got rough: a little dust and wobble
+        if (Math.random() < 0.25) spawnFx(race, e.z - 60, e.x + rnd(-0.12, 0.12), 50, tr.biome.ground[0], 60, 0.5);
+        if (Math.random() < dt * 0.8) e.wobble = Math.max(e.wobble, 0.35);
+      }
+    }
+    if (e.z > tr.finishZ - 160) { e.z = tr.finishZ - 160; e.speed = Math.min(e.speed, fav.speed * 0.5); }
+  }
 }
 
 /* ---------------- AI ---------------- */
@@ -2790,6 +3334,12 @@ function aiThink(race, e, dt, humanZ) {
   // brake into hard curves when wide
   const far = tr.segs[Math.min(tr.N - 1, segI + 22)];
   if (Math.abs(far.curve) > 4 && pct > 0.85 && sign(e.x) === -sign(far.curve) && Math.abs(e.x) > 0.6) inp.brake = Math.random() < 0.6;
+  // ease off for hairpins and tight bends ahead (sloppier bots ease off a bit late)
+  let cmax = 0;
+  for (let k = 3; k < 30; k += 3) cmax = Math.max(cmax, Math.abs(tr.segs[Math.min(tr.N - 1, segI + k)].curve));
+  const safe = cmax > 3.6 ? clamp(Math.sqrt(4.6 * e.handling / cmax), 0.5, 1) * (1 + (1 - ai.skill) * 0.22) : 2;
+  inp.throttle = pct > safe ? 0 : 1;
+  inp.stop = pct > safe + 0.08;
   if (e.finished) return inp;
   // boost on straights
   if (e.boost > 55 && Math.abs(ahead.curve) < 2 && Math.random() < ai.skill * 0.08) ai.boosting = 1.4;
@@ -2797,14 +3347,18 @@ function aiThink(race, e, dt, humanZ) {
   // combat — pick the nearest candidate (never biased toward humans)
   if (race.time > 3) {
     let mel = null, md = 1e9, ahead = null, ad = 1e9, behind = null, bd = 1e9;
+    const fav = cutieFav(race);
+    const late = fav ? clamp((e.z - tr.startZ) / (tr.finishZ - tr.startZ) * 1.6 - 0.6, 0, 1) : 0;   // 0 until ~40% in, 1 by the end
     for (const o of race.riders) {
       if (o === e || o.wipeT > 0 || o.finished) continue;
+      if (o === fav && Math.random() < 0.7 + 0.28 * late) continue;   // cutie mode: bots mostly leave the favoured player alone
       const dz = o.z - e.z, dx = Math.abs(o.x - e.x);
       if (Math.abs(dz) < 300 && dx < 0.55) { const d = Math.abs(dz) + dx * 400; if (d < md) { md = d; mel = o; } }
       else if (dz > 300 && dz < 2600 && dx < 0.3 && dz < ad) { ad = dz; ahead = o; }
       else if (dz < -200 && dz > -1200 && dx < 0.3 && -dz < bd) { bd = -dz; behind = o; }
     }
-    if (mel && e.atkCD <= 0 && mel.meleeImm <= 0 && Math.random() < ai.aggr * dt * 2.4) inp.attack = true;
+    const rival = fav && mel && mel.human && mel !== fav ? 1 + 0.5 * late : 1;
+    if (mel && e.atkCD <= 0 && mel.meleeImm <= 0 && Math.random() < ai.aggr * dt * 2.4 * rival) inp.attack = true;
     else if (!mel && ahead && e.items.length && Math.random() < ai.skill * dt * 1.0) inp.attack = true;
     else if (behind && e.items.length && Math.random() < ai.skill * dt * 0.6) inp.throwBack = true;
   }
@@ -2880,7 +3434,7 @@ const Input = {
 };
 
 function mkPlayerInput() {
-  return { steer: 0, touchSteer: 0, brake: false, boost: false, attackQ: 0, backQ: 0, trickQ: 0, steerTouch: null, anchor: null, knob: null, btn: {} };
+  return { steer: 0, touchSteer: 0, touchGas: 0, touchStop: false, brake: false, boost: false, attackQ: 0, backQ: 0, trickQ: 0, steerTouch: null, anchor: null, knob: null, btn: {} };
 }
 
 function computeLayout(W, H, split, safe) {
@@ -2897,7 +3451,7 @@ function computeLayout(W, H, split, safe) {
     L.players.push({
       x0, w, R, atk, bst, brk,
       steerZone: { x: x0 + sl, y: H * 0.22, w: w * 0.48, h: H * 0.78 },
-      ghost: { x: x0 + sl + pad + R * 1.5, y: H - pad - R * 1.5 - safe.b },
+      ghost: { x: x0 + sl + pad + R * 1.5, y: H - pad - R * 1.95 - safe.b },
       steerRange: R * 1.15,
     });
   }
@@ -2937,7 +3491,7 @@ function initInput(canvas) {
       Input.touches[t.identifier] = Object.assign(role, { sx: x, sy: y, x, y, t0: now() });
       const P = Input.players[role.p];
       if (role.role === "pause") Input.onPause && Input.onPause();
-      if (role.role === "steer") { P.anchor = [x, y]; P.knob = [x, y]; P.steerTouch = t.identifier; }
+      if (role.role === "steer") { P.anchor = [x, y]; P.knob = [x, y]; P.steerTouch = t.identifier; P.touchGas = 0; P.touchStop = false; }
       if (role.role === "bst") P.boost = true;
       if (role.role === "brk") P.brake = true;
       if (role.role === "atk") P.btn.atk = true;
@@ -2953,10 +3507,14 @@ function initInput(canvas) {
       T.x = x; T.y = y;
       if (T.role === "steer") {
         const P = Input.players[T.p], range = Input.layout.players[T.p].steerRange;
-        let dx = x - P.anchor[0];
+        let dx = x - P.anchor[0], dy = y - P.anchor[1];
         if (Math.abs(dx) > range * 1.4) { P.anchor[0] = x - sign(dx) * range * 1.4; dx = sign(dx) * range * 1.4; }
+        if (Math.abs(dy) > range * 1.4) { P.anchor[1] = y - sign(dy) * range * 1.4; dy = sign(dy) * range * 1.4; }
         P.knob = [x, y];
         P.touchSteer = clamp(dx / range, -1, 1);
+        // push up = gas (small dead zone, full at ~80% of the ring); pull down = brake
+        P.touchGas = clamp((-dy - range * 0.12) / (range * 0.68), 0, 1);
+        P.touchStop = dy > range * 0.38;
       }
     }
   };
@@ -2968,7 +3526,7 @@ function initInput(canvas) {
       delete Input.touches[t.identifier];
       const P = Input.players[T.p];
       if (!P) continue;
-      if (T.role === "steer") { P.touchSteer = 0; P.anchor = null; P.knob = null; P.steerTouch = null; }
+      if (T.role === "steer") { P.touchSteer = 0; P.touchGas = 0; P.touchStop = false; P.anchor = null; P.knob = null; P.steerTouch = null; }
       if (T.role === "bst") P.boost = Object.values(Input.touches).some((o) => o.role === "bst" && o.p === T.p);
       if (T.role === "brk") P.brake = Object.values(Input.touches).some((o) => o.role === "brk" && o.p === T.p);
       if (T.role === "atk" || T.role === "swipe") {
@@ -2995,9 +3553,9 @@ function initInput(canvas) {
   // keyboard (desktop / iPad keyboard)
   const KEYMAP = {
     // P1
-    KeyA: [0, "left"], KeyD: [0, "right"], KeyW: [0, "up"], KeyS: [0, "brake"], KeyF: [0, "atk"], KeyG: [0, "boost"], Space: [0, "atk"], ShiftLeft: [0, "boost"],
+    KeyA: [0, "left"], KeyD: [0, "right"], KeyW: [0, "up"], KeyS: [0, "stop"], KeyF: [0, "atk"], KeyG: [0, "boost"], KeyE: [0, "drift"], Space: [0, "atk"], ShiftLeft: [0, "boost"],
     // P2 (or P1 in single player)
-    ArrowLeft: [1, "left"], ArrowRight: [1, "right"], ArrowUp: [1, "up"], ArrowDown: [1, "brake"], KeyL: [1, "atk"], KeyK: [1, "boost"], Enter: [1, "atk"], ShiftRight: [1, "boost"],
+    ArrowLeft: [1, "left"], ArrowRight: [1, "right"], ArrowUp: [1, "up"], ArrowDown: [1, "stop"], KeyL: [1, "atk"], KeyK: [1, "boost"], KeyJ: [1, "drift"], Enter: [1, "atk"], ShiftRight: [1, "boost"],
   };
   window.addEventListener("keydown", (e) => {
     if (e.code === "Escape" || e.code === "KeyP") { Input.onPause && Input.enabled && Input.onPause(); return; }
@@ -3024,8 +3582,9 @@ function initInput(canvas) {
 function readPlayer(p) {
   const P = Input.players[p];
   const k = Input.keys;
-  const sets = Input.split ? [[["KeyA"], ["KeyD"], ["KeyS"], ["KeyG", "ShiftLeft"]], [["ArrowLeft"], ["ArrowRight"], ["ArrowDown"], ["KeyK", "ShiftRight"]]][p]
-    : [["KeyA", "ArrowLeft"], ["KeyD", "ArrowRight"], ["KeyS", "ArrowDown"], ["KeyG", "KeyK", "ShiftLeft", "ShiftRight"]];
+  // [left, right, drift, boost, gas, brake]
+  const sets = Input.split ? [[["KeyA"], ["KeyD"], ["KeyE"], ["KeyG", "ShiftLeft"], ["KeyW"], ["KeyS"]], [["ArrowLeft"], ["ArrowRight"], ["KeyJ"], ["KeyK", "ShiftRight"], ["ArrowUp"], ["ArrowDown"]]][p]
+    : [["KeyA", "ArrowLeft"], ["KeyD", "ArrowRight"], ["KeyE", "KeyJ"], ["KeyG", "KeyK", "ShiftLeft", "ShiftRight"], ["KeyW", "ArrowUp"], ["KeyS", "ArrowDown"]];
   const any = (arr) => arr.some((c) => k[c]);
   let ks = (any(sets[1]) ? 1 : 0) - (any(sets[0]) ? 1 : 0);
   if (ks) P.steer = clamp(P.steer + ks * 0.12, -1, 1); else if (!P.anchor) P.steer = 0;
@@ -3034,6 +3593,8 @@ function readPlayer(p) {
     steer: P.steer,
     brake: P.brake || any(sets[2]),
     boost: P.boost || any(sets[3]),
+    throttle: P.anchor ? P.touchGas : any(sets[4]) ? 1 : 0,
+    stop: (P.anchor && P.touchStop) || any(sets[5]),
     attack: P.attackQ > 0, throwBack: P.backQ > 0, trick: P.trickQ || 0,
   };
   return out;
@@ -3059,11 +3620,20 @@ function drawControls(ctx, race) {
     ctx.strokeStyle = "#fff"; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(a[0], a[1], P.steerRange, 0, TAU); ctx.stroke();
     ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fill();
-    const kx = I.anchor ? a[0] + I.touchSteer * P.steerRange : a[0];
+    // GO arrow at the top of the ring, BRAKE mark at the bottom
+    const rr = P.steerRange;
+    ctx.globalAlpha = I.anchor ? 0.85 : 0.55;
+    ctx.fillStyle = I.touchGas > 0.05 ? "#2bd96a" : "#ffffff";
+    ctx.beginPath(); ctx.moveTo(a[0], a[1] - rr - P.R * 0.32); ctx.lineTo(a[0] + P.R * 0.3, a[1] - rr + P.R * 0.06); ctx.lineTo(a[0] - P.R * 0.3, a[1] - rr + P.R * 0.06); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = I.touchStop ? "#ff3b3b" : "rgba(255,255,255,.7)";
+    ctx.fillRect(a[0] - P.R * 0.22, a[1] + rr - P.R * 0.08, P.R * 0.44, P.R * 0.16);
+    if (!I.anchor) { ctx.font = `${P.R * 0.32}px Bangers, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff"; ctx.fillText("GO", a[0], a[1] - rr - P.R * 0.62); }
+    const kx = I.anchor ? a[0] + I.touchSteer * rr : a[0];
+    const ky = I.anchor ? a[1] + clamp(I.knob[1] - a[1], -rr, rr) : a[1];
     ctx.globalAlpha = I.anchor ? 0.9 : 0.4;
-    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(kx, a[1], P.R * 0.5, 0, TAU); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(kx, ky, P.R * 0.5, 0, TAU); ctx.fill();
     ctx.fillStyle = "#14101c"; ctx.font = `${P.R * 0.45}px Bangers, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("◀ ▶", kx, a[1] + 1);
+    ctx.fillText("◀ ▶", kx, ky + 1);
     ctx.globalAlpha = 1;
     // buttons
     const air = me.h > 120;
@@ -3149,7 +3719,7 @@ function netStatus(title, msg, extra = "", onCancel) {
 function makeCode() { let c = ""; for (let i = 0; i < 4; i++) c += CODE_CHARS[(Math.random() * CODE_CHARS.length) | 0]; return c; }
 
 function myHello() {
-  return { t: "hello", ver: 1, rider: App.pick.riders[0] || App.save.last.rider, veh: App.pick.vehs[0] || App.save.last.veh, upg: App.save.upg[App.pick.vehs[0] || App.save.last.veh] || [0, 0, 0] };
+  return { t: "hello", ver: 1, cz: cutieOn() ? 1 : 0, rider: App.pick.riders[0] || App.save.last.rider, veh: App.pick.vehs[0] || App.save.last.veh, upg: App.save.upg[App.pick.vehs[0] || App.save.last.veh] || [0, 0, 0] };
 }
 
 /* ---------------- host ---------------- */
@@ -3260,6 +3830,7 @@ function netStartAsHost() {
   const me = myHello();
   const cfg = {
     trackId: App.pick.track || App.save.last.track, total: 8, difficulty: App.save.settings.diff, botSeed: (Math.random() * 100000) | 0, online: true,
+    fav: cutieOn() ? 1 : g.cz ? 0 : null,          // cutie mode on either phone: the OTHER phone's rider always wins
     humans: [{ riderId: me.rider, vehId: me.veh, upg: me.upg, netId: 0 }, { riderId: g.rider, vehId: g.veh, upg: g.upg, netId: 1, remote: true }],
   };
   N.ready = false; N.loaded = false;
@@ -3369,6 +3940,7 @@ function netLost(N, bye) {
     race.riders.forEach((e) => { if (e.remote) { e.remote = false; if (e.human) { e.human = false; e.name = (e.name || "") + " (left)"; } e.ai = e.ai || { skill: 0.85, aggr: 0.5, t: 0, tx: 0, inp: {} }; } });
     race.net = null;
     race.hold = false;
+    race.cfg.fav = null; race.favE = null;
     closeModal();
     toast(bye ? "YOUR FRIEND LEFT" : "CONNECTION LOST");
   } else if (N.opened) {
@@ -3397,20 +3969,59 @@ function netRematch() {
 
 const SAVE_KEY = "wild-riders-save-v1";
 function defaultSave() {
-  return { v: 1, coins: 500, stars: {}, best: {}, riders: ["kaito", "priya"], vehs: ["mtb", "bmx"], upg: {},
+  return { v: 1, tl: 2, coins: 500, stars: {}, best: {}, riders: ["kaito", "priya"], vehs: ["mtb", "bmx"], upg: {},
     last: { rider: "kaito", rider2: "priya", veh: "mtb", veh2: "bmx", track: "f1" },
     settings: { music: true, sfx: true, diff: 1, gfx: "auto" }, seenHelp: false, races: 0 };
 }
 function loadSave() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
-    if (s && s.v === 1) return Object.assign(defaultSave(), s, { settings: Object.assign(defaultSave().settings, s.settings || {}), last: Object.assign(defaultSave().last, s.last || {}) });
+    if (s && s.v === 1) return migrateSave(Object.assign(defaultSave(), { tl: 1 }, s, { settings: Object.assign(defaultSave().settings, s.settings || {}), last: Object.assign(defaultSave().last, s.last || {}) }));
   } catch (_) {}
   return defaultSave();
+}
+// Still save format v1. `tl` = track-layout generation: the trails were redesigned in generation 2, so best times
+// from older layouts are cleared once (stars, coins, riders, rides and upgrades are kept).
+function migrateSave(s) {
+  if ((s.tl || 1) < 2) { s.best = {}; s.tl = 2; }
+  return s;
 }
 function saveGame() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(App.save)); } catch (_) {} }
 function totalStars() { return Object.values(App.save.stars).reduce((a, b) => a + b, 0); }
 function biomeUnlocked(i) { return totalStars() >= BIOMES[i].unlock; }
+// Riders and rides unlock strictly in order: only the first one you don't own yet can be bought.
+function nextToUnlock(list, owned) { return list.find((x) => !owned.includes(x.id)) || null; }
+
+/* Secret "cutie mode" switch: hold the 2 PLAYERS · ONE SCREEN button for 2 seconds. Stored outside the save
+   (so it never travels in a save code). A tiny pink dot on that button is the only sign it's on. */
+const CUTIE_KEY = "wr-cz";
+function cutieOn() { try { return localStorage.getItem(CUTIE_KEY) === "1"; } catch (_) { return false; } }
+function setCutie(on) { try { localStorage.setItem(CUTIE_KEY, on ? "1" : "0"); } catch (_) {} cutieMark(); }
+function cutieMark() { const b = document.querySelector('[data-act="split"]'); if (b) b.classList.toggle("cz", cutieOn()); }
+function wireCutieSwitch() {
+  const b = document.querySelector('[data-act="split"]');
+  if (!b) return;
+  let timer = null;
+  const start = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      b.dataset.held = "1";
+      setCutie(!cutieOn());
+      const h = document.createElement("div");
+      h.className = "czpop"; h.textContent = cutieOn() ? "♥" : "♡";
+      const r = b.getBoundingClientRect();
+      h.style.left = r.right - 30 + "px"; h.style.top = r.top - 4 + "px";
+      document.body.appendChild(h); setTimeout(() => h.remove(), 900);
+      if (navigator.vibrate) try { navigator.vibrate(20); } catch (_) {}
+    }, 2000);
+  };
+  const cancel = () => { clearTimeout(timer); timer = null; };
+  b.addEventListener("pointerdown", start);
+  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => b.addEventListener(ev, cancel));
+  b.addEventListener("contextmenu", (e) => e.preventDefault());
+  cutieMark();
+}
 function encodeSave() { return "WILDR1-" + btoa(unescape(encodeURIComponent(JSON.stringify(App.save)))); }
 function decodeSave(code) {
   try {
@@ -3477,13 +4088,15 @@ function openRider() {
   App.pick.riders[p] = cur;
   const wrap = $("#rider-cards");
   wrap.innerHTML = "";
+  const nextR = nextToUnlock(RIDERS, App.save.riders);
   RIDERS.forEach((r) => {
     const owned = App.save.riders.includes(r.id);
     const c = document.createElement("div");
     c.className = "card" + (r.id === cur ? " sel" : "");
     c.style.setProperty("--c1", r.main); c.style.setProperty("--c2", shade(r.main, -0.6));
     c.innerHTML = `<div class="art">${portraitSVG(r)}</div><div class="info"><div class="nm">${r.name}</div><div class="tg">${r.tag} · #${r.num}</div>${statBars(riderStats(r))}</div>` +
-      (owned ? "" : `<div class="lock">LOCKED<span class="coins"><i class="coin"></i>${r.cost.toLocaleString()}</span></div>`) +
+      (owned ? "" : r === nextR ? `<div class="lock">LOCKED<span class="coins"><i class="coin"></i>${r.cost.toLocaleString()}</span></div>`
+        : `<div class="lock">LOCKED<span class="after">Unlock ${nextR.name} first</span></div>`) +
       (App.mode === "split" && p === 1 && App.pick.riders[0] === r.id ? `<div class="who" style="background:var(--teal)">P1</div>` : "");
     c.onclick = () => { SFX.play("click"); App.pick.riders[p] = r.id; openRider(); };
     wrap.appendChild(c);
@@ -3493,10 +4106,11 @@ function openRider() {
   $("#rider-desc").innerHTML = `<b>${r.full}</b> — ${r.blurb} Signature throw: <b>${ITEMS[r.item].name}</b>.`;
   const go = $("#rider-go");
   if (owned) { go.textContent = "NEXT ›"; go.disabled = false; go.style.setProperty("--c", "#ff3d7f"); }
+  else if (r !== nextR) { go.textContent = "UNLOCK " + nextR.name.toUpperCase() + " FIRST"; go.disabled = true; go.style.setProperty("--c", "#6b6280"); }
   else { go.textContent = "BUY " + r.cost.toLocaleString(); go.disabled = App.save.coins < r.cost; go.style.setProperty("--c", "#ffb300"); }
   go.onclick = () => {
     if (!owned) {
-      if (App.save.coins < r.cost) return;
+      if (r !== nextR || App.save.coins < r.cost) return;
       App.save.coins -= r.cost; App.save.riders.push(r.id); saveGame(); SFX.play("unlock"); toast(r.name.toUpperCase() + " UNLOCKED!");
       return openRider();
     }
@@ -3532,6 +4146,7 @@ function openVeh() {
   App.pick.vehs[p] = cur;
   const wrap = $("#veh-cards");
   wrap.innerHTML = "";
+  const nextV = nextToUnlock(VEHICLES, App.save.vehs);
   VEHICLES.forEach((v) => {
     const owned = App.save.vehs.includes(v.id);
     const upg = App.save.upg[v.id] || [0, 0, 0];
@@ -3539,7 +4154,8 @@ function openVeh() {
     c.className = "card" + (v.id === cur ? " sel" : "");
     c.style.setProperty("--c1", "#3a2d55"); c.style.setProperty("--c2", "#1a1230");
     c.innerHTML = `<div class="art" style="padding:6px 8px 0">${vehicleSideSVG(v.id, rider)}</div><div class="info"><div class="nm">${v.name}</div><div class="tg">${v.short}</div>${statBars(vehStats(v, upg))}</div>` +
-      (owned ? "" : `<div class="lock">LOCKED<span class="coins"><i class="coin"></i>${v.cost.toLocaleString()}</span></div>`);
+      (owned ? "" : v === nextV ? `<div class="lock">LOCKED<span class="coins"><i class="coin"></i>${v.cost.toLocaleString()}</span></div>`
+        : `<div class="lock">LOCKED<span class="after">Unlock ${nextV.short} first</span></div>`);
     c.onclick = () => { SFX.play("click"); App.pick.vehs[p] = v.id; openVeh(); };
     wrap.appendChild(c);
   });
@@ -3567,11 +4183,12 @@ function openVeh() {
     });
   }
   const go = $("#veh-go");
-  if (!owned) { go.textContent = "BUY " + v.cost.toLocaleString(); go.disabled = App.save.coins < v.cost; go.style.setProperty("--c", "#ffb300"); }
+  if (!owned && v !== nextV) { go.textContent = "UNLOCK " + nextV.short + " FIRST"; go.disabled = true; go.style.setProperty("--c", "#6b6280"); }
+  else if (!owned) { go.textContent = "BUY " + v.cost.toLocaleString(); go.disabled = App.save.coins < v.cost; go.style.setProperty("--c", "#ffb300"); }
   else { go.textContent = garage ? "DONE" : "NEXT ›"; go.disabled = false; go.style.setProperty("--c", "#ff3d7f"); }
   go.onclick = () => {
     if (!owned) {
-      if (App.save.coins < v.cost) return;
+      if (v !== nextV || App.save.coins < v.cost) return;
       App.save.coins -= v.cost; App.save.vehs.push(v.id); saveGame(); SFX.play("unlock"); toast(v.name.toUpperCase() + " UNLOCKED!");
       return openVeh();
     }
@@ -3642,7 +4259,7 @@ function openTrack() {
   });
   wrap.style.gridAutoColumns = "minmax(210px, 1fr)";
   const t = TRACKS.find((x) => x.id === cur), b = BIOMES[t.biome];
-  $("#track-desc").innerHTML = `<b>${t.name}</b> — ${b.hazard} <span style="color:var(--sun)">${STAR_RULE}</span>`;
+  $("#track-desc").innerHTML = `<b>${t.name}</b> — ${t.blurb || b.hazard} <span style="color:var(--sun)">${STAR_RULE}</span>`;
   $("#track-go").onclick = () => { SFX.play("click"); App.save.last.track = cur; saveGame(); if (App.mode === "online") return netHost(); startRace(); };
   show("scr-track");
   scrollSel(wrap);
@@ -3677,15 +4294,15 @@ function applySettings() {
 function openHelp(after) {
   modal(`<h3>HOW TO RIDE</h3>
     <div class="ctl-help">
-      <b>STEER</b><span>Put your left thumb anywhere on the left side and slide it left or right.</span>
+      <b>GO &amp; STEER</b><span>Put your left thumb anywhere on the left side. Push it UP to go (further up = faster), slide left or right to steer, pull DOWN to brake. Let go and you roll to a stop.</span>
       <b>PUNCH</b><span>Tap PUNCH when a rival is beside you. Every 3rd hit in a row is a big KICK.</span>
       <b>THROW</b><span>Holding an item with nobody beside you? PUNCH throws it ahead. Swipe DOWN on it to throw behind.</span>
       <b>TRICKS</b><span>In the air the button becomes TRICK. Tap or swipe up / down / sideways for different tricks. Land before it finishes and you bail!</span>
       <b>BOOST</b><span>Hold BOOST to burn your meter. Fill it with tricks, drifts, drafting and takedowns.</span>
-      <b>DRIFT</b><span>Hold DRIFT while steering through corners to slide and charge boost.</span>
+      <b>DRIFT</b><span>Hold DRIFT while steering through corners to slide and charge boost. Ease off before hairpins (the yellow arrow signs).</span>
       <b>HEALTH</b><span>Hits and crashes drain health, and less health means a lower top speed. Grab green repair kits. At zero you wipe out.</span>
     </div>
-    <p class="kbd-note" style="font-size:12px;color:var(--mute)">Keyboard: WASD / arrows steer, Space punch, Shift boost, S drift. Two players: P1 WASD + F/G, P2 arrows + L/K.</p>
+    <p class="kbd-note" style="font-size:12px;color:var(--mute)">Keyboard: W / ↑ go, S / ↓ brake, A D / ← → steer, Space punch, Shift boost, E drift. Two players: P1 WASD + F punch, G boost, E drift · P2 arrows + L punch, K boost, J drift.</p>
     <div class="acts"><button class="btn" style="--c:#2bd96a" data-a="ok">LET'S RIDE</button></div>`, (box) => {
     box.querySelector('[data-a="ok"]').onclick = () => { SFX.play("click"); closeModal(); App.save.seenHelp = true; saveGame(); after && after(); };
   });
@@ -3705,7 +4322,7 @@ function openSaveCode() {
       const s = decodeSave(box.querySelector("#sc-in").value);
       if (!s) { toast("THAT CODE DOESN'T WORK"); return; }
       if (!armed) { armed = true; ev.target.textContent = "TAP AGAIN TO REPLACE"; return; }
-      App.save = Object.assign(defaultSave(), s); saveGame(); applySettings(); closeModal(); toast("PROGRESS LOADED!"); renderTitle();
+      App.save = migrateSave(Object.assign(defaultSave(), { tl: 1 }, s)); saveGame(); applySettings(); closeModal(); toast("PROGRESS LOADED!"); renderTitle();
     };
     box.querySelector('[data-a="close"]').onclick = () => { SFX.play("back"); closeModal(); };
   });
@@ -3714,7 +4331,7 @@ function openSaveCode() {
 /* ---------- race flow ---------- */
 async function startRace() {
   const tips = ["Tricks fill your boost meter — but land before they finish!", "Every 3rd punch in a row is a heavy KICK.", "Low health = lower top speed. Repair kits are green.",
-    "Forks hide boost pads on the riskier side.", "Draft right behind a rival to charge boost.", "Swipe down on PUNCH to throw an item backward.", "ATVs shove lighter riders out of the way."];
+    "Forks hide boost pads on the riskier side.", "Push the stick UP to go — let go and you coast to a stop.", "Yellow arrow signs = hairpin. Ease off or drift!", "Draft right behind a rival to charge boost.", "Swipe down on PUNCH to throw an item backward.", "Quads shove lighter riders out of the way."];
   $("#loading .tip").textContent = "TIP: " + pick(tips);
   $("#loading .lb i").style.width = "5%";
   $("#loading").classList.remove("hidden");
@@ -3725,6 +4342,7 @@ async function startRace() {
   const humans = [{ riderId: App.pick.riders[0] || App.save.last.rider, vehId: App.pick.vehs[0] || App.save.last.veh, upg: App.save.upg[App.pick.vehs[0] || App.save.last.veh] }];
   if (App.mode === "split") humans.push({ riderId: App.pick.riders[1] || App.save.last.rider2, vehId: App.pick.vehs[1] || App.save.last.veh2, upg: App.save.upg[App.pick.vehs[1] || App.save.last.veh2] });
   const cfg = { trackId: App.pick.track || App.save.last.track, humans, total: 8, difficulty: App.save.settings.diff };
+  if (App.mode === "split" && cutieOn()) cfg.fav = 1;           // secret switch: Player 2 always wins
   App.lastCfg = cfg;
   await launchRace(cfg);
 }
@@ -3864,7 +4482,9 @@ function stopDemo() { App.demo = null; }
 
 /* ---------- menu wiring ---------- */
 function wireMenus() {
+  wireCutieSwitch();
   $$("[data-act]").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.held) { delete b.dataset.held; return; }      // that was the secret long-press, not a tap
     const a = b.dataset.act;
     SFX.unlock();
     if (a === "race" || a === "split") { App.mode = a; App.step = "rider"; App.pick = { riders: [], vehs: [], track: null }; SFX.play("click"); openRider(); }

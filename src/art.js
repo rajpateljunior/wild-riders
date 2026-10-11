@@ -31,7 +31,9 @@ const VGEO = {
   mtb:  { gl: [58, 126], gr: [182, 126], fl: [92, 238], fr: [148, 238], hipY: 168, shY: 104, head: [120, 72], pedal: 1 },
   bmx:  { gl: [72, 142], gr: [168, 142], fl: [96, 252], fr: [144, 252], hipY: 184, shY: 122, head: [120, 90], pedal: 1 },
   dirt: { gl: [50, 122], gr: [190, 122], fl: [86, 234], fr: [154, 234], hipY: 166, shY: 102, head: [120, 70], pedal: 0 },
-  atv:  { gl: [38, 140], gr: [202, 140], fl: [64, 226], fr: [176, 226], hipY: 188, shY: 114, head: [120, 82], pedal: 0 },
+  atv:  { gl: [40, 142], gr: [200, 142], fl: [66, 226], fr: [174, 226], hipY: 186, shY: 114, head: [120, 82], pedal: 0 },
+  ebike: { gl: [58, 124], gr: [182, 124], fl: [92, 236], fr: [148, 236], hipY: 166, shY: 102, head: [120, 70], pedal: 1 },
+  squad: { gl: [44, 148], gr: [196, 148], fl: [64, 232], fr: [176, 232], hipY: 192, shY: 120, head: [120, 88], pedal: 0 },
 };
 
 function backVehicleUnder(v, r) {
@@ -39,19 +41,29 @@ function backVehicleUnder(v, r) {
   const g = VGEO[v];
   const p = r.paint, p2 = r.paint2;
   let s = "";
-  if (v === "mtb" || v === "bmx") {
+  if (v === "mtb" || v === "bmx" || v === "ebike") {
     s += SV.poly([g.gl, [g.gl[0] + 22, g.gl[1] - 6], [120, g.gl[1] - 10], [g.gr[0] - 22, g.gr[1] - 6], g.gr], 6, "#2b2b33");
     s += SV.line(120, g.gl[1] - 8, 120, g.gl[1] + 26, 8, "#3a3a44");
+    if (v === "ebike") s += SV.rect(110, g.gl[1] - 22, 20, 12, 4, "#1e1e24", 2.5) + `<rect x="113" y="${g.gl[1] - 19}" width="14" height="6" rx="2" fill="#2bd9ff"/>`; // display
     // front tire peeking below handlebars
-    s += SV.rect(112, g.gl[1] + 34, 16, v === "bmx" ? 60 : 72, 8, "#1e1e22", 3);
+    s += SV.rect(v === "ebike" ? 110 : 112, g.gl[1] + 34, v === "ebike" ? 20 : 16, v === "bmx" ? 60 : 72, 8, "#1e1e22", 3);
   } else if (v === "dirt") {
     s += SV.path(`M78 ${g.gl[1] + 8} Q120 ${g.gl[1] - 26} 162 ${g.gl[1] + 8} L150 ${g.gl[1] + 30} Q120 ${g.gl[1] + 14} 90 ${g.gl[1] + 30}Z`, p, 3); // number board
     s += SV.poly([g.gl, [g.gl[0] + 30, g.gl[1] - 10], [g.gr[0] - 30, g.gr[1] - 10], g.gr], 7, "#2b2b33");
     s += SV.rect(106, g.gl[1] + 30, 28, 66, 12, "#1c1c20", 3);
+  } else if (v === "atv") {
+    // front tires, sculpted hood with racing stripe, bars with hand guards
+    s += SV.rect(30, 152, 42, 46, 14, "#17171b", 3) + SV.rect(168, 152, 42, 46, 14, "#17171b", 3);
+    s += SV.path(`M50 ${g.gl[1] + 22} L76 ${g.gl[1] - 6} L164 ${g.gl[1] - 6} L190 ${g.gl[1] + 22} L172 ${g.gl[1] + 46} L68 ${g.gl[1] + 46}Z`, p, 3);
+    s += `<path d="M108 ${g.gl[1] - 5} L104 ${g.gl[1] + 45} M132 ${g.gl[1] - 5} L136 ${g.gl[1] + 45}" stroke="${p2}" stroke-width="7"/>`;
+    s += SV.poly([g.gl, [74, g.gl[1] - 14], [166, g.gr[1] - 14], g.gr], 7, "#2b2b33");
+    s += SV.path(`M${g.gl[0] - 14} ${g.gl[1] - 12} L${g.gl[0] + 8} ${g.gl[1] - 18} L${g.gl[0] + 6} ${g.gl[1] + 4}Z`, p2, 2.5) + SV.path(`M${g.gr[0] + 14} ${g.gr[1] - 12} L${g.gr[0] - 8} ${g.gr[1] - 18} L${g.gr[0] - 6} ${g.gr[1] + 4}Z`, p2, 2.5);
   } else {
-    s += SV.poly([g.gl, [70, g.gl[1] - 12], [170, g.gr[1] - 12], g.gr], 7, "#2b2b33");
-    s += SV.path(`M58 ${g.gl[1] + 18} Q120 ${g.gl[1] - 12} 182 ${g.gl[1] + 18} L170 ${g.gl[1] + 44} L70 ${g.gl[1] + 44}Z`, p, 3);
-    s += SV.rect(30, 150, 44, 50, 14, "#1b1b20", 3) + SV.rect(166, 150, 44, 50, 14, "#1b1b20", 3); // front tires peeking
+    // sport quad: low nose, slim front tires, flat bars
+    s += SV.rect(36, 162, 36, 40, 12, "#17171b", 3) + SV.rect(168, 162, 36, 40, 12, "#17171b", 3);
+    s += SV.path(`M60 ${g.gl[1] + 24} L84 ${g.gl[1] + 2} L156 ${g.gl[1] + 2} L180 ${g.gl[1] + 24} L164 ${g.gl[1] + 42} L76 ${g.gl[1] + 42}Z`, p2, 3);
+    s += `<path d="M84 ${g.gl[1] + 4} L76 ${g.gl[1] + 40} M156 ${g.gl[1] + 4} L164 ${g.gl[1] + 40}" stroke="${p}" stroke-width="6"/>`;
+    s += SV.poly([g.gl, [80, g.gl[1] - 8], [160, g.gr[1] - 8], g.gr], 6, "#2b2b33");
   }
   return s;
 }
@@ -95,17 +107,49 @@ function backVehicleOver(v, r, f) {
     s += `<text x="120" y="190" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="17" fill="${OL}">${r.num}</text>`;
     s += SV.rect(112, 197, 16, 7, 3, "#ff3030", 2);
     s += SV.path("M82 172 L96 160 L104 176 L90 190Z", p2, 2.5) + SV.path("M158 172 L144 160 L136 176 L150 190Z", p2, 2.5); // side panels
+  } else if (v === "ebike") {
+    s += SV.poly([[104, 250], [114, 194], [120, 186]], 6, p) + SV.poly([[136, 250], [126, 194], [120, 186]], 6, p);
+    s += SV.rect(104, 196, 32, 98, 15, "#202026", 3) + knobs(102, 196, 294, 32);    // plus-size tyre
+    s += `<rect x="111" y="202" width="6" height="84" rx="3" fill="#4a4a55"/>`;
+    s += SV.ell(120, 248, 13, 13, "#2b2b33", 2.5) + `<circle cx="120" cy="248" r="7" fill="none" stroke="#2bd9ff" stroke-width="2.5"/>`; // hub motor
+    s += SV.path("M102 200 Q120 184 138 200 L136 210 Q120 196 104 210Z", p2, 2.5);
+    s += SV.rect(108, 150, 24, 30, 6, "#2a2a32", 2.5) + `<rect x="112" y="156" width="4" height="4" fill="#2bd96a"/><rect x="118" y="156" width="4" height="4" fill="#2bd96a"/><rect x="124" y="156" width="4" height="4" fill="#2bd96a"/>`; // battery
+    s += SV.path("M108 176 Q120 168 132 176 L128 186 L112 186Z", "#222", 2.5);
+    s += SV.rect(112, 212, 16, 6, 3, "#ff3b3b", 1.5) + `<rect x="115" y="213" width="10" height="3" rx="1.5" fill="#ffd0d0"/>`;
+  } else if (v === "atv") {
+    // ATV: chunky chevron-tread rear tyres, sculpted fenders with stripes, LED tail bar, twin exhausts, chrome rack
+    const tire = (x) => {
+      let t = SV.rect(x, 212, 56, 82, 18, "#17171b", 3);
+      for (let y = 220; y < 288; y += 10) t += `<path d="M${x + 6} ${y} L${x + 28} ${y + 6} L${x + 50} ${y}" stroke="#34343e" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+      return t + `<rect x="${x + 4}" y="216" width="6" height="72" rx="3" fill="#2c2c34"/>`;
+    };
+    s += tire(12) + tire(172);
+    s += SV.rect(70, 240, 100, 14, 6, "#3a3a44", 3);                                          // axle housing
+    s += SV.ell(100, 250, 9, 8, "#c7ccd6", 2.5) + SV.ell(140, 250, 9, 8, "#c7ccd6", 2.5) + SV.ell(100, 250, 4, 4, "#26262c", 0) + SV.ell(140, 250, 4, 4, "#26262c", 0); // twin exhausts
+    const fender = (dir) => {
+      const X = (x) => (dir < 0 ? x : 240 - x);
+      return SV.path(`M${X(6)} 216 L${X(16)} 192 L${X(48)} 180 L${X(84)} 186 L${X(88)} 222 L${X(62)} 214 L${X(14)} 226Z`, p, 3) +
+        `<path d="M${X(20)} 196 L${X(50)} 186 L${X(80)} 190" stroke="${p2}" stroke-width="6" fill="none" stroke-linecap="round"/>` +
+        `<path d="M${X(18)} 206 L${X(46)} 196" stroke="#fff" stroke-width="3" opacity=".55" stroke-linecap="round"/>`;
+    };
+    s += fender(-1) + fender(1);
+    s += SV.path("M78 194 L162 194 L168 232 L72 232Z", p2, 3);                                  // tail body
+    s += SV.rect(80, 202, 80, 12, 5, "#1a1a20", 2.5) + `<rect x="84" y="205" width="24" height="6" rx="3" fill="#ff2a2a"/><rect x="132" y="205" width="24" height="6" rx="3" fill="#ff2a2a"/><rect x="112" y="205" width="16" height="6" rx="3" fill="#fff4d6"/>`;
+    s += `<text x="120" y="229" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="12" fill="#fff" stroke="${OL}" stroke-width=".6">${r.num}</text>`;
+    s += SV.poly([[78, 194], [82, 174], [158, 174], [162, 194]], 4, "#c9ced8") + SV.line(100, 174, 100, 192, 3, "#c9ced8") + SV.line(140, 174, 140, 192, 3, "#c9ced8"); // rack
   } else {
-    // ATV: two big rear tires, rack, tail light, fenders
-    const tire = (x) => SV.rect(x, 214, 52, 80, 20, "#1b1b20", 3) + knobs(x - 2, 214, 294, 52) +
-      `<rect x="${x + 10}" y="222" width="8" height="64" rx="4" fill="#3a3a44"/>`;
-    s += tire(16) + tire(172);
-    s += SV.rect(68, 238, 104, 14, 6, "#4a4a55", 3); // axle housing
-    s += SV.path("M10 214 Q40 180 78 196 L82 226 L14 228Z", p, 3) + SV.path("M230 214 Q200 180 162 196 L158 226 L226 228Z", p, 3);
-    s += SV.rect(70, 196, 100, 30, 8, p2, 3);
-    s += SV.rect(80, 184, 80, 10, 3, "#8d929e", 2.5) + SV.line(84, 184, 84, 200, 3, "#8d929e") + SV.line(156, 184, 156, 200, 3, "#8d929e");
-    s += SV.rect(100, 204, 40, 12, 4, "#ff2a2a", 2.5) + `<rect x="104" y="206" width="14" height="4" rx="2" fill="#ffd0d0"/>`;
-    s += `<text x="120" y="238" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="11" fill="#fff">${r.num}</text>`;
+    // Sport Quad: slimmer tyres, angular tail cowl, single LED strip, side exhaust and a whip flag
+    const tire = (x) => SV.rect(x, 222, 46, 72, 16, "#17171b", 3) + knobs(x - 2, 222, 294, 46);
+    s += tire(22) + tire(172);
+    s += SV.rect(68, 246, 104, 12, 5, "#3a3a44", 3);
+    s += SV.path("M150 236 L176 226 L184 244 L160 252Z", "#c7ccd6", 3) + SV.ell(180, 236, 7, 9, "#26262c", 2);       // exhaust
+    s += SV.path("M14 222 L30 198 L80 192 L86 226 L60 218 L20 232Z", p2, 3) + SV.path("M226 222 L210 198 L160 192 L154 226 L180 218 L220 232Z", p2, 3);
+    s += `<path d="M28 204 L78 198 M212 204 L162 198" stroke="${p}" stroke-width="5" stroke-linecap="round"/>`;
+    s += SV.path("M74 200 L120 186 L166 200 L160 236 L80 236Z", p, 3);                     // tail cowl
+    s += SV.rect(86, 214, 68, 8, 4, "#1a1a20", 2) + `<rect x="90" y="216" width="60" height="4" rx="2" fill="#ff3b3b"/>`;
+    s += `<text x="120" y="210" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="12" fill="#fff" stroke="${OL}" stroke-width=".6">${r.num}</text>`;
+    s += `<path d="M196 230 L214 40" stroke="${OL}" stroke-width="5"/><path d="M196 230 L214 40" stroke="#d9dde6" stroke-width="2.5"/>`;
+    s += SV.path(`M214 40 L${238 - f * 4} ${50 + f * 3} L214 66Z`, "#ff8a1c", 2.5);           // whip flag
   }
   return s;
 }
@@ -230,7 +274,7 @@ function riderBackSVG(r, v, pose, f) {
       shY += 18; head = [120, g.head[1] + 24]; break;
   }
   const sk = r.skin, glove = "#2a2730", boot = r.id === "rex" ? "#141318" : shade(r.dark, 0.1);
-  const isMoto = v === "dirt" || v === "atv";
+  const isMoto = v === "dirt" || v === "atv" || v === "squad";
 
   // arms (behind torso)
   const arm = (sh, el, ha) => SV.poly([sh, el, ha], lw, r.main) + SV.circ(ha[0], ha[1], 8.5 * k, glove, 2.5);
@@ -425,7 +469,20 @@ function vehicleSideSVG(v, r) {
     for (let i = 0; i < 18; i++) { const a = (i / 18) * TAU; w += `<rect x="${(x + Math.cos(a) * R - 3).toFixed(1)}" y="${(y + Math.sin(a) * R - 3).toFixed(1)}" width="6" height="6" rx="1.5" fill="#111"/>`; }
     return w + SV.circ(x, y, 6, "#7d828c", 2);
   };
-  if (v === "mtb" || v === "bmx") {
+  if (v === "ebike") {
+    const y = 150, x1 = 70, x2 = 236;
+    s += wheel(x1, y, 52, 11) + wheel(x2, y, 52, 11);
+    const bb = [150, y - 4], seat = [124, 72], head = [206, 66];
+    s += SV.poly([[x1, y], bb, seat, [x1, y]], 10, p) + SV.poly([seat, head], 10, p);
+    s += SV.path(`M${head[0] - 6} ${head[1] + 8} L${bb[0] + 14} ${bb[1] - 8} L${bb[0] - 2} ${bb[1] - 16} L${head[0] - 22} ${head[1] + 2}Z`, "#2a2a32", 3); // battery down tube
+    for (let i = 0; i < 4; i++) s += `<rect x="${172 - i * 9}" y="${96 + i * 9}" width="5" height="5" fill="#2bd96a"/>`;
+    s += SV.circ(bb[0], bb[1], 16, "#3a3a44", 3) + `<circle cx="${bb[0]}" cy="${bb[1]}" r="8" fill="none" stroke="#2bd9ff" stroke-width="3"/>`;  // mid motor
+    s += SV.poly([head, [x2, y]], 9, "#c9ced8");
+    s += SV.rect(120, 90, 30, 11, 5, "#2bd9ff", 2.5);
+    s += SV.line(seat[0], seat[1], seat[0] - 8, seat[1] - 18, 6, "#2b2b33") + SV.path(`M${seat[0] - 30} ${seat[1] - 22} L${seat[0] + 14} ${seat[1] - 22} L${seat[0] + 6} ${seat[1] - 14} L${seat[0] - 26} ${seat[1] - 14}Z`, "#222", 2.5);
+    s += SV.poly([head, [head[0] - 6, head[1] - 22], [head[0] - 22, head[1] - 26]], 6, "#2b2b33") + SV.rect(head[0] - 30, head[1] - 34, 16, 10, 3, "#1e1e24", 2);
+    s += SV.rect(212, 70, 16, 10, 3, "#fff6c2", 2);
+  } else if (v === "mtb" || v === "bmx") {
     const R = v === "bmx" ? 40 : 52, y = 150, x1 = v === "bmx" ? 80 : 70, x2 = v === "bmx" ? 220 : 236;
     s += wheel(x1, y, R, 7) + wheel(x2, y, R, 7);
     const bb = [150, y - 6], seat = [v === "bmx" ? 120 : 126, v === "bmx" ? 88 : 70], head = [v === "bmx" ? 196 : 206, v === "bmx" ? 82 : 66];
@@ -446,16 +503,29 @@ function vehicleSideSVG(v, r) {
     s += SV.poly([[230, 58], [240, 150]], 9, "#c9ced8") + SV.poly([[222, 46], [244, 40], [252, 30]], 6, "#2b2b33");
     s += SV.path("M196 64 Q238 44 268 70 L256 80 Q230 64 202 76Z", p2, 3); // front fender
     s += `<text x="168" y="102" font-family="${FONT}" font-weight="900" font-size="16" fill="#fff" stroke="${OL}" stroke-width=".8">${r ? r.num : 1}</text>`;
+  } else if (v === "atv") {
+    const y = 158;
+    s += wheel(72, y, 44, 17) + wheel(236, y, 44, 17);
+    s += SV.rect(124, 112, 66, 34, 6, "#7d828c", 3);                                          // engine
+    s += SV.path("M24 126 L40 96 L96 88 L118 104 L192 104 L214 86 L272 94 L288 124 L272 132 L30 136Z", p, 3);   // fenders + body
+    s += `<path d="M44 102 L94 94 M220 92 L268 100" stroke="${p2}" stroke-width="6" stroke-linecap="round"/>`;
+    s += SV.path("M112 104 L196 104 L190 78 L122 78Z", "#1e1e24", 3);                         // seat
+    s += SV.rect(14, 82, 68, 9, 4, "#c9ced8", 2.5) + SV.rect(226, 80, 62, 9, 4, "#c9ced8", 2.5); // racks
+    s += SV.poly([[204, 80], [216, 52], [238, 46]], 7, "#2b2b33");
+    s += SV.rect(278, 104, 18, 10, 3, "#fff6c2", 2.5) + `<rect x="284" y="96" width="14" height="5" rx="2" fill="#fff6c2"/>`;   // LED light bar
+    s += SV.path("M118 136 L192 136 L184 150 L126 150Z", p2, 2.5);
+    s += SV.path("M50 120 Q30 112 18 120 L22 128 Q34 122 50 128Z", "#c7ccd6", 2.5);            // exhaust
   } else {
-    const y = 156;
-    s += wheel(70, y, 44, 16) + wheel(236, y, 44, 16);
-    s += SV.path("M30 120 Q60 70 110 96 L196 96 Q240 70 276 120 L270 132 L30 132Z", p, 3);
-    s += SV.path("M110 96 L196 96 L188 70 L118 70Z", "#1e1e24", 3);
-    s += SV.rect(120, 108, 70, 34, 6, "#7d828c", 3);
-    s += SV.rect(16, 92, 70, 10, 4, "#8d929e", 2.5) + SV.rect(222, 92, 64, 10, 4, "#8d929e", 2.5);
-    s += SV.poly([[200, 72], [214, 46], [236, 42]], 7, "#2b2b33");
-    s += SV.rect(270, 108, 14, 12, 4, "#fff6c2", 2.5);
-    s += SV.path("M118 132 L190 132 L182 146 L126 146Z", p2, 2.5);
+    const y = 160;
+    s += wheel(74, y, 40, 14) + wheel(234, y, 40, 14);
+    s += SV.path("M22 128 L44 104 L104 100 L124 112 L190 112 L214 98 L270 102 L290 128 L276 136 L32 138Z", p, 3);
+    s += `<path d="M48 110 L100 106 M218 104 L266 108" stroke="${p2}" stroke-width="6" stroke-linecap="round"/><path d="M40 122 L280 120" stroke="#fff" stroke-width="3" opacity=".6"/>`;
+    s += SV.path("M118 112 L194 112 L188 90 L124 90Z", "#1e1e24", 3);
+    s += SV.rect(126, 118, 60, 26, 6, "#7d828c", 3);
+    s += SV.poly([[206, 92], [218, 66], [240, 62]], 7, "#2b2b33");
+    s += SV.path("M40 112 Q20 104 10 112 L14 120 Q26 114 40 120Z", "#c7ccd6", 2.5);
+    s += `<path d="M30 104 L18 10" stroke="${OL}" stroke-width="4"/>` + SV.path("M18 10 L44 18 L18 30Z", "#ff8a1c", 2.5);    // whip flag
+    s += SV.rect(280, 112, 12, 8, 3, "#fff6c2", 2);
   }
   return SV.wrap(310, 210, s);
 }

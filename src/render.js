@@ -1,8 +1,10 @@
 /* Pseudo-3D renderer: one call per viewport (split screen draws two). */
 
 // CAM_LIFT raises the camera (0 = original low view). The horizon moves up by the same amount, so the rider stays
-// at the same spot and size on screen while you look down on the road and the pack from higher up.
-const RENDER = { drawDist: 150, CAM_LIFT: 0.6 };
+// at the same spot on screen while you look down on the road and the pack from higher up.
+// ZOOM < 1 widens the view (everything a little smaller, more of the trail and the pack visible).
+// PITCH: how much the camera tilts to follow the slope ahead (1 = road ahead looks flat, 0 = camera never tilts).
+const RENDER = { drawDist: 150, CAM_LIFT: 0.6, ZOOM: 0.86, PITCH_DOWN: 0.82, PITCH_UP: 0.45 };
 
 function projK(w, h) {
   // world→pixel factor at scale 1; tuned so the road spans ~75% of the view at the rider
@@ -18,13 +20,17 @@ function renderView(ctx, vp, race, me, tnow) {
   ctx.translate(vp.x, vp.y);
 
   const shake = me.shake > 0 ? me.shake : 0;
-  const K = projK(w, h) * (1 - me.fovKick * 0.12);
-  const hz = h * 0.38 - RENDER.CAM_LIFT * K;
+  const K0 = projK(w, h);
+  const K = K0 * RENDER.ZOOM * (1 - me.fovKick * 0.12);
+  // keep the rider at the same spot on screen as before the zoom-out
+  const hz = h * 0.38 + K0 * 0.97 - (1 + RENDER.CAM_LIFT) * K;
   const camZ = me.z - PLAYER_DIST;
   const baseIdx = Math.floor(camZ / SEG);
   const base = track.segs[clamp(baseIdx, 0, track.N - 1)];
   const basePct = (camZ - baseIdx * SEG) / SEG;
-  const camY = roadY(track, me.z) + CAM_H * (1 + RENDER.CAM_LIFT) + me.h * 0.55;
+  // camera pitch: shear the world so the slope ahead reads as level (the camera "goes downhill with you")
+  const pitch = me.pitch || 0;
+  const camY = roadY(track, me.z) - pitch * PLAYER_DIST + CAM_H * (1 + RENDER.CAM_LIFT) + me.h * 0.55;
   const camX = me.camX * ROAD_W;
 
   // camera tilt + shake
@@ -34,12 +40,21 @@ function renderView(ctx, vp, race, me, tnow) {
   ctx.scale(zoom, zoom);
   ctx.translate(-w / 2, -h * 0.62);
 
-  // ---- sky & parallax ----
-  drawSky(ctx, w, h, hz, biome, tnow, me);
-  const slope = (base.y2 - base.y1) / SEG;
-  const hzShift = clamp(-slope * h * 0.35, -h * 0.12, h * 0.12);
-  drawLayer(ctx, assets.far, w, h, hz + hzShift * 0.6, me.bgX * 0.25, 0.62, biome);
-  drawLayer(ctx, assets.near, w, h, hz + hzShift, me.bgX * 0.55, 0.46, biome);
+  // ---- sky & parallax ----  (the true horizon rises when the camera tilts down)
+  const tun = me.tunT || 0;
+  const hzBg = hz + clamp(K * CAM_D * pitch * 0.55, -h * 0.2, h * 0.14);
+  drawSky(ctx, w, h, hzBg, biome, tnow, me);
+  drawLayer(ctx, assets.far, w, h, hzBg, me.bgX * 0.25, 0.62, biome);
+  drawLayer(ctx, assets.near, w, h, hzBg, me.bgX * 0.55, 0.46, biome);
+  ctx.fillStyle = biome.ground[1];
+  ctx.fillRect(-w * 0.2, hzBg - 1, w * 1.4, h * 1.2);
+  if (tun > 0.01) {
+    // inside a tunnel the sky becomes rock ceiling
+    const cg = ctx.createLinearGradient(0, 0, 0, hz + h * 0.1);
+    const rc = biome.id === "tundra" ? "#0c1a2c" : shade(biome.rock[0], -0.55);
+    cg.addColorStop(0, rgba(shade(rc, -0.3), tun)); cg.addColorStop(1, rgba(rc, tun));
+    ctx.fillStyle = cg; ctx.fillRect(-w * 0.2, -h * 0.2, w * 1.4, hz + h * 0.4);
+  }
 
   // ---- road ----
   const segs = track.segs;
@@ -58,8 +73,8 @@ function renderView(ctx, vp, race, me, tnow) {
     if (z1 <= 1) { x += dx; dx += s.curve; continue; }
     const sc1 = CAM_D / z1, sc2 = CAM_D / z2;
     s.sc1 = sc1; s.sc2 = sc2;
-    s.sx1 = w / 2 + sc1 * (x - camX) * K;  s.sy1 = hz - sc1 * (s.y1 - camY) * K;
-    s.sx2 = w / 2 + sc2 * (x + dx - camX) * K; s.sy2 = hz - sc2 * (s.y2 - camY) * K;
+    s.sx1 = w / 2 + sc1 * (x - camX) * K;  s.sy1 = hz - sc1 * (s.y1 - pitch * z1 - camY) * K;
+    s.sx2 = w / 2 + sc2 * (x + dx - camX) * K; s.sy2 = hz - sc2 * (s.y2 - pitch * z2 - camY) * K;
     s.rw1 = sc1 * ROAD_W * K; s.rw2 = sc2 * ROAD_W * K;
     s.clip = maxy;
     s.fog = 1 - Math.exp(-((n / dd) ** 2) * fogDensity);
@@ -81,7 +96,7 @@ function renderView(ctx, vp, race, me, tnow) {
       const S = assets.sprites[sp.id];
       if (!S || sp.dead) continue;
       drawSprite(ctx, S, s.sx1 + s.sc1 * sp.x * ROAD_W * K, s.sy1, s.sc1 * K, s.clip, alpha, sp.flat);
-      if (S.glow && biome.dark) glows.push([s.sx1 + s.sc1 * sp.x * ROAD_W * K, s.sy1 - S.wh * s.sc1 * K * 0.7, S.ww * s.sc1 * K * 1.2, S.glow]);
+      if (S.glow && (biome.dark || tun > 0.05)) glows.push([s.sx1 + s.sc1 * sp.x * ROAD_W * K, s.sy1 - S.wh * s.sc1 * K * 0.7, S.ww * s.sc1 * K * 1.2, S.glow]);
     }
     for (const o of s.objs) {
       if (o.taken > race.time) continue;
@@ -89,7 +104,7 @@ function renderView(ctx, vp, race, me, tnow) {
       const bob = Math.sin(tnow * 4 + s.i) * 60;
       const sc = s.sc1 * K;
       drawSprite(ctx, S, s.sx1 + s.sc1 * o.x * ROAD_W * K, s.sy1 - (180 + bob) * sc, sc, s.clip, alpha, false);
-      if (biome.dark) glows.push([s.sx1 + s.sc1 * o.x * ROAD_W * K, s.sy1 - 400 * sc, 700 * sc, S.glow]);
+      if (biome.dark || tun > 0.05) glows.push([s.sx1 + s.sc1 * o.x * ROAD_W * K, s.sy1 - 400 * sc, 700 * sc, S.glow]);
     }
     const list = buckets[s.i];
     if (list) {
@@ -99,8 +114,9 @@ function renderView(ctx, vp, race, me, tnow) {
   }
 
   // ---- weather & lighting ----
-  drawWeather(ctx, w, h, biome, race, me, tnow);
-  if (biome.dark) drawDarkness(ctx, w, h, hz, glows, me);
+  if (tun < 0.5) drawWeather(ctx, w, h, biome, race, me, tnow);
+  if (biome.dark || tun > 0.05) drawDarkness(ctx, w, h, hz, glows, me, biome.dark ? 1 : tun * 0.85);
+  if (tun > 0.05 && me.tunKind === "falls") drawFallsMist(ctx, w, h, tnow, tun);
   ctx.restore();
 
   // screen-space overlays (not tilted)
@@ -168,16 +184,22 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
   const { sx1, sy1, sx2, sy2 } = s;
   const y1 = Math.min(sy1, maxy);
   const rw1 = s.rw1 * s.w, rw2 = s.rw2 * s.w;
-  // ground band
-  ctx.fillStyle = biome.ground[s.dark];
-  ctx.fillRect(-w * 0.2, sy2, w * 1.4, y1 - sy2 + 1);
+  // ground band (each side can be river, lava, drop-off, rock or ice — see track features)
+  if (s.gL || s.gR) {
+    const mx = (sx1 + sx2) / 2;
+    ctx.fillStyle = sideGround(s.gL, s, biome, t); ctx.fillRect(-w * 0.2, sy2, mx + w * 0.2, y1 - sy2 + 1);
+    ctx.fillStyle = sideGround(s.gR, s, biome, t); ctx.fillRect(mx, sy2, w * 1.2 - mx, y1 - sy2 + 1);
+  } else {
+    ctx.fillStyle = biome.ground[s.dark];
+    ctx.fillRect(-w * 0.2, sy2, w * 1.4, y1 - sy2 + 1);
+  }
   // rumble edges
   const r1 = rw1 * 1.12, r2 = rw2 * 1.12;
-  quad(ctx, sx1 - r1, sy1, sx1 + r1, sy1, sx2 + r2, sy2, sx2 - r2, sy2, biome.edge[s.dark]);
-  // road
-  quad(ctx, sx1 - rw1, sy1, sx1 + rw1, sy1, sx2 + rw2, sy2, sx2 - rw2, sy2, biome.road[s.dark]);
+  quad(ctx, sx1 - r1, sy1, sx1 + r1, sy1, sx2 + r2, sy2, sx2 - r2, sy2, s.bridge ? "#3a2a20" : biome.edge[s.dark]);
+  // road (planks on bridges)
+  quad(ctx, sx1 - rw1, sy1, sx1 + rw1, sy1, sx2 + rw2, sy2, sx2 - rw2, sy2, s.bridge ? biome.plank[s.i % 2] : biome.road[s.dark]);
   // tire ruts
-  if (s.rw1 > 6) {
+  if (s.rw1 > 6 && !s.bridge) {
     for (const rx of [-0.42, 0.42]) {
       const a1 = sx1 + rx * s.rw1, a2 = sx2 + rx * s.rw2;
       quad(ctx, a1 - s.rw1 * 0.06, sy1, a1 + s.rw1 * 0.06, sy1, a2 + s.rw2 * 0.06, sy2, a2 - s.rw2 * 0.06, sy2, biome.rut);
@@ -198,7 +220,7 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
     let col2 = col;
     if (sf.type === "water") col2 = (s.i + Math.floor(t * 8)) % 3 === 0 ? "#7cc6f2" : col;
     if (sf.type === "lava") col2 = (s.i + Math.floor(t * 6)) % 2 ? "#ff7a1f" : "#ffb347";
-    if (sf.type === "ice") col2 = s.dark ? "#cdeffd" : "#b2e2fb";
+    if (sf.type === "ice") col2 = biome.dark ? (s.dark ? "#6f8fb8" : "#7a9ac2") : s.dark ? "#cdeffd" : "#b2e2fb";
     quad(ctx, sx1 + (c - hw) * s.rw1, sy1, sx1 + (c + hw) * s.rw1, sy1, sx2 + (c + hw) * s.rw2, sy2, sx2 + (c - hw) * s.rw2, sy2, col2);
     if (sf.type === "lava") { const hw2 = hw * 0.35; quad(ctx, sx1 + (c - hw2) * s.rw1, sy1, sx1 + (c + hw2) * s.rw1, sy1, sx2 + (c + hw2) * s.rw2, sy2, sx2 + (c - hw2) * s.rw2, sy2, "#ffe08a"); }
   }
@@ -214,6 +236,24 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
       ctx.beginPath(); ctx.moveTo(cx1 - hw * s.rw1 * 0.6, sy1); ctx.lineTo(cx2, sy2); ctx.lineTo(cx1 + hw * s.rw1 * 0.6, sy1); ctx.closePath(); ctx.fill();
     }
   }
+}
+
+function sideGround(type, s, biome, t) {
+  if (!type) return biome.ground[s.dark];
+  if (type === "water") return (s.i + Math.floor(t * 5)) % 4 === 0 ? biome.water[1] : biome.water[0];
+  if (type === "lava") return (s.i + Math.floor(t * 6)) % 3 === 0 ? "#ff8a2f" : "#ff5a1f";
+  if (type === "chasm") return biome.chasm[s.dark];
+  if (type === "ice") return biome.dark ? (s.dark ? "#4f6d96" : "#58779f") : (s.dark ? "#bfe0fb" : "#cfe8ff");
+  if (type === "rock") return shade(biome.rock[0], s.dark ? -0.5 : -0.42);
+  return biome.ground[s.dark];
+}
+
+function drawFallsMist(ctx, w, h, t, a) {
+  ctx.strokeStyle = `rgba(230,245,255,${0.35 * a})`; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i < 26; i++) { const x = ((i * 0.137 + t * 0.03) % 1) * w, y = ((t * 1.6 + i * 0.31) % 1) * h; ctx.moveTo(x, y); ctx.lineTo(x - 2, y + h * 0.12); }
+  ctx.stroke();
+  ctx.fillStyle = `rgba(120,190,220,${0.12 * a})`; ctx.fillRect(0, 0, w, h);
 }
 
 function quad(ctx, x1, y1, x2, y2, x3, y3, x4, y4, col) {
@@ -271,14 +311,14 @@ function riderPose(e, t) {
 
 function drawRider(ctx, e, px, py, sc, clipY, me, race, glows, t) {
   const spr = e.sprites[riderPose(e, t)];
-  const vw = e.veh.w * 1.25, vh = vw * (SPRITE_H / SPRITE_W);
+  const vw = e.veh.sw || e.veh.w * 1.25, vh = vw * (SPRITE_H / SPRITE_W);
   const dw = vw * sc, dh = vh * sc;
   if (dw < 2) return;
   const lift = e.h * sc;
   // shadow
   const shs = clamp(1 - e.h / 3000, 0.3, 1);
   ctx.fillStyle = "rgba(0,0,0,.32)";
-  ctx.beginPath(); ctx.ellipse(px, py, dw * 0.3 * shs * (e.veh.id === "atv" ? 1.5 : 1), dw * 0.07 * shs, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px, py, dw * 0.3 * shs * (e.veh.shove ? 1.4 : 1), dw * 0.07 * shs, 0, 0, TAU); ctx.fill();
   let rot = e.lean * 0.32 + (e.wobble > 0 ? Math.sin(t * 40) * 0.12 * e.wobble : 0);
   if (e.wipeT > 0) rot = e.wipeT * 9;
   if (e.trick && e.trick.def.pose === "spin") rot = (e.trick.t / e.trick.dur) * TAU;
@@ -319,7 +359,7 @@ function drawRider(ctx, e, px, py, sc, clipY, me, race, glows, t) {
     ctx.beginPath(); ctx.moveTo(px - 10, my - 16); ctx.lineTo(px + 10, my - 16); ctx.lineTo(px, my - 2); ctx.closePath(); ctx.fill();
     ctx.font = "16px Bangers, sans-serif"; ctx.textAlign = "center"; ctx.fillText("P" + (e.pIndex + 1), px, my - 20);
   }
-  if (race.track.biome.dark && e !== me) glows.push([px, y - dh * 0.85, Math.min(dw * 0.7, 90), "#fff2c0"]);
+  if ((race.track.biome.dark || (me.tunT || 0) > 0.05) && e !== me) glows.push([px, y - dh * 0.85, Math.min(dw * 0.7, 90), "#fff2c0"]);
 }
 
 function star(ctx, x, y, r) {
@@ -393,21 +433,21 @@ function drawWeather(ctx, w, h, biome, race, me, t) {
   }
 }
 
-function drawDarkness(ctx, w, h, hz, glows, me) {
-  // dark overlay with a headlamp cone, then additive glows
+function drawDarkness(ctx, w, h, hz, glows, me, k = 1) {
+  // dark overlay with a headlamp cone, then additive glows (k = strength; tunnels use a partial version)
   const g = ctx.createRadialGradient(w / 2, h * 0.68, h * 0.06, w / 2, h * 0.55, h * 0.95);
-  g.addColorStop(0, "rgba(5,10,30,0)"); g.addColorStop(0.45, "rgba(5,10,30,.35)"); g.addColorStop(1, "rgba(3,6,20,.82)");
+  g.addColorStop(0, "rgba(5,10,30,0)"); g.addColorStop(0.45, `rgba(5,10,30,${0.35 * k})`); g.addColorStop(1, `rgba(3,6,20,${0.82 * k})`);
   ctx.fillStyle = g; ctx.fillRect(-w * 0.2, -h * 0.2, w * 1.4, h * 1.4);
   ctx.globalCompositeOperation = "lighter";
   const beam = ctx.createLinearGradient(0, h * 0.85, 0, hz);
-  beam.addColorStop(0, "rgba(255,240,190,.2)"); beam.addColorStop(1, "rgba(255,240,190,0)");
+  beam.addColorStop(0, `rgba(255,240,190,${0.2 * k})`); beam.addColorStop(1, "rgba(255,240,190,0)");
   ctx.fillStyle = beam;
   ctx.beginPath(); ctx.moveTo(w * 0.45, h * 0.85); ctx.lineTo(w * 0.55, h * 0.85); ctx.lineTo(w * 0.78, hz + h * 0.02); ctx.lineTo(w * 0.22, hz + h * 0.02); ctx.closePath(); ctx.fill();
   for (let [x, y, r, c] of glows) {
     if (r < 2) continue;
     r = Math.min(r, h * 0.35);
     const gg = ctx.createRadialGradient(x, y, 0, x, y, r);
-    gg.addColorStop(0, rgba(c, 0.45)); gg.addColorStop(1, rgba(c, 0));
+    gg.addColorStop(0, rgba(c, 0.45 * Math.min(1, k + 0.2))); gg.addColorStop(1, rgba(c, 0));
     ctx.fillStyle = gg; ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
   ctx.globalCompositeOperation = "source-over";

@@ -158,3 +158,9 @@ button, .trk, .seg button, .back { touch-action: manipulation; }
   .stats { font-size: 9px; gap: 2px 6px; }
   .footer { min-height: 46px; }
 }
+.lock .after { font: 700 12px "Chakra Petch", sans-serif; color: #c9c2d8; }
+/* secret switch indicator: a tiny pink dot in the button's corner */
+[data-act="split"] { position: relative; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+[data-act="split"].cz::after { content: ""; position: absolute; right: 7px; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: #ff79b0; box-shadow: 0 0 4px #ff79b0; }
+.czpop { position: fixed; z-index: 50; color: #ff79b0; font-size: 22px; pointer-events: none; animation: czpop .9s ease-out forwards; }
+@keyframes czpop { from { transform: translateY(0) scale(.6); opacity: 1; } to { transform: translateY(-26px) scale(1.2); opacity: 0; } }

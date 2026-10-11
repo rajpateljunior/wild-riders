@@ -11,7 +11,7 @@ const Input = {
 };
 
 function mkPlayerInput() {
-  return { steer: 0, touchSteer: 0, brake: false, boost: false, attackQ: 0, backQ: 0, trickQ: 0, steerTouch: null, anchor: null, knob: null, btn: {} };
+  return { steer: 0, touchSteer: 0, touchGas: 0, touchStop: false, brake: false, boost: false, attackQ: 0, backQ: 0, trickQ: 0, steerTouch: null, anchor: null, knob: null, btn: {} };
 }
 
 function computeLayout(W, H, split, safe) {
@@ -28,7 +28,7 @@ function computeLayout(W, H, split, safe) {
     L.players.push({
       x0, w, R, atk, bst, brk,
       steerZone: { x: x0 + sl, y: H * 0.22, w: w * 0.48, h: H * 0.78 },
-      ghost: { x: x0 + sl + pad + R * 1.5, y: H - pad - R * 1.5 - safe.b },
+      ghost: { x: x0 + sl + pad + R * 1.5, y: H - pad - R * 1.95 - safe.b },
       steerRange: R * 1.15,
     });
   }
@@ -68,7 +68,7 @@ function initInput(canvas) {
       Input.touches[t.identifier] = Object.assign(role, { sx: x, sy: y, x, y, t0: now() });
       const P = Input.players[role.p];
       if (role.role === "pause") Input.onPause && Input.onPause();
-      if (role.role === "steer") { P.anchor = [x, y]; P.knob = [x, y]; P.steerTouch = t.identifier; }
+      if (role.role === "steer") { P.anchor = [x, y]; P.knob = [x, y]; P.steerTouch = t.identifier; P.touchGas = 0; P.touchStop = false; }
       if (role.role === "bst") P.boost = true;
       if (role.role === "brk") P.brake = true;
       if (role.role === "atk") P.btn.atk = true;
@@ -84,10 +84,14 @@ function initInput(canvas) {
       T.x = x; T.y = y;
       if (T.role === "steer") {
         const P = Input.players[T.p], range = Input.layout.players[T.p].steerRange;
-        let dx = x - P.anchor[0];
+        let dx = x - P.anchor[0], dy = y - P.anchor[1];
         if (Math.abs(dx) > range * 1.4) { P.anchor[0] = x - sign(dx) * range * 1.4; dx = sign(dx) * range * 1.4; }
+        if (Math.abs(dy) > range * 1.4) { P.anchor[1] = y - sign(dy) * range * 1.4; dy = sign(dy) * range * 1.4; }
         P.knob = [x, y];
         P.touchSteer = clamp(dx / range, -1, 1);
+        // push up = gas (small dead zone, full at ~80% of the ring); pull down = brake
+        P.touchGas = clamp((-dy - range * 0.12) / (range * 0.68), 0, 1);
+        P.touchStop = dy > range * 0.38;
       }
     }
   };
@@ -99,7 +103,7 @@ function initInput(canvas) {
       delete Input.touches[t.identifier];
       const P = Input.players[T.p];
       if (!P) continue;
-      if (T.role === "steer") { P.touchSteer = 0; P.anchor = null; P.knob = null; P.steerTouch = null; }
+      if (T.role === "steer") { P.touchSteer = 0; P.touchGas = 0; P.touchStop = false; P.anchor = null; P.knob = null; P.steerTouch = null; }
       if (T.role === "bst") P.boost = Object.values(Input.touches).some((o) => o.role === "bst" && o.p === T.p);
       if (T.role === "brk") P.brake = Object.values(Input.touches).some((o) => o.role === "brk" && o.p === T.p);
       if (T.role === "atk" || T.role === "swipe") {
@@ -126,9 +130,9 @@ function initInput(canvas) {
   // keyboard (desktop / iPad keyboard)
   const KEYMAP = {
     // P1
-    KeyA: [0, "left"], KeyD: [0, "right"], KeyW: [0, "up"], KeyS: [0, "brake"], KeyF: [0, "atk"], KeyG: [0, "boost"], Space: [0, "atk"], ShiftLeft: [0, "boost"],
+    KeyA: [0, "left"], KeyD: [0, "right"], KeyW: [0, "up"], KeyS: [0, "stop"], KeyF: [0, "atk"], KeyG: [0, "boost"], KeyE: [0, "drift"], Space: [0, "atk"], ShiftLeft: [0, "boost"],
     // P2 (or P1 in single player)
-    ArrowLeft: [1, "left"], ArrowRight: [1, "right"], ArrowUp: [1, "up"], ArrowDown: [1, "brake"], KeyL: [1, "atk"], KeyK: [1, "boost"], Enter: [1, "atk"], ShiftRight: [1, "boost"],
+    ArrowLeft: [1, "left"], ArrowRight: [1, "right"], ArrowUp: [1, "up"], ArrowDown: [1, "stop"], KeyL: [1, "atk"], KeyK: [1, "boost"], KeyJ: [1, "drift"], Enter: [1, "atk"], ShiftRight: [1, "boost"],
   };
   window.addEventListener("keydown", (e) => {
     if (e.code === "Escape" || e.code === "KeyP") { Input.onPause && Input.enabled && Input.onPause(); return; }
@@ -155,8 +159,9 @@ function initInput(canvas) {
 function readPlayer(p) {
   const P = Input.players[p];
   const k = Input.keys;
-  const sets = Input.split ? [[["KeyA"], ["KeyD"], ["KeyS"], ["KeyG", "ShiftLeft"]], [["ArrowLeft"], ["ArrowRight"], ["ArrowDown"], ["KeyK", "ShiftRight"]]][p]
-    : [["KeyA", "ArrowLeft"], ["KeyD", "ArrowRight"], ["KeyS", "ArrowDown"], ["KeyG", "KeyK", "ShiftLeft", "ShiftRight"]];
+  // [left, right, drift, boost, gas, brake]
+  const sets = Input.split ? [[["KeyA"], ["KeyD"], ["KeyE"], ["KeyG", "ShiftLeft"], ["KeyW"], ["KeyS"]], [["ArrowLeft"], ["ArrowRight"], ["KeyJ"], ["KeyK", "ShiftRight"], ["ArrowUp"], ["ArrowDown"]]][p]
+    : [["KeyA", "ArrowLeft"], ["KeyD", "ArrowRight"], ["KeyE", "KeyJ"], ["KeyG", "KeyK", "ShiftLeft", "ShiftRight"], ["KeyW", "ArrowUp"], ["KeyS", "ArrowDown"]];
   const any = (arr) => arr.some((c) => k[c]);
   let ks = (any(sets[1]) ? 1 : 0) - (any(sets[0]) ? 1 : 0);
   if (ks) P.steer = clamp(P.steer + ks * 0.12, -1, 1); else if (!P.anchor) P.steer = 0;
@@ -165,6 +170,8 @@ function readPlayer(p) {
     steer: P.steer,
     brake: P.brake || any(sets[2]),
     boost: P.boost || any(sets[3]),
+    throttle: P.anchor ? P.touchGas : any(sets[4]) ? 1 : 0,
+    stop: (P.anchor && P.touchStop) || any(sets[5]),
     attack: P.attackQ > 0, throwBack: P.backQ > 0, trick: P.trickQ || 0,
   };
   return out;
@@ -190,11 +197,20 @@ function drawControls(ctx, race) {
     ctx.strokeStyle = "#fff"; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(a[0], a[1], P.steerRange, 0, TAU); ctx.stroke();
     ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fill();
-    const kx = I.anchor ? a[0] + I.touchSteer * P.steerRange : a[0];
+    // GO arrow at the top of the ring, BRAKE mark at the bottom
+    const rr = P.steerRange;
+    ctx.globalAlpha = I.anchor ? 0.85 : 0.55;
+    ctx.fillStyle = I.touchGas > 0.05 ? "#2bd96a" : "#ffffff";
+    ctx.beginPath(); ctx.moveTo(a[0], a[1] - rr - P.R * 0.32); ctx.lineTo(a[0] + P.R * 0.3, a[1] - rr + P.R * 0.06); ctx.lineTo(a[0] - P.R * 0.3, a[1] - rr + P.R * 0.06); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = I.touchStop ? "#ff3b3b" : "rgba(255,255,255,.7)";
+    ctx.fillRect(a[0] - P.R * 0.22, a[1] + rr - P.R * 0.08, P.R * 0.44, P.R * 0.16);
+    if (!I.anchor) { ctx.font = `${P.R * 0.32}px Bangers, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff"; ctx.fillText("GO", a[0], a[1] - rr - P.R * 0.62); }
+    const kx = I.anchor ? a[0] + I.touchSteer * rr : a[0];
+    const ky = I.anchor ? a[1] + clamp(I.knob[1] - a[1], -rr, rr) : a[1];
     ctx.globalAlpha = I.anchor ? 0.9 : 0.4;
-    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(kx, a[1], P.R * 0.5, 0, TAU); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(kx, ky, P.R * 0.5, 0, TAU); ctx.fill();
     ctx.fillStyle = "#14101c"; ctx.font = `${P.R * 0.45}px Bangers, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("◀ ▶", kx, a[1] + 1);
+    ctx.fillText("◀ ▶", kx, ky + 1);
     ctx.globalAlpha = 1;
     // buttons
     const air = me.h > 120;

@@ -172,14 +172,139 @@ def("crowd", 340, 170, 2300, () => {
 });
 def("banner", 160, 260, 900, () => SV.rect(70, 10, 10, 248, 3, "#d9dde6", 2.5) + SV.path("M80 14 Q140 30 150 20 L144 150 Q120 160 80 144Z", "#ff3d7f", 3) + `<text x="114" y="96" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="28" fill="#fff" transform="rotate(4 114 90)">GO</text>`);
 
-/* Which scenery each biome scatters. weights: [id, weight, side-distance range] */
+/* ---- zone scenery (villages, camps, meadows, lakeshores) ---- */
+def("flowers", 200, 70, 900, () => {
+  let s = "";
+  for (let i = 0; i < 6; i++) s += SV.path(`M${20 + i * 30} 70 Q${14 + i * 30} 40 ${26 + i * 30} 24 Q${30 + i * 30} 44 ${34 + i * 30} 70Z`, "#4f9b3c", 2);
+  const cols = ["#ff79b0", "#ffd23f", "#ffffff", "#b35cff", "#ff8a1c"];
+  for (let i = 0; i < 9; i++) { const x = 18 + i * 20, y = 18 + (i % 3) * 12; s += SV.circ(x, y, 8, cols[i % 5], 2) + `<circle cx="${x}" cy="${y}" r="3" fill="#ffd23f"/>`; }
+  return s;
+});
+def("bush", 180, 120, 950, () => SV.path("M10 118 Q2 70 40 58 Q52 18 96 24 Q140 14 152 56 Q182 66 172 118Z", "#3f8a32", 3) + `<path d="M40 70 q14 -10 28 0 M100 44 q14 -10 28 0 M120 84 q12 -8 24 0" stroke="#7fd05a" stroke-width="4" fill="none" stroke-linecap="round"/>` + SV.circ(70, 60, 6, "#e2433b", 2) + SV.circ(130, 74, 6, "#e2433b", 2), { solid: 1 });
+def("cabin", 260, 220, 2300, () => {
+  let s = SV.rect(30, 96, 200, 122, 4, "#8a5a32", 3);
+  for (let y = 108; y < 214; y += 18) s += `<path d="M30 ${y} L230 ${y}" stroke="#6b4423" stroke-width="3"/>`;
+  s += SV.path("M14 104 L130 22 L246 104Z", "#5a3a2a", 3) + `<path d="M40 92 L130 30 L220 92" stroke="#7a5038" stroke-width="5" fill="none"/>`;
+  s += SV.rect(178, 30, 26, 50, 3, "#7d7f74", 3) + SV.rect(100, 140, 40, 78, 4, "#4a2f1f", 3);
+  s += SV.rect(160, 128, 46, 38, 4, "#ffd36b", 3) + `<path d="M183 128 L183 166 M160 147 L206 147" stroke="#6b4423" stroke-width="3"/>`;
+  s += SV.rect(42, 128, 40, 34, 4, "#ffd36b", 3);
+  return s;
+}, { solid: 1, glow: "#ffd36b" });
+def("logpile", 240, 110, 1400, () => {
+  let s = "";
+  const pos = [[40, 86], [96, 86], [152, 86], [208, 86], [68, 40], [124, 40], [180, 40]];
+  for (const [x, y] of pos) s += SV.circ(x, y, 26, "#d9a86a", 3) + `<circle cx="${x}" cy="${y}" r="15" fill="none" stroke="#9b6a3a" stroke-width="2"/><circle cx="${x}" cy="${y}" r="5" fill="none" stroke="#9b6a3a" stroke-width="2"/>`;
+  return s;
+}, { solid: 1 });
+def("reeds", 120, 160, 650, () => {
+  let s = "";
+  for (let i = 0; i < 6; i++) { const x = 14 + i * 18; s += `<path d="M${x} 160 Q${x + (i % 2 ? 6 : -6)} 90 ${x + (i % 2 ? 2 : -2)} ${30 + (i % 3) * 14}" stroke="#4f8a3a" stroke-width="5" fill="none" stroke-linecap="round"/>`; if (i % 2 === 0) s += SV.rect(x - 6, 24 + (i % 3) * 14, 12, 30, 6, "#7b4a2a", 2); }
+  return s;
+});
+def("adobe", 270, 210, 2300, () => {
+  let s = SV.rect(20, 80, 230, 128, 6, "#e3b07a", 3) + SV.rect(70, 30, 140, 60, 6, "#d9a26a", 3);
+  for (const x of [34, 84, 134, 184, 234]) s += SV.rect(x - 5, 86, 12, 9, 2, "#7b4a2a", 2);
+  for (const x of [88, 140, 192]) s += SV.rect(x - 5, 36, 12, 9, 2, "#7b4a2a", 2);
+  s += SV.path("M118 208 L118 146 Q135 128 152 146 L152 208Z", "#5a3420", 3) + SV.rect(48, 128, 30, 30, 3, "#3a2a24", 3) + SV.rect(196, 128, 30, 30, 3, "#3a2a24", 3);
+  s += `<path d="M48 120 l30 0 M196 120 l30 0" stroke="#c4562b" stroke-width="4"/>`;
+  s += SV.ell(232, 70, 16, 12, "#c4562b", 2.5) + `<path d="M224 60 q8 -14 16 0" stroke="#e2433b" stroke-width="5" fill="none"/>`;
+  return s;
+}, { solid: 1 });
+def("lodge", 280, 270, 2500, () => {
+  let s = SV.rect(46, 130, 188, 138, 4, "#8a5a32", 3);
+  s += SV.path("M10 150 L140 12 L270 150Z", "#5a3a2a", 3) + SV.path("M10 150 L140 12 L270 150 L250 150 L140 34 L30 150Z", "#ffffff", 2.5);
+  s += SV.path("M84 150 L140 70 L196 150Z", "#ffd36b", 3) + `<path d="M140 70 L140 150 M112 110 L168 110" stroke="#6b4423" stroke-width="4"/>`;
+  s += SV.rect(118, 200, 44, 68, 4, "#4a2f1f", 3) + SV.rect(60, 180, 40, 34, 4, "#ffd36b", 3) + SV.rect(180, 180, 40, 34, 4, "#ffd36b", 3);
+  s += SV.rect(20, 220, 30, 48, 3, "#e2433b", 2.5) + `<text x="35" y="250" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="14" fill="#fff">SKI</text>`;
+  return s;
+}, { solid: 1, glow: "#ffd36b" });
+def("hut", 240, 210, 2000, () => {
+  let s = "";
+  for (const x of [50, 110, 170]) s += SV.rect(x, 150, 12, 58, 3, "#6b4423", 2.5);
+  s += SV.rect(30, 110, 180, 50, 4, "#c8924f", 3) + `<path d="M30 126 L210 126 M30 142 L210 142" stroke="#8c5e2c" stroke-width="3"/>`;
+  s += SV.path("M8 118 L120 30 L232 118 Q120 100 8 118Z", "#d9b25a", 3);
+  for (let i = 0; i < 8; i++) s += `<path d="M${30 + i * 26} ${112 - Math.abs(i - 3.5) * 4} L${40 + i * 26} ${90 - Math.abs(i - 3.5) * 10}" stroke="#a8843a" stroke-width="3"/>`;
+  s += SV.rect(100, 118, 34, 40, 4, "#3a2a24", 3) + SV.circ(184, 92, 9, "#e0193b", 2.5);
+  return s;
+}, { solid: 1 });
+def("igloo", 220, 130, 1500, () => {
+  let s = SV.path("M10 128 Q10 10 110 10 Q210 10 210 128Z", "#eef5ff", 3);
+  s += `<path d="M22 90 Q110 70 198 90 M14 110 Q110 92 206 110 M40 50 Q110 34 180 50" stroke="#b8cde8" stroke-width="3" fill="none"/>`;
+  s += SV.path("M80 128 L80 92 Q110 66 140 92 L140 128Z", "#cfe0f5", 3) + SV.path("M92 128 L92 100 Q110 84 128 100 L128 128Z", "#ffd36b", 2.5);
+  return s;
+}, { solid: 1, glow: "#ffd36b" });
+def("snowcabin", 260, 230, 2300, () => {
+  let s = SV.rect(30, 106, 200, 122, 4, "#6b4a36", 3);
+  for (let y = 118; y < 224; y += 18) s += `<path d="M30 ${y} L230 ${y}" stroke="#4e3524" stroke-width="3"/>`;
+  s += SV.path("M10 114 L130 26 L250 114Z", "#3a2a2a", 3) + SV.path("M10 114 L130 26 L250 114 Q130 96 10 114Z", "#f4f8ff", 2.5);
+  s += SV.rect(100, 150, 40, 78, 4, "#2a1f1a", 3) + SV.rect(160, 138, 46, 38, 4, "#ffd36b", 3) + SV.rect(42, 138, 40, 34, 4, "#ffd36b", 3);
+  return s;
+}, { solid: 1, glow: "#ffd36b" });
+
+/* ---- per-biome kit: rock walls, tunnel ribs and mouths, rails, hairpin chevrons, waterfall curtain ---- */
+function biomeKit(biome) {
+  const [rc, top] = biome.rock;
+  const dk = shade(rc, -0.3);
+  const id = biome.id;
+  const kit = {};
+  kit.wall = { w: 300, h: 420, ww: 3400, solid: 1, svg: () => {
+    let s = SV.path("M0 420 L0 64 L34 34 L72 46 L112 12 L160 30 L204 8 L252 34 L300 22 L300 420Z", rc, 3);
+    for (let i = 0; i < 6; i++) s += `<path d="M0 ${110 + i * 52} Q150 ${96 + i * 52 + (i % 2 ? 14 : -10)} 300 ${112 + i * 52}" stroke="${dk}" stroke-width="4" fill="none" opacity=".7"/>`;
+    s += `<path d="M90 60 L104 170 L84 260 M210 40 L196 150 L222 300 M150 200 L160 380" stroke="${shade(rc, -0.4)}" stroke-width="3" fill="none"/>`;
+    s += `<path d="M150 0 L300 0 L300 420 L170 420Z" fill="${shade(rc, -0.25)}" opacity=".35"/>`;
+    s += SV.path("M0 64 L34 34 L72 46 L112 12 L160 30 L204 8 L252 34 L300 22 L300 50 Q250 62 204 36 Q160 58 112 40 Q72 72 34 60 Q16 78 0 92Z", top, 2.5);
+    if (id === "volcano") s += `<path d="M60 140 L90 200 L70 280 M230 120 L250 210" stroke="#ff5a1f" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+    if (id === "tundra" || id === "glacier") s += `<path d="M120 120 L130 180" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity=".7"/>`;
+    return s;
+  } };
+  const ribCol = id === "glacier" ? "#8fb6dd" : id === "tundra" ? "#2c3c5a" : shade(rc, -0.35);
+  const timber = id === "forest" || id === "desert" || id === "ghats";
+  kit.rib = { w: 560, h: 400, ww: 5600, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M0 400 L0 30 Q0 0 30 0 L530 0 Q560 0 560 30 L560 400 Z M76 400 L76 176 Q76 74 280 64 Q484 74 484 176 L484 400 Z" fill="${ribCol}" stroke="${OL}" stroke-width="3"/>`;
+    s += `<path d="M76 400 L76 176 Q76 74 280 64 Q484 74 484 176 L484 400" stroke="${shade(ribCol, 0.25)}" stroke-width="6" fill="none" opacity=".6"/>`;
+    if (timber) s += SV.rect(60, 70, 30, 330, 4, "#7b4a2a", 3) + SV.rect(470, 70, 30, 330, 4, "#7b4a2a", 3) + SV.rect(40, 48, 480, 34, 6, "#8a5a32", 3);
+    if (id === "volcano") s += `<path d="M30 120 L50 220 L36 330 M530 100 L512 240" stroke="#ff5a1f" stroke-width="6" fill="none" stroke-linecap="round" opacity=".85"/>`;
+    if (id === "tundra" || id === "glacier") s += `<path d="M120 40 L136 80 M260 20 L270 54 M420 36 L404 76" stroke="#bff3ff" stroke-width="7" stroke-linecap="round"/>`;
+    return s;
+  } };
+  kit.portal = { w: 1600, h: 900, ww: 16000, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M0 900 L0 520 L120 380 L260 430 L420 200 L560 300 L700 90 L860 210 L1000 60 L1150 260 L1300 170 L1460 360 L1600 300 L1600 900 Z M592 900 L592 676 Q592 572 800 562 Q1008 572 1008 676 L1008 900 Z" fill="${rc}" stroke="${OL}" stroke-width="4"/>`;
+    s += `<path d="M700 90 L860 210 L1000 60 L1150 260 L1300 170 L1460 360 L1600 300 L1600 900 L1100 900Z" fill="${shade(rc, -0.25)}" opacity=".4"/>`;
+    for (let i = 0; i < 5; i++) s += `<path d="M0 ${560 + i * 70} Q400 ${540 + i * 70} 560 ${600 + i * 66} M1040 ${600 + i * 66} Q1300 ${540 + i * 70} 1600 ${560 + i * 70}" stroke="${dk}" stroke-width="5" fill="none" opacity=".6"/>`;
+    s += `<path d="M560 900 L560 670 Q560 540 800 528 Q1040 540 1040 670 L1040 900 L1008 900 L1008 676 Q1008 572 800 562 Q592 572 592 676 L592 900Z" fill="${timber ? "#8a5a32" : ribCol}" stroke="${OL}" stroke-width="3"/>`;
+    s += SV.path("M0 520 L120 380 L260 430 L420 200 L560 300 L700 90 L860 210 L1000 60 L1150 260 L1300 170 L1460 360 L1600 300 L1600 340 Q1460 400 1300 210 Q1150 300 1000 100 Q860 250 700 130 Q560 340 420 240 Q260 470 120 420 Q60 500 0 560Z", top, 3);
+    if (id === "ghats") for (const x of [380, 1220]) s += `<path d="M${x} 300 L${x - 10} 900 L${x + 60} 900 L${x + 50} 300Z" fill="#bfe9ff" opacity=".85"/><path d="M${x + 10} 320 L${x + 4} 890 M${x + 30} 320 L${x + 30} 890" stroke="#fff" stroke-width="4" opacity=".8"/>`;
+    if (id === "volcano") s += `<path d="M560 900 L560 670 Q560 540 800 528 Q1040 540 1040 670 L1040 900" stroke="#ff5a1f" stroke-width="8" fill="none" opacity=".7"/>`;
+    return s;
+  } };
+  kit.curtain = { w: 560, h: 400, ww: 5600, svg: () => {
+    let s = `<path d="M70 400 L70 170 Q70 64 280 56 Q490 64 490 170 L490 400Z" fill="#bfe9ff" opacity=".42"/>`;
+    for (let i = 0; i < 16; i++) s += `<path d="M${84 + i * 26} ${120 - Math.abs(i - 7.5) * 6} L${80 + i * 26} 400" stroke="#ffffff" stroke-width="${i % 3 ? 3 : 6}" opacity=".7"/>`;
+    return s;
+  } };
+  const metal = id === "glacier" || id === "tundra" || id === "volcano";
+  kit.rail = { w: 60, h: 130, ww: 320, svg: () => metal
+    ? SV.rect(22, 20, 16, 108, 4, "#c9ced8", 2.5) + SV.rect(16, 18, 28, 14, 4, "#e2433b", 2.5) + `<rect x="22" y="40" width="16" height="12" fill="#e2433b"/><rect x="22" y="68" width="16" height="12" fill="#e2433b"/>`
+    : SV.rect(20, 18, 20, 110, 4, "#7b4a2a", 2.5) + SV.rect(16, 30, 28, 10, 3, "#ffd23f", 2) + `<path d="M24 60 L36 60 M24 90 L36 90" stroke="#5e3519" stroke-width="3"/>` };
+  const chev = (dir) => () => {
+    let s = SV.rect(72, 90, 16, 78, 3, "#3a3a44", 2.5) + SV.rect(6, 10, 148, 86, 10, "#ffd23f", 3.5);
+    for (let i = 0; i < 3; i++) { const x = 30 + i * 40; s += dir > 0 ? `<path d="M${x} 24 L${x + 26} 53 L${x} 82 L${x + 12} 82 L${x + 38} 53 L${x + 12} 24Z" fill="${OL}"/>` : `<path d="M${x + 38} 24 L${x + 12} 53 L${x + 38} 82 L${x + 26} 82 L${x} 53 L${x + 26} 24Z" fill="${OL}"/>`; }
+    return s;
+  };
+  kit.chevR = { w: 160, h: 170, ww: 950, svg: chev(1) };
+  kit.chevL = { w: 160, h: 170, ww: 950, svg: chev(-1) };
+  return kit;
+}
+
+/* Which scenery each biome scatters. weights: [id, weight, side-distance range]
+   zones: the scenery sets a trail passes through (see each track's plan); dens = chance of a piece per side per segment */
 const BIOME_SCENERY = {
-  forest: { near: [["redwood", 3], ["pine", 3], ["fern", 4], ["mossrock", 1.5], ["mushroom", 1.5], ["stump", 1]], far: ["redwood", "pine"], obstacles: ["mossrock", "stump"], special: ["sign", "banner"] },
-  desert: { near: [["saguaro", 3], ["smallcactus", 3], ["deadtree", 1.5], ["boulder", 1.5], ["skull", 1]], far: ["mesa", "saguaro"], obstacles: ["boulder", "tumbleweed"], special: ["banner"] },
-  glacier: { near: [["snowpine", 5], ["serac", 1.5], ["snowrock", 1.5], ["snowman", 0.5], ["gate", 2]], far: ["snowpine", "serac"], obstacles: ["snowrock", "iceblock"], special: ["gate", "banner"] },
-  ghats: { near: [["palm", 3], ["banana", 3], ["teabush", 4], ["shrine", 0.6], ["bunting", 0.8], ["cow", 0.5], ["jrock", 1]], far: ["palm", "waterfall"], obstacles: ["jrock"], special: ["bunting", "banner"] },
-  volcano: { near: [["charred", 3], ["spire", 2], ["lavarock", 2], ["obsidian", 2]], far: ["spire", "charred"], obstacles: ["lavarock"], special: ["banner"] },
-  tundra: { near: [["darkpine", 5], ["crystal", 2], ["inukshuk", 0.7], ["lantern", 1.5], ["tsnowrock", 1.2]], far: ["darkpine", "crystal"], obstacles: ["tsnowrock"], special: ["lantern"] },
+  forest: { near: [["redwood", 3], ["pine", 3], ["fern", 4], ["mossrock", 1.5], ["mushroom", 1.5], ["stump", 1]], far: ["redwood", "pine"], obstacles: ["mossrock", "stump"], special: ["sign", "banner"], zones: { deep: { near: [["redwood", 5], ["pine", 3], ["fern", 3], ["mossrock", 1], ["mushroom", 1]], dens: 0.78 }, meadow: { near: [["flowers", 5], ["fern", 2], ["bush", 3], ["mushroom", 1.5], ["stump", 1], ["pine", 0.8]], dens: 0.55 }, camp: { near: [["cabin", 1.2], ["logpile", 2], ["stump", 2], ["pine", 2], ["fern", 1]], dens: 0.55 }, river: { near: [["reeds", 4], ["fern", 3], ["mossrock", 2], ["pine", 1.5]], dens: 0.6 } } },
+  desert: { near: [["saguaro", 3], ["smallcactus", 3], ["deadtree", 1.5], ["boulder", 1.5], ["skull", 1]], far: ["mesa", "saguaro"], obstacles: ["boulder", "tumbleweed"], special: ["banner"], zones: { open: { near: [["saguaro", 2], ["smallcactus", 3], ["deadtree", 1], ["skull", 1], ["boulder", 1]], dens: 0.35 }, pueblo: { near: [["adobe", 3], ["smallcactus", 2], ["saguaro", 1]], dens: 0.5 }, oasis: { near: [["palm", 4], ["reeds", 3], ["smallcactus", 1]], dens: 0.55 } } },
+  glacier: { near: [["snowpine", 5], ["serac", 1.5], ["snowrock", 1.5], ["snowman", 0.5], ["gate", 2]], far: ["snowpine", "serac"], obstacles: ["snowrock", "iceblock"], special: ["gate", "banner"], zones: { resort: { near: [["snowpine", 4], ["lodge", 1], ["gate", 2], ["snowman", 1]], dens: 0.6 }, bowl: { near: [["snowrock", 1], ["serac", 1], ["snowpine", 0.6]], dens: 0.25 }, icefall: { near: [["serac", 4], ["iceblock", 1], ["snowrock", 1]], dens: 0.6 } } },
+  ghats: { near: [["palm", 3], ["banana", 3], ["teabush", 4], ["shrine", 0.6], ["bunting", 0.8], ["cow", 0.5], ["jrock", 1]], far: ["palm", "waterfall"], obstacles: ["jrock"], special: ["bunting", "banner"], zones: { terrace: { near: [["teabush", 6], ["banana", 1], ["cow", 0.4]], dens: 0.72 }, village: { near: [["hut", 3], ["shrine", 0.8], ["bunting", 1.5], ["cow", 1], ["banana", 1], ["palm", 1]], dens: 0.6 }, jungle: { near: [["palm", 4], ["banana", 4], ["jrock", 1], ["fern", 2]], dens: 0.82 } } },
+  volcano: { near: [["charred", 3], ["spire", 2], ["lavarock", 2], ["obsidian", 2]], far: ["spire", "charred"], obstacles: ["lavarock"], special: ["banner"], zones: { ash: { near: [["charred", 4], ["spire", 1.5], ["lavarock", 1]], dens: 0.55 }, obsidian: { near: [["obsidian", 4], ["spire", 1], ["lavarock", 1.5]], dens: 0.55 } } },
+  tundra: { near: [["darkpine", 5], ["crystal", 2], ["inukshuk", 0.7], ["lantern", 1.5], ["tsnowrock", 1.2]], far: ["darkpine", "crystal"], obstacles: ["tsnowrock"], special: ["lantern"], zones: { forest: { near: [["darkpine", 5], ["lantern", 0.7], ["tsnowrock", 1]], dens: 0.7 }, plains: { near: [["inukshuk", 1], ["tsnowrock", 1.5], ["crystal", 0.8]], dens: 0.25 }, village: { near: [["igloo", 2.5], ["snowcabin", 1.2], ["lantern", 2], ["darkpine", 1]], dens: 0.55 }, lake: { near: [["crystal", 1], ["tsnowrock", 1]], dens: 0.15 } } },
 };
 
 /* ---- parallax backgrounds (2048 wide, tileable) ---- */
@@ -270,10 +395,13 @@ async function buildWorldSprites(biome) {
   set.far.forEach((id) => ids.add(id));
   set.obstacles.forEach((id) => ids.add(id));
   set.special.forEach((id) => ids.add(id));
+  ["lantern", "crystal", "reeds"].forEach((id) => ids.add(id));
+  if (set.zones) Object.values(set.zones).forEach((z) => z.near.forEach(([id]) => ids.add(id)));
+  const kit = biomeKit(biome);
   const out = { sprites: {}, items: {} };
-  await Promise.all([...ids].map(async (id) => {
-    const d = W[id];
-    const c = await svgToCanvas(SV.wrap(d.w, d.h, d.svg()), d.w, d.h);
+  await Promise.all([...ids].map((id) => [id, W[id]]).concat(Object.entries(kit)).map(async ([id, d]) => {
+    const scale = d.ww > 9000 ? 0.6 : 1;            // giant tunnel mouths don't need full resolution
+    const c = await svgToCanvas(SV.wrap(d.w, d.h, d.svg()), d.w * scale, d.h * scale);
     out.sprites[id] = { c, ww: d.ww, wh: d.ww * d.h / d.w, solid: d.solid, obstacle: d.obstacle, glow: d.glow, id };
   }));
   await Promise.all(Object.keys(ITEMS).map(async (id) => { out.items[id] = await svgToCanvas(itemSVG(id), 64, 64); }));

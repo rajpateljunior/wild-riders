@@ -164,9 +164,12 @@ function stepRace(race, inputs, dt) {
     race.stormWarn = Math.max(0, race.stormWarn - dt);
   }
 
-  // rubber-band reference = best local/remote human
+  // rubber-band reference = best local/remote human (in cutie mode: the favoured player)
   const humans = race.riders.filter((e) => e.human);
-  const humanZ = humans.length ? Math.max(...humans.map((e) => e.z)) : 0;
+  let humanZ = humans.length ? Math.max(...humans.map((e) => e.z)) : 0;
+  const fav = cutieFav(race);
+  if (fav && !fav.finished) humanZ = fav.z;
+  cutieStep(race, fav, dt);
 
   for (const e of race.riders) {
     if (e.remote) { remoteFollow(race, e, dt); continue; }
@@ -180,7 +183,10 @@ function stepRace(race, inputs, dt) {
   updateProjectiles(race, dt);
   updateFx(race, dt);
   // places
-  const sorted = race.riders.slice().sort((a, b) => (a.finished && b.finished) ? a.finishTime - b.finishTime : a.finished ? -1 : b.finished ? 1 : b.z - a.z);
+  const sorted = race.riders.slice().sort((a, b) => {
+    if (fav && fav.finished) { if (a === fav) return -1; if (b === fav) return 1; }
+    return (a.finished && b.finished) ? a.finishTime - b.finishTime : a.finished ? -1 : b.finished ? 1 : b.z - a.z;
+  });
   sorted.forEach((e, i) => (e.place = i + 1));
   // end
   const localHumans = race.riders.filter((e) => e.human && e.local);
@@ -234,7 +240,11 @@ function updateRider(race, e, inp, dt) {
     else if (sf.type === "lava") { damage(race, e, 14 * dt, null, "lava", true); e.burnT = Math.max(e.burnT, 0.8); spawnFx(race, e.z - 40, e.x, 60, "#ff7a1f", 60, 0.5, 600); }
   }
   const offroad = Math.abs(e.x) > seg.w + 0.03 || (seg.split > 0.4 && Math.abs(e.x) < 0.2 * seg.split);
-  if (offroad && e.h <= 0) {
+  const sideG = Math.abs(e.x) > seg.w + 0.03 ? (e.x < 0 ? seg.gL : seg.gR) : null;
+  if (offroad && e.h <= 0 && sideG === "ice") { slip = true; surfMax *= 0.9; }
+  else if (offroad && e.h <= 0 && sideG === "water") { surfMax *= 0.55; if (Math.random() < 0.6) spawnFx(race, e.z - 40, e.x + rnd(-0.15, 0.15), 120, "#d8f1ff", 70, 0.5, 900); }
+  else if (offroad && e.h <= 0 && sideG === "lava") { surfMax *= 0.6; damage(race, e, 16 * dt, null, "lava", true); e.burnT = Math.max(e.burnT, 0.8); spawnFx(race, e.z - 40, e.x, 60, "#ff7a1f", 60, 0.5, 600); }
+  else if (offroad && e.h <= 0) {
     surfMax *= 0.58;
     if (e.human) e.shake = Math.max(e.shake, 2 * pct);
     if (Math.random() < 0.4) spawnFx(race, e.z - 60, e.x + rnd(-0.1, 0.1), 50, tr.biome.ground[0], 80, 0.6);
@@ -242,18 +252,26 @@ function updateRider(race, e, inp, dt) {
   e.wrongWay = offroad && Math.abs(e.x) > seg.w + 1.2 && e.human;
 
   // ----- speed -----
-  let max = e.maxSpd * (0.72 + 0.28 * (e.hp / e.maxHp)) * surfMax;
+  let max = e.maxSpd * (0.72 + 0.28 * (e.hp / e.maxHp)) * surfMax * (1 + (e.assist || 0));
   e.boosting = false;
   if (inp.boost && e.boost > 0.5 && !e.finished) { e.boosting = true; e.boost = Math.max(0, e.boost - 30 * dt); }
   const bonus = Math.max(e.boosting ? 0.28 : 0, e.padT > 0 ? 0.36 : 0) + (e.boosting && e.padT > 0 ? 0.06 : 0);
   max *= 1 + bonus;
   if (e.drafting) { max *= 1.04; e.boost = Math.min(100, e.boost + 8 * dt); }
+  if (e.veh.regen && !e.finished) e.boost = Math.min(100, e.boost + e.veh.regen * dt);
   if (e.finished) max *= 0.7;
+  // throttle: humans push the stick up to go (0..1); bots and finished riders always ride (undefined = full)
+  let thr = inp.throttle === undefined ? 1 : clamp(inp.throttle, 0, 1);
+  if (e.boosting || e.padT > 0) thr = 1;
+  const target = max * thr;
   let accel = e.accel * (e.boosting || e.padT > 0 ? 2.4 : 1);
   const drifting = !!inp.brake && Math.abs(inp.steer || 0) > 0.35 && pct > 0.4 && e.h <= 0;
   if (inp.brake) e.speed -= BASE_SPEED * (drifting ? 0.18 : 0.9) * dt;
-  if (e.speed < max) e.speed = Math.min(max, e.speed + accel * dt * (1 - Math.min(0.8, pct * 0.35)));
-  else e.speed -= (e.speed - max) * 2.2 * dt;
+  if (inp.stop && e.h <= 0) e.speed -= BASE_SPEED * 1.15 * dt;
+  if (e.speed < target) e.speed = Math.min(target, e.speed + accel * dt * (1 - Math.min(0.8, pct * 0.35)));
+  else if (e.speed > max) e.speed -= (e.speed - max) * 2.2 * dt;
+  else if (e.h <= 0) e.speed = Math.max(target, e.speed - BASE_SPEED * (0.3 + 0.25 * pct) * dt);   // off the throttle: roll to a stop
+  if (e.speedCap !== undefined && e.speed > e.speedCap) e.speed = Math.max(e.speedCap, e.speed - BASE_SPEED * 0.6 * dt);
   if (e.speed < 0) e.speed = 0;
   if (drifting) {
     e.boost = Math.min(100, e.boost + 11 * dt);
@@ -263,12 +281,21 @@ function updateRider(race, e, inp, dt) {
 
   // ----- steering -----
   const steer = clamp(inp.steer || 0, -1, 1) * (e.blindT > 0 && !e.human ? 0.4 : 1);
-  const rate = 2.15 * e.handling * (drifting ? 1.5 : 1) * (e.h > 0 ? 0.55 : 1) * (0.4 + 0.6 * Math.min(1, pct * 1.5));
+  const rate = 2.15 * e.handling * (drifting ? 1.5 : 1) * (e.h > 0 ? 0.55 : 1) * (0.4 + 0.6 * Math.min(1, pct * 1.5)) * Math.min(1, 0.08 + pct * 5);
   const gripK = e.h > 0 ? 2.5 : slip ? 1.2 : 9 * e.grip;
   e.vx += (steer * rate - e.vx) * Math.min(1, gripK * dt);
   e.x += e.vx * dt;
   if (e.h <= 0) e.x -= CENT * pct * pct * seg.curve * dt * (slip ? 1.35 : 1) * (drifting ? 0.5 : 1);
   e.x = clamp(e.x, -(seg.w + 2.4), seg.w + 2.4);
+  // rock walls, tunnel sides and bridge / cliff rails
+  if ((seg.wl && e.x < -seg.wl) || (seg.wr && e.x > seg.wr)) {
+    const side = e.x < 0 ? -1 : 1, lim = side < 0 ? seg.wl : seg.wr;
+    e.x = side * lim; e.vx = -side * Math.min(1.2, Math.abs(e.vx) * 0.4 + 0.3);
+    e.speed *= 1 - 0.9 * dt;
+    if (e.human) e.shake = Math.max(e.shake, 3);
+    if (Math.random() < 0.3) spawnFx(race, e.z + 40, e.x, 120, "#fff6a8", 30, 0.3, 500);
+    if (!e.wallT || e.wallT < race.time) { e.wallT = race.time + 0.4; race.events.push({ snd: "bump", e }); }
+  }
   e.lean = lerp(e.lean, steer * (drifting ? 1.25 : 0.8) + (e.vx - steer * rate) * 0.08, Math.min(1, dt * 8));
 
   // ----- air & tricks -----
@@ -310,7 +337,9 @@ function updateRider(race, e, inp, dt) {
       o.taken = race.time + 6;
       if (race.net && !e.remote) race.net.send({ t: "ev", k: "take", s: s.i, o: s.objs.indexOf(o) });
       if (o.kind === "crate") {
-        if (e.items.length < 3) e.items.push(Math.random() < 0.25 ? e.rider.item : tr.biome.item);
+        const lucky = e === cutieFav(race);
+        if (e.items.length < 3) e.items.push(Math.random() < (lucky ? 0.6 : 0.25) ? e.rider.item : tr.biome.item);
+        if (lucky) e.boost = Math.min(100, e.boost + 12);
         popup(e, "+ " + ITEMS[e.items[e.items.length - 1]].name.toUpperCase(), "#ffd23f");
         race.events.push({ snd: "pickup", e });
       } else {
@@ -340,6 +369,8 @@ function updateRider(race, e, inp, dt) {
   }
 
   // finish
+  const favE = cutieFav(race);
+  if (favE && e !== favE && !favE.finished && !e.finished && !e.remote && e.z >= tr.finishZ - 160) { e.z = tr.finishZ - 160; e.speed = Math.min(e.speed, favE.speed * 0.5); }
   if (!e.finished && e.z >= tr.finishZ) {
     e.finished = true; e.finishTime = race.time; race.finishOrder.push(e);
     e.trick = null;
@@ -353,6 +384,14 @@ function updateRider(race, e, inp, dt) {
 function camFollow(race, e, dt, inp) {
   if (!e.human && !e.cam) return;
   const seg = segAt(race.track, e.z);
+  // camera pitch follows the slope just ahead (looks a little further ahead so drops show before you reach them)
+  const tr = race.track, y0 = roadY(tr, e.z);
+  const sl = Math.min((roadY(tr, e.z + 10 * SEG) - y0) / (10 * SEG), (roadY(tr, e.z + 26 * SEG) - y0) / (26 * SEG) * 0.9 + (roadY(tr, e.z + 10 * SEG) - y0) / (10 * SEG) * 0.1);
+  const tgt = clamp(sl < 0 ? sl * RENDER.PITCH_DOWN : sl * RENDER.PITCH_UP, -0.75, 0.3);
+  e.pitch = lerp(e.pitch || 0, tgt, Math.min(1, dt * 2.6));
+  const inTun = segAt(tr, e.z - PLAYER_DIST).tun || seg.tun;
+  e.tunT = lerp(e.tunT || 0, inTun ? 1 : 0, Math.min(1, dt * 4));
+  if (inTun) e.tunKind = inTun;
   e.camX = lerp(e.camX, e.x * 0.82, Math.min(1, dt * 7));
   e.tilt = lerp(e.tilt, -(inp.steer || 0) * 0.03 - seg.curve * 0.0045 * (e.speed / e.maxSpd), Math.min(1, dt * 3));
   e.bgX += seg.curve * (e.speed / BASE_SPEED) * dt * 160;
@@ -405,7 +444,7 @@ function collideSprites(race, e, s) {
       continue;
     }
     damage(race, e, 10 + (e.speed / BASE_SPEED) * 8, null, "crash");
-    e.speed *= 0.32;
+    e.speed *= e === cutieFav(race) ? 0.55 : 0.32;
     const dir = e.x < sp.x ? -1 : 1;
     e.x = sp.x + dir * (half + rHalf + 0.02);
     e.vx = dir * 2.2;
@@ -428,6 +467,7 @@ function damage(race, e, amt, by, kind, silent) {
   if (kind === "melee") { if (e.meleeImm > 0) return; e.meleeImm = 0.38; }
   // bots hit humans a bit softer (scaled by difficulty) so a good rider isn't ganged into constant wipeouts
   if (by && !by.human && e.human) amt *= [0.6, 0.78, 0.95][race.cfg.difficulty ?? 1];
+  if (e === cutieFav(race)) amt *= 0.55;
   e.hp -= amt * (1 - e.armor);
   if (!silent) { e.flash = 1; e.hurtT = Math.max(e.hurtT, 0.35); e.wobble = Math.max(e.wobble, 0.5); }
   if (e.hp <= 0) {
@@ -557,7 +597,7 @@ function riderCollisions(race) {
         a.vx -= s * 0.8 * (b.mass / tot); b.vx += s * 0.8 * (a.mass / tot);
         const back = dz > 0 ? a : b, front = dz > 0 ? b : a;
         if (back.speed > front.speed) back.speed = front.speed * 0.98;
-        if (back.veh.id === "atv" && front.mass < back.mass) { front.speed *= 0.97; damage(race, front, 0.3, null, "bump", true); }
+        if (back.veh.shove && front.mass < back.mass) { front.speed *= 0.97; damage(race, front, 0.3, null, "bump", true); }
         if ((a.human || b.human) && Math.random() < 0.08) race.events.push({ snd: "bump", e: a.human ? a : b });
       }
     }
@@ -571,6 +611,52 @@ function spawnFx(race, z, x, h, col, size, life, vh = 0) {
 function updateFx(race, dt) {
   for (const f of race.fx) { f.life -= dt; f.h += f.vh * dt; f.vh -= 1800 * dt; if (f.h < 0) { f.h = 0; f.vh = 0; } f.x += f.vx * dt; }
   race.fx = race.fx.filter((f) => f.life > 0);
+}
+
+/* ---------------- Cutie mode (secret) ----------------
+   cfg.fav = index (in cfg.humans) of the player who always wins. Each device only adjusts the riders it simulates:
+   the favoured player gets a gentle catch-up and softer knocks; everyone else is quietly held back near the end
+   so nobody crosses the line before her. */
+function cutieFav(race) {
+  if (race.cfg.fav === undefined || race.cfg.fav === null) return null;
+  if (race.favE === undefined) race.favE = race.riders.find((e) => e.human && e.mark === race.cfg.fav) || null;
+  return race.favE;
+}
+function cutieStep(race, fav, dt) {
+  for (const e of race.riders) { e.speedCap = undefined; e.assist = 0; }
+  if (!fav) return;
+  const tr = race.track;
+  if (!fav.remote && !fav.finished) {
+    let lead = -1e9;
+    for (const o of race.riders) if (o !== fav && !o.finished) lead = Math.max(lead, o.z);
+    const gap = lead - fav.z;
+    const urgency = clamp(1 - (tr.finishZ - fav.z) / ((tr.finishZ - tr.startZ) * 0.35), 0, 1);
+    fav.assist = gap > 0 ? clamp(gap / 22000, 0, 0.08 + 0.08 * urgency) : 0;
+  }
+  if (fav.finished) return;                                       // once she's home, everyone else races freely
+  for (const e of race.riders) {
+    if (e === fav || e.remote || e.finished) continue;
+    if (race.czM === undefined) race.czM = 3000 + Math.random() * 9000;   // this race's winning margin (~0.3–1 s), so it isn't always a photo finish
+    const remain = Math.max(1, tr.finishZ - e.z), lead = e.z - fav.z;
+    const q = (lead + race.czM) / remain;                         // how far ahead of her (plus margin), relative to what's left
+    let cap;
+    // soft squeeze: a slightly lower top speed (never more than ~14%) once the lead is big for the distance left
+    if (q > 0.05) cap = e.maxSpd * (1 - clamp((q - 0.05) * 1.3, 0, 0.14));
+    // backup: if she's far behind, match her pace so she can still catch up before the line
+    //         (only in the last ~30% of the trail, so a pause mid-race never freezes everyone)
+    const late = remain < (tr.finishZ - tr.startZ) * 0.3;
+    if ((late && q > 0.17) || (lead > -race.czM * 0.3 && remain < 9000))
+      cap = Math.min(cap || 1e9, Math.max(remain < 9000 ? 0 : e.maxSpd * 0.3, fav.speed * (remain < 9000 ? 0.9 : 0.97) - Math.max(0, lead + race.czM - remain * 0.17) * 0.25));
+    if (cap !== undefined) {
+      e.speedCap = cap;
+      if (e.human && e.speed > cap + 300 && e.h <= 0) {
+        // looks like the trail got rough: a little dust and wobble
+        if (Math.random() < 0.25) spawnFx(race, e.z - 60, e.x + rnd(-0.12, 0.12), 50, tr.biome.ground[0], 60, 0.5);
+        if (Math.random() < dt * 0.8) e.wobble = Math.max(e.wobble, 0.35);
+      }
+    }
+    if (e.z > tr.finishZ - 160) { e.z = tr.finishZ - 160; e.speed = Math.min(e.speed, fav.speed * 0.5); }
+  }
 }
 
 /* ---------------- AI ---------------- */
@@ -597,6 +683,12 @@ function aiThink(race, e, dt, humanZ) {
   // brake into hard curves when wide
   const far = tr.segs[Math.min(tr.N - 1, segI + 22)];
   if (Math.abs(far.curve) > 4 && pct > 0.85 && sign(e.x) === -sign(far.curve) && Math.abs(e.x) > 0.6) inp.brake = Math.random() < 0.6;
+  // ease off for hairpins and tight bends ahead (sloppier bots ease off a bit late)
+  let cmax = 0;
+  for (let k = 3; k < 30; k += 3) cmax = Math.max(cmax, Math.abs(tr.segs[Math.min(tr.N - 1, segI + k)].curve));
+  const safe = cmax > 3.6 ? clamp(Math.sqrt(4.6 * e.handling / cmax), 0.5, 1) * (1 + (1 - ai.skill) * 0.22) : 2;
+  inp.throttle = pct > safe ? 0 : 1;
+  inp.stop = pct > safe + 0.08;
   if (e.finished) return inp;
   // boost on straights
   if (e.boost > 55 && Math.abs(ahead.curve) < 2 && Math.random() < ai.skill * 0.08) ai.boosting = 1.4;
@@ -604,14 +696,18 @@ function aiThink(race, e, dt, humanZ) {
   // combat — pick the nearest candidate (never biased toward humans)
   if (race.time > 3) {
     let mel = null, md = 1e9, ahead = null, ad = 1e9, behind = null, bd = 1e9;
+    const fav = cutieFav(race);
+    const late = fav ? clamp((e.z - tr.startZ) / (tr.finishZ - tr.startZ) * 1.6 - 0.6, 0, 1) : 0;   // 0 until ~40% in, 1 by the end
     for (const o of race.riders) {
       if (o === e || o.wipeT > 0 || o.finished) continue;
+      if (o === fav && Math.random() < 0.7 + 0.28 * late) continue;   // cutie mode: bots mostly leave the favoured player alone
       const dz = o.z - e.z, dx = Math.abs(o.x - e.x);
       if (Math.abs(dz) < 300 && dx < 0.55) { const d = Math.abs(dz) + dx * 400; if (d < md) { md = d; mel = o; } }
       else if (dz > 300 && dz < 2600 && dx < 0.3 && dz < ad) { ad = dz; ahead = o; }
       else if (dz < -200 && dz > -1200 && dx < 0.3 && -dz < bd) { bd = -dz; behind = o; }
     }
-    if (mel && e.atkCD <= 0 && mel.meleeImm <= 0 && Math.random() < ai.aggr * dt * 2.4) inp.attack = true;
+    const rival = fav && mel && mel.human && mel !== fav ? 1 + 0.5 * late : 1;
+    if (mel && e.atkCD <= 0 && mel.meleeImm <= 0 && Math.random() < ai.aggr * dt * 2.4 * rival) inp.attack = true;
     else if (!mel && ahead && e.items.length && Math.random() < ai.skill * dt * 1.0) inp.attack = true;
     else if (behind && e.items.length && Math.random() < ai.skill * dt * 0.6) inp.throwBack = true;
   }
