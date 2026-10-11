@@ -27,7 +27,7 @@
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--ink); color: var(--txt); font-family: "Chakra Petch", system-ui, sans-serif; overscroll-behavior: none; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-canvas#game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; background: #000; }
+canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; background: #000; }
 .hidden { display: none !important; }
 button, .trk, .seg button, .back { touch-action: manipulation; }
 
@@ -1610,7 +1610,9 @@ function roadY(track, z) {
 // ===== render.js =====
 /* Pseudo-3D renderer: one call per viewport (split screen draws two). */
 
-const RENDER = { drawDist: 150 };
+// CAM_LIFT raises the camera (0 = original low view). The horizon moves up by the same amount, so the rider stays
+// at the same spot and size on screen while you look down on the road and the pack from higher up.
+const RENDER = { drawDist: 150, CAM_LIFT: 0.3 };
 
 function projK(w, h) {
   // world→pixel factor at scale 1; tuned so the road spans ~75% of the view at the rider
@@ -1627,12 +1629,12 @@ function renderView(ctx, vp, race, me, tnow) {
 
   const shake = me.shake > 0 ? me.shake : 0;
   const K = projK(w, h) * (1 - me.fovKick * 0.12);
-  const hz = h * 0.38;
+  const hz = h * 0.38 - RENDER.CAM_LIFT * K;
   const camZ = me.z - PLAYER_DIST;
   const baseIdx = Math.floor(camZ / SEG);
   const base = track.segs[clamp(baseIdx, 0, track.N - 1)];
   const basePct = (camZ - baseIdx * SEG) / SEG;
-  const camY = roadY(track, me.z) + CAM_H + me.h * 0.55;
+  const camY = roadY(track, me.z) + CAM_H * (1 + RENDER.CAM_LIFT) + me.h * 0.55;
   const camX = me.camX * ROAD_W;
 
   // camera tilt + shake
@@ -3886,24 +3888,49 @@ let CW = 0, CH = 0, DPR = 1, autoCap = 2;
 const perf = { acc: 0, n: 0, slow: 0 };
 let SAFE = { l: 0, r: 0, t: 0, b: 0 };
 
+let SAFE_PROBE = null;
 function readSafe() {
-  const p = document.createElement("div");
-  p.style.cssText = "position:fixed;left:0;top:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);visibility:hidden";
-  document.body.appendChild(p);
-  const cs = getComputedStyle(p);
-  SAFE = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 };
-  p.remove();
+  // One persistent probe element; its padding mirrors the live safe-area insets (notch, rounded corners, home bar).
+  if (!SAFE_PROBE) {
+    SAFE_PROBE = document.createElement("div");
+    SAFE_PROBE.style.cssText = "position:fixed;left:0;top:0;width:0;height:0;box-sizing:content-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);visibility:hidden;pointer-events:none";
+    document.body.appendChild(SAFE_PROBE);
+  }
+  const cs = getComputedStyle(SAFE_PROBE);
+  return { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 };
 }
 
+// The size actually on screen. iOS Home Screen apps can report a stale window.innerWidth/innerHeight for a moment
+// after rotating, so measure the fixed-position canvas itself and only fall back to innerWidth/innerHeight.
+function viewSize() {
+  const r = canvas.getBoundingClientRect();
+  if (r.width > 50 && r.height > 50) return [Math.round(r.width), Math.round(r.height)];
+  return [window.innerWidth, window.innerHeight];
+}
+
+let viewKey = "";
 function resize() {
-  readSafe();
-  CW = window.innerWidth; CH = window.innerHeight;
+  const s = readSafe();
+  const [w, h] = viewSize();
   const g = App.save ? App.save.settings.gfx : "auto";
   const cap = g === "smooth" ? 1.2 : g === "sharp" ? 3 : autoCap;
-  DPR = Math.min(window.devicePixelRatio || 1, cap);
-  canvas.width = Math.round(CW * DPR); canvas.height = Math.round(CH * DPR);
-  const split = App.race && App.race.split;
+  const dpr = Math.min(window.devicePixelRatio || 1, cap);
+  const split = !!(App.race && App.race.split);
+  const key = [w, h, s.t, s.r, s.b, s.l, dpr, split].join("|");
+  if (key === viewKey) return;           // nothing changed — don't reallocate the canvas
+  viewKey = key;
+  SAFE = s; CW = w; CH = h; DPR = dpr;
+  const bw = Math.round(CW * DPR), bh = Math.round(CH * DPR);
+  if (canvas.width !== bw) canvas.width = bw;
+  if (canvas.height !== bh) canvas.height = bh;
   Input.layout = computeLayout(CW, CH, split, SAFE);
+}
+
+// Re-measure several times after anything that can change the screen size, because iOS settles late.
+let settleTimers = [];
+function settleViewport() {
+  settleTimers.forEach(clearTimeout);
+  settleTimers = [0, 80, 250, 500, 900, 1600, 3000].map((ms) => setTimeout(resize, ms));
 }
 
 function processEvents(race) {
@@ -3922,6 +3949,9 @@ function frame(tms) {
   let dt = App.lastT ? t - App.lastT : STEP;
   App.lastT = t;
   dt = Math.min(dt, 0.1);
+  // safety net: if the screen size or notch insets changed without an event, catch it within a quarter second
+  App.chkT = (App.chkT || 0) + dt;
+  if (App.chkT > 0.25) { App.chkT = 0; resize(); }
   // performance governor (AUTO graphics): drop resolution if frames are slow
   perf.acc += dt; perf.n++;
   if (perf.acc > 2) {
@@ -4003,14 +4033,17 @@ function setupPWA() {
 async function boot() {
   App.save = loadSave();
   resize();
-  window.addEventListener("resize", () => setTimeout(resize, 60));
-  window.addEventListener("orientationchange", () => setTimeout(resize, 250));
+  window.addEventListener("resize", settleViewport);
+  window.addEventListener("orientationchange", settleViewport);
+  window.addEventListener("pageshow", settleViewport);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", settleViewport);
+  if (window.screen && screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener("change", settleViewport);
   initInput(canvas);
   wireMenus();
   SFX.setMusic(App.save.settings.music); SFX.setSfx(App.save.settings.sfx);
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) { if (App.race && !App.paused && !App.pauseMenu) pauseRace(); SFX.suspend(); }
-    else SFX.resume();
+    else { SFX.resume(); settleViewport(); }
   });
   // iOS needs a user gesture before any sound
   const firstTouch = () => {

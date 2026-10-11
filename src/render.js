@@ -1,6 +1,8 @@
 /* Pseudo-3D renderer: one call per viewport (split screen draws two). */
 
-const RENDER = { drawDist: 150 };
+// CAM_LIFT raises the camera (0 = original low view). The horizon moves up by the same amount, so the rider stays
+// at the same spot and size on screen while you look down on the road and the pack from higher up.
+const RENDER = { drawDist: 150, CAM_LIFT: 0.3 };
 
 function projK(w, h) {
   // world→pixel factor at scale 1; tuned so the road spans ~75% of the view at the rider
@@ -17,12 +19,12 @@ function renderView(ctx, vp, race, me, tnow) {
 
   const shake = me.shake > 0 ? me.shake : 0;
   const K = projK(w, h) * (1 - me.fovKick * 0.12);
-  const hz = h * 0.38;
+  const hz = h * 0.38 - RENDER.CAM_LIFT * K;
   const camZ = me.z - PLAYER_DIST;
   const baseIdx = Math.floor(camZ / SEG);
   const base = track.segs[clamp(baseIdx, 0, track.N - 1)];
   const basePct = (camZ - baseIdx * SEG) / SEG;
-  const camY = roadY(track, me.z) + CAM_H + me.h * 0.55;
+  const camY = roadY(track, me.z) + CAM_H * (1 + RENDER.CAM_LIFT) + me.h * 0.55;
   const camX = me.camX * ROAD_W;
 
   // camera tilt + shake
