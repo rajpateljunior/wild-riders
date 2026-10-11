@@ -1,6 +1,6 @@
 # Wild Riders: NOTES
 
-Last reviewed: 2026-10-11 (written from a read of the repo at commit `9c1cf59`). Build and test commands are in `README.md`; this file covers decisions, data and risks.
+Last reviewed: 2026-10-11 (updated after the vehicle-screen shift fix and camera raise). Build and test commands are in `README.md`; this file covers decisions, data and risks.
 
 ## What it is
 A Downhill Domination–style bike and ATV racer for iPhone, iPad and desktop. Anime riders, punches and kicks, throwables, health that slows you down, boost pads, ramps, tricks, six biomes (12 tracks), bots, two-player split screen, and online 2-player with room codes.
@@ -35,8 +35,14 @@ Live: https://rajpateljunior.github.io/wild-riders/ · Repo: `rajpateljunior/wil
 - Copy-and-paste save code: prefix `WILDR1-` followed by base64 of the JSON (`encodeSave` / `decodeSave`, also require `v === 1`).
 - Install hint dismissal: `localStorage` key `wr-install-dismissed`.
 
+## Camera
+`RENDER.CAM_LIFT` in `src/render.js` raises the camera (0 = original low view; now 0.6, Raj asked for "slightly higher, not bird's-eye"; was 0.3). The horizon moves up with it so the rider stays put on screen. Do not go much past ~0.8 without checking the sky strip and HUD.
+
+## UI gotcha
+Never use `scrollIntoView` inside a screen: on iOS/Chromium it also scrolls the `overflow:hidden` `.screen` sideways, which shifted the whole Choose Your Ride screen right (Dirt Bike selected). `scrollSel()` in `src/ui.js` scrolls only the card strip and resets the screen's scroll.
+
 ## Tests (Playwright, Chromium)
-Listed in `README.md`: bot drives all tracks, screenshots, menus, touch, offline, online. Serve the folder first (`python3 -m http.server 8765`). Not re-run in this session.
+Listed in `README.md`: bot drives all tracks, screenshots, menus, touch, offline, online. Serve the folder first (`python3 -m http.server 8765`). Re-run this session: offline reload passes; a custom check confirmed the vehicle screen no longer shifts (852x393 and 1180x820) and that the old build did shift by 104px.
 
 ## Known issues / untested
 - Not verified on a real iPhone or iPad by this session: touch feel, iOS audio, Home Screen fullscreen behavior. The latest commit fixed a landscape cut-off in the iOS Home Screen app; I did not re-test it.

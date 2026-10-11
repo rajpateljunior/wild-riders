@@ -115,7 +115,12 @@ function openRider() {
   scrollSel(wrap);
 }
 function scrollSel(wrap) {
-  requestAnimationFrame(() => { const s = wrap.querySelector(".sel"); if (s) s.scrollIntoView({ inline: "center", block: "nearest" }); });
+  // Scroll ONLY the card strip. (scrollIntoView also scrolls the whole screen sideways, which shoved the layout right.)
+  requestAnimationFrame(() => {
+    const s = wrap.querySelector(".sel");
+    if (s) wrap.scrollTo({ left: Math.max(0, s.offsetLeft - (wrap.clientWidth - s.offsetWidth) / 2), behavior: "auto" });
+    const scr = wrap.closest(".screen"); if (scr) { scr.scrollLeft = 0; scr.scrollTop = 0; }
+  });
 }
 
 /* ---------- vehicle select / garage ---------- */

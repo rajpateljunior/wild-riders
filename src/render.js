@@ -2,7 +2,7 @@
 
 // CAM_LIFT raises the camera (0 = original low view). The horizon moves up by the same amount, so the rider stays
 // at the same spot and size on screen while you look down on the road and the pack from higher up.
-const RENDER = { drawDist: 150, CAM_LIFT: 0.3 };
+const RENDER = { drawDist: 150, CAM_LIFT: 0.6 };
 
 function projK(w, h) {
   // world→pixel factor at scale 1; tuned so the road spans ~75% of the view at the rider
