@@ -1,7 +1,7 @@
 # Wild Riders
 
 Downhill bike & ATV racing for iPhone and iPad (landscape), in the spirit of PS2-era downhill racers.
-Anime riders, punches and kicks, throwables, health that slows you down, boost pads, ramps, tricks,
+Armored anime riders (Arcade or Savage style), punches and kicks, throwables, health that slows you down, boost pads, ramps, tricks,
 six nature biomes, bots, two-player split screen, and online 2-player with room codes. Installable to the Home Screen and fully offline.
 
 **Play:** https://rajpateljunior.github.io/wild-riders/ (open in Safari → Share → Add to Home Screen)
@@ -39,7 +39,8 @@ Commit `src/`, `index.html` and `sw.js` together.
 | `src/game.js` | Physics, combat, items, health, tricks, AI |
 | `src/input.js` | Touch + keyboard controls, on-screen buttons |
 | `src/audio.js` | Synth SFX, engines, procedural music |
-| `src/ui.js` | Menus, progression, saving, results |
+| `src/ui.js` | Menus, progression, saving + save migrations, results |
+| `src/spin.js` | Daily Spin wheel, race perks, startup popups |
 | `src/main.js` | Boot, main loop, PWA glue |
 
 ## Tests (Playwright, Chromium)
@@ -50,5 +51,8 @@ Commit `src/`, `index.html` and `sw.js` together.
 - `node tools/throttle.js` — auto-accelerate: the bike goes with no thumb down, the stick only steers left/right, releasing keeps it going.
 - `node tools/offline.js` — service worker + offline race.
 - `node tools/online.js <outdir>` — two browsers race each other online (needs a local PeerServer).
+- `node tools/migrate_test.js` — old saves → new rider order: only riders reset, exact refund, nothing else changes.
+- `node tools/spin_test.js` — Daily Spin: one per day, prize saved, clock-rollback guard, streaks, odds, perks.
+- `node tools/icons.js` — re-render the app icons from the emblem.
 
 (Serve the folder first: `python3 -m http.server 8765`.)

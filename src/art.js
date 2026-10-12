@@ -154,95 +154,154 @@ function backVehicleOver(v, r, f) {
   return s;
 }
 
-/* ---------------- Hair / headwear (back view) ---------------- */
-function backHead(r, hx, hy, k, f) {
-  const R = 24 * k;
-  const sk = r.skin, h = r.hair, h2 = r.hair2;
-  const fl = f % 2 ? 1 : -1; // flutter
+/* ---------------- Gear: tougher look (v2) ----------------
+   Every rider wears a full-face helmet, a dark visor with glowing eyes (front view) and body armor.
+   ARCADE keeps it clean and glossy; SAVAGE adds scratches, dents, dirt, scuffed armor and blood. */
+const GEAR = {
+  kaito: { shell: "#e2433b", trim: "#f4f1ea", glow: "#ff4a3a" },
+  bruno: { shell: "#7c828d", trim: "#f0a531", glow: "#5dff6a" },
+  yuki:  { shell: "#f4f1ff", trim: "#ff79b0" },
+  zara:  { shell: "#13a89e", trim: "#e9c46a" },
+  priya: { shell: "#26222e", trim: "#ff8a1c", glow: "#ffb030" },
+  rex:   { shell: "#1c1a22", trim: "#38e05a" },
+};
+const gearShell = (r) => (SAVAGE() ? mix(GEAR[r.id].shell, "#160c10", 0.4) : GEAR[r.id].shell);
+// tiny seeded helper so damage marks are identical every time a sprite is drawn
+function gRng(r, salt) { let h = salt || 1; for (const ch of r.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return rng(h); }
+function scratchMarks(x, y, w, h, R, n, col = "#ffffff", op = 0.55) {
   let s = "";
-  // neck & ears
-  s += SV.rect(hx - 9 * k, hy + R * 0.55, 18 * k, 16 * k, 6, shade(sk, -0.12), 2.5);
-  s += SV.ell(hx - R + 1, hy + 3, 5 * k, 8 * k, sk, 2.5) + SV.ell(hx + R - 1, hy + 3, 5 * k, 8 * k, sk, 2.5);
-  switch (r.id) {
-    case "kaito": {
-      // spiky navy hair swept back by wind + red goggle strap
-      let sp = "";
-      const spikes = [[-26, -6, -46, 6], [-22, -18, -40, -16], [-12, -26, -24, -40], [2, -28, 0, -48], [14, -24, 26, -42], [22, -14, 44, -18], [26, -2, 46, 10]];
-      sp += `M${hx - 24 * k} ${hy + 12 * k}`;
-      spikes.forEach(([ax, ay, bx, by], i) => {
-        sp += ` L${hx + bx * k + (i % 2 ? fl * 2 : 0)} ${hy + by * k} L${hx + ax * k} ${hy + ay * k}`;
-      });
-      sp += ` L${hx + 24 * k} ${hy + 12 * k} Q${hx} ${hy + 22 * k} ${hx - 24 * k} ${hy + 12 * k}Z`;
-      s += SV.path(sp, h, 3);
-      s += `<path d="M${hx - 10 * k} ${hy - 16 * k} L${hx - 18 * k} ${hy - 32 * k} M${hx + 8 * k} ${hy - 18 * k} L${hx + 16 * k} ${hy - 34 * k} M${hx - 2} ${hy - 6 * k} L${hx - 4} ${hy - 30 * k}" stroke="${h2}" stroke-width="3" stroke-linecap="round"/>`;
-      s += SV.rect(hx - 25 * k, hy - 2 * k, 50 * k, 8 * k, 3, "#e2433b", 2.5);
-      s += SV.rect(hx - 6 * k, hy - 4 * k, 12 * k, 12 * k, 3, "#2a2a30", 2);
-      break;
-    }
-    case "priya": {
-      // half-shell helmet + flying braid
-      s += SV.path(`M${hx - 26 * k} ${hy + 8 * k} Q${hx - 26 * k} ${hy + 22 * k} ${hx} ${hy + 22 * k} Q${hx + 26 * k} ${hy + 22 * k} ${hx + 26 * k} ${hy + 8 * k}Z`, h, 3);
-      const bx = hx + 6 * k * fl;
-      s += SV.poly([[hx, hy + 18 * k], [hx + 4 * k, hy + 40 * k], [bx + 12 * k, hy + 62 * k], [bx + 26 * k, hy + 80 * k]], 13 * k, h);
-      for (let i = 0; i < 4; i++) {
-        const t = i / 4;
-        const px = lerp(hx + 2 * k, bx + 24 * k, t), py = lerp(hy + 24 * k, hy + 78 * k, t);
-        s += `<path d="M${px - 6 * k} ${py} Q${px} ${py + 6 * k} ${px + 6 * k} ${py}" stroke="${h2}" stroke-width="2.4" fill="none"/>`;
-      }
-      s += SV.rect(bx + 20 * k, hy + 74 * k, 10 * k, 7 * k, 2, "#ffd23f", 2);
-      s += SV.path(`M${hx - 28 * k} ${hy + 8 * k} Q${hx - 28 * k} ${hy - 30 * k} ${hx} ${hy - 30 * k} Q${hx + 28 * k} ${hy - 30 * k} ${hx + 28 * k} ${hy + 8 * k} Z`, r.main, 3);
-      s += `<path d="M${hx - 6 * k} ${hy - 29 * k} L${hx - 6 * k} ${hy + 6 * k} M${hx + 6 * k} ${hy - 29 * k} L${hx + 6 * k} ${hy + 6 * k}" stroke="#fff" stroke-width="${4 * k}"/>`;
-      s += `<path d="M${hx - 18 * k} ${hy - 20 * k} Q${hx - 10 * k} ${hy - 26 * k} ${hx - 2 * k} ${hy - 27 * k}" stroke="#fff" stroke-opacity=".55" stroke-width="3" fill="none"/>`;
-      break;
-    }
-    case "bruno": {
-      // knit beanie with pom
-      s += SV.path(`M${hx - 25 * k} ${hy + 12 * k} Q${hx} ${hy + 26 * k} ${hx + 25 * k} ${hy + 12 * k} L${hx + 25 * k} ${hy + 2 * k} L${hx - 25 * k} ${hy + 2 * k}Z`, h, 3);
-      s += SV.path(`M${hx - 27 * k} ${hy + 6 * k} Q${hx - 28 * k} ${hy - 32 * k} ${hx} ${hy - 32 * k} Q${hx + 28 * k} ${hy - 32 * k} ${hx + 27 * k} ${hy + 6 * k}Z`, r.alt, 3);
-      s += SV.rect(hx - 28 * k, hy - 2 * k, 56 * k, 12 * k, 5, shade(r.alt, -0.18), 3);
-      for (let i = -3; i <= 3; i++) s += `<path d="M${hx + i * 7 * k} ${hy - 26 * k + Math.abs(i) * 2} L${hx + i * 7 * k} ${hy - 4 * k}" stroke="${shade(r.alt, -0.25)}" stroke-width="2"/>`;
-      s += SV.circ(hx + fl * 2, hy - 36 * k, 9 * k, "#fff4e0", 2.5);
-      break;
-    }
-    case "yuki": {
-      // pigtails streaming + bunny-ear helmet
-      const pt = (dir) => SV.path(`M${hx + dir * 18 * k} ${hy + 8 * k} Q${hx + dir * 40 * k} ${hy + 10 * k + fl * 3} ${hx + dir * 54 * k} ${hy + 34 * k} Q${hx + dir * 44 * k} ${hy + 30 * k} ${hx + dir * 36 * k} ${hy + 36 * k} Q${hx + dir * 34 * k} ${hy + 20 * k} ${hx + dir * 16 * k} ${hy + 18 * k}Z`, h, 3) +
-        SV.circ(hx + dir * 20 * k, hy + 12 * k, 5 * k, "#ff79b0", 2);
-      s += pt(-1) + pt(1);
-      const ear = (dir) => SV.path(`M${hx + dir * 10 * k} ${hy - 22 * k} Q${hx + dir * 22 * k} ${hy - 64 * k} ${hx + dir * (16 + fl) * k} ${hy - 66 * k} Q${hx + dir * 4 * k} ${hy - 58 * k} ${hx + dir * 2 * k} ${hy - 24 * k}Z`, "#fff", 3) +
-        `<path d="M${hx + dir * 8 * k} ${hy - 28 * k} Q${hx + dir * 15 * k} ${hy - 54 * k} ${hx + dir * 14 * k} ${hy - 58 * k}" stroke="#ffb3d1" stroke-width="${4 * k}" stroke-linecap="round" fill="none"/>`;
-      s += ear(-1) + ear(1);
-      s += SV.path(`M${hx - 27 * k} ${hy + 10 * k} Q${hx - 28 * k} ${hy - 30 * k} ${hx} ${hy - 30 * k} Q${hx + 28 * k} ${hy - 30 * k} ${hx + 27 * k} ${hy + 10 * k} Q${hx} ${hy + 18 * k} ${hx - 27 * k} ${hy + 10 * k}Z`, "#ff79b0", 3);
-      s += `<path d="M${hx - 14 * k} ${hy - 18 * k} Q${hx} ${hy - 26 * k} ${hx + 14 * k} ${hy - 18 * k}" stroke="#fff" stroke-width="${5 * k}" stroke-linecap="round" fill="none"/>`;
-      s += SV.path(`M${hx - 6 * k} ${hy - 4 * k} l${4 * k} ${-4 * k} l${4 * k} ${4 * k} l${4 * k} ${-4 * k} l${4 * k} ${4 * k}`, "none", 2.4);
-      break;
-    }
-    case "zara": {
-      // teal head wrap with a long fluttering scarf tail and gold coins
-      const tail = `M${hx + 10 * k} ${hy + 10 * k} Q${hx + 40 * k} ${hy + 18 * k + fl * 6} ${hx + 70 * k} ${hy + 8 * k - fl * 4} Q${hx + 90 * k} ${hy + 2 * k} ${hx + 104 * k} ${hy + 14 * k + fl * 6} L${hx + 96 * k} ${hy + 24 * k} Q${hx + 70 * k} ${hy + 22 * k} ${hx + 42 * k} ${hy + 34 * k + fl * 3} Q${hx + 20 * k} ${hy + 30 * k} ${hx + 2 * k} ${hy + 22 * k}Z`;
-      s += SV.path(tail, shade(r.main, -0.1), 3);
-      s += `<path d="M${hx + 30 * k} ${hy + 22 * k + fl * 2} Q${hx + 60 * k} ${hy + 14 * k} ${hx + 92 * k} ${hy + 16 * k}" stroke="${r.alt}" stroke-width="2.5" fill="none"/>`;
-      s += SV.path(`M${hx - 27 * k} ${hy + 12 * k} Q${hx - 30 * k} ${hy - 30 * k} ${hx} ${hy - 30 * k} Q${hx + 30 * k} ${hy - 30 * k} ${hx + 27 * k} ${hy + 12 * k} Q${hx} ${hy + 24 * k} ${hx - 27 * k} ${hy + 12 * k}Z`, r.main, 3);
-      for (let i = 0; i < 4; i++) s += `<path d="M${hx - 26 * k} ${hy - 12 * k + i * 8 * k} Q${hx} ${hy - 22 * k + i * 10 * k} ${hx + 26 * k} ${hy - 12 * k + i * 8 * k}" stroke="${shade(r.main, -0.22)}" stroke-width="2" fill="none"/>`;
-      for (let i = -2; i <= 2; i++) s += SV.circ(hx + i * 10 * k, hy + 14 * k + Math.abs(i) * -2, 3.4 * k, "#f5c542", 1.5);
-      break;
-    }
-    case "rex": {
-      // shaved sides, tall green mohawk
-      s += SV.path(`M${hx - 24 * k} ${hy + 6 * k} Q${hx - 26 * k} ${hy - 24 * k} ${hx} ${hy - 25 * k} Q${hx + 26 * k} ${hy - 24 * k} ${hx + 24 * k} ${hy + 6 * k} Q${hx} ${hy + 22 * k} ${hx - 24 * k} ${hy + 6 * k}Z`, shade(r.skin, -0.06), 3);
-      s += `<path d="M${hx - 18 * k} ${hy - 10 * k} Q${hx} ${hy - 4 * k} ${hx + 18 * k} ${hy - 10 * k}" stroke="${shade(r.skin, -0.25)}" stroke-width="2" stroke-dasharray="2 4" fill="none"/>`;
-      let m = `M${hx - 8 * k} ${hy + 14 * k}`;
-      const tips = [[-6, 2, -26 + fl], [-6, -14, -50], [-4, -24, -66 + fl * 2], [4, -24, -66 - fl], [6, -14, -50], [6, 2, -26]];
-      tips.forEach(([dx, base, tip]) => { m += ` L${hx + dx * 3 * k} ${hy + tip * k} L${hx + dx * k} ${hy + base * k}`; });
-      m += ` L${hx + 8 * k} ${hy + 14 * k}Z`;
-      s += SV.path(m, h, 3);
-      s += `<path d="M${hx - 2 * k} ${hy + 8 * k} L${hx - 6 * k} ${hy - 50 * k}" stroke="${r.hair2}" stroke-width="3" fill="none"/>`;
-      s += SV.circ(hx - R + 1, hy + 9 * k, 2.6, "#d9dde6", 1.5) + SV.circ(hx + R - 1, hy + 9 * k, 2.6, "#d9dde6", 1.5);
-      break;
-    }
+  for (let i = 0; i < n; i++) {
+    const sx = x + R() * w, sy = y + R() * h, dx = (R() - 0.3) * w * 0.35, dy = (R() - 0.5) * h * 0.25;
+    s += `<path d="M${sx.toFixed(1)} ${sy.toFixed(1)} l${dx.toFixed(1)} ${dy.toFixed(1)}" stroke="${col}" stroke-opacity="${op}" stroke-width="1.8" stroke-linecap="round"/>`;
   }
   return s;
 }
+function bloodMarks(x, y, w, h, R, n) {
+  let s = "";
+  for (let i = 0; i < n; i++) {
+    const bx = x + R() * w, by = y + R() * h, br = 2.5 + R() * 4.5;
+    s += `<circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${br.toFixed(1)}" fill="#a8101c"/>`;
+    if (R() < 0.6) s += `<path d="M${bx.toFixed(1)} ${(by + br).toFixed(1)} l0 ${(5 + R() * 10).toFixed(1)}" stroke="#a8101c" stroke-width="${(br * 0.7).toFixed(1)}" stroke-linecap="round"/>`;
+  }
+  return s;
+}
+
+/* ---------------- Helmet (back view: what you see while racing) ---------------- */
+function backHead(r, hx, hy, k, f) {
+  const R = 24 * k, sv = SAVAGE(), g = GEAR[r.id], shell = gearShell(r), trim = g.trim;
+  const dk = shade(shell, -0.3), fl = f % 2 ? 1 : -1, sk = r.skin;
+  const rg = gRng(r, 7);
+  let s = "";
+  // neck
+  s += SV.rect(hx - 9 * k, hy + R * 0.55, 18 * k, 16 * k, 6, shade(sk, -0.12), 2.5);
+  // parts that stream out BEHIND the helmet
+  switch (r.id) {
+    case "kaito": {            // navy spikes poking out at the nape
+      for (const d of [-1, 1]) s += SV.path(`M${hx + d * 20 * k} ${hy + 10 * k} L${hx + d * 46 * k} ${hy + (20 + fl * 3) * k} L${hx + d * 28 * k} ${hy + 2 * k} L${hx + d * 50 * k} ${hy - 8 * k} L${hx + d * 22 * k} ${hy - 6 * k}Z`, r.hair, 3);
+      break;
+    }
+    case "priya": {            // braid whipping out behind
+      const bx = hx + 6 * k * fl;
+      s += SV.poly([[hx, hy + 18 * k], [hx + 4 * k, hy + 40 * k], [bx + 12 * k, hy + 62 * k], [bx + 26 * k, hy + 80 * k]], 13 * k, r.hair);
+      for (let i = 0; i < 4; i++) { const t = i / 4; const px = lerp(hx + 2 * k, bx + 24 * k, t), py = lerp(hy + 24 * k, hy + 78 * k, t); s += `<path d="M${px - 6 * k} ${py} Q${px} ${py + 6 * k} ${px + 6 * k} ${py}" stroke="${r.hair2}" stroke-width="2.4" fill="none"/>`; }
+      s += SV.rect(bx + 20 * k, hy + 74 * k, 10 * k, 7 * k, 2, "#ffd23f", 2);
+      break;
+    }
+    case "yuki": {             // pigtails + a long ninja scarf streaming behind
+      const pt = (dir) => SV.path(`M${hx + dir * 18 * k} ${hy + 8 * k} Q${hx + dir * 40 * k} ${hy + 10 * k + fl * 3} ${hx + dir * 54 * k} ${hy + 34 * k} Q${hx + dir * 44 * k} ${hy + 30 * k} ${hx + dir * 36 * k} ${hy + 36 * k} Q${hx + dir * 34 * k} ${hy + 20 * k} ${hx + dir * 16 * k} ${hy + 18 * k}Z`, r.hair, 3);
+      s += pt(-1) + pt(1);
+      s += SV.path(`M${hx - 4 * k} ${hy + 22 * k} Q${hx + 30 * k} ${hy + 36 * k + fl * 6} ${hx + 64 * k} ${hy + 26 * k - fl * 5} Q${hx + 86 * k} ${hy + 20 * k} ${hx + 100 * k} ${hy + 30 * k + fl * 6} L${hx + 90 * k} ${hy + 40 * k} Q${hx + 64 * k} ${hy + 38 * k} ${hx + 38 * k} ${hy + 46 * k + fl * 3} Q${hx + 14 * k} ${hy + 44 * k} ${hx - 6 * k} ${hy + 34 * k}Z`, g.trim, 3);
+      break;
+    }
+    case "zara": {             // long fluttering scarf tail
+      const tail = `M${hx + 10 * k} ${hy + 10 * k} Q${hx + 40 * k} ${hy + 18 * k + fl * 6} ${hx + 70 * k} ${hy + 8 * k - fl * 4} Q${hx + 90 * k} ${hy + 2 * k} ${hx + 104 * k} ${hy + 14 * k + fl * 6} L${hx + 96 * k} ${hy + 24 * k} Q${hx + 70 * k} ${hy + 22 * k} ${hx + 42 * k} ${hy + 34 * k + fl * 3} Q${hx + 20 * k} ${hy + 30 * k} ${hx + 2 * k} ${hy + 22 * k}Z`;
+      s += SV.path(sv ? tail.replace(/Z$/, "Z") : tail, shade(r.main, sv ? -0.35 : -0.1), 3);
+      s += `<path d="M${hx + 30 * k} ${hy + 22 * k + fl * 2} Q${hx + 60 * k} ${hy + 14 * k} ${hx + 92 * k} ${hy + 16 * k}" stroke="${r.alt}" stroke-width="2.5" fill="none"/>`;
+      break;
+    }
+    case "rex": {              // chain looped from the helmet
+      for (let i = 0; i < 5; i++) s += `<ellipse cx="${(hx - 26 * k - i * 4 * k).toFixed(1)}" cy="${(hy + 12 * k + i * 6 * k + fl * (i > 2 ? 2 : 0)).toFixed(1)}" rx="${4.4 * k}" ry="${3 * k}" fill="none" stroke="#d9dde6" stroke-width="2.4" transform="rotate(${i % 2 ? 60 : 10} ${(hx - 26 * k - i * 4 * k).toFixed(1)} ${(hy + 12 * k + i * 6 * k).toFixed(1)})"/>`;
+      break;
+    }
+  }
+  // spikes / fins that sit ON TOP of the shell but are drawn first so the shell overlaps their roots
+  switch (r.id) {
+    case "kaito": s += SV.path(`M${hx - 10 * k} ${hy - 26 * k} L${hx + 1 * k} ${hy - 62 * k + fl} L${hx + 10 * k} ${hy - 26 * k}Z`, "#2a1f33", 3); break;
+    case "yuki": for (const d of [-1, 1]) s += SV.path(`M${hx + d * 8 * k} ${hy - 24 * k} Q${hx + d * 26 * k} ${hy - 62 * k} ${hx + d * (14 + fl) * k} ${hy - 76 * k} Q${hx + d * 2 * k} ${hy - 58 * k} ${hx + d * 0 * k} ${hy - 26 * k}Z`, shell, 3) + `<path d="M${hx + d * 8 * k} ${hy - 32 * k} Q${hx + d * 16 * k} ${hy - 56 * k} ${hx + d * 13 * k} ${hy - 68 * k}" stroke="${trim}" stroke-width="${4 * k}" stroke-linecap="round" fill="none"/>`; break;
+    case "zara": s += SV.path(`M${hx - 8 * k} ${hy - 26 * k} Q${hx + 4 * k} ${hy - 60 * k} ${hx + 30 * k} ${hy - 54 * k + fl * 2} Q${hx + 12 * k} ${hy - 44 * k} ${hx + 8 * k} ${hy - 26 * k}Z`, trim, 3); break;
+    case "priya": for (const [dx, dy, sc] of [[-12, 0, 0.8], [0, -4, 1.1], [12, 0, 0.8]]) s += SV.path(`M${hx + (dx - 7) * k} ${hy - 26 * k} Q${hx + (dx - 8) * k} ${hy - (44 + dy * -1) * sc * k} ${hx + (dx + 2 * fl) * k} ${hy - (62 + (sc - 0.8) * 20) * k} Q${hx + (dx + 8) * k} ${hy - 40 * k} ${hx + (dx + 7) * k} ${hy - 26 * k}Z`, g.trim, 2.8); break;
+    case "rex": for (const [dx, h2] of [[-16, 38], [-8, 54], [0, 64], [8, 54], [16, 38]]) s += SV.path(`M${hx + (dx - 5) * k} ${hy - 24 * k} L${hx + (dx + (dx > 0 ? 3 : -3) + fl * (h2 > 50 ? 1 : 0)) * k} ${hy - (h2 + 22) * k} L${hx + (dx + 5) * k} ${hy - 24 * k}Z`, "#d9dde6", 3) + `<path d="M${hx + (dx - 2) * k} ${hy - (h2 + 8) * k} L${hx + (dx + (dx > 0 ? 3 : -3)) * k} ${hy - (h2 + 22) * k} L${hx + (dx + 2) * k} ${hy - (h2 + 8) * k}Z" fill="${trim}"/>`; break;
+  }
+  // the helmet shell
+  const shellP = `M${hx - 29 * k} ${hy + 10 * k} Q${hx - 34 * k} ${hy - 30 * k} ${hx} ${hy - 34 * k} Q${hx + 34 * k} ${hy - 30 * k} ${hx + 29 * k} ${hy + 10 * k} L${hx + 24 * k} ${hy + 24 * k} Q${hx} ${hy + 31 * k} ${hx - 24 * k} ${hy + 24 * k}Z`;
+  s += SV.path(shellP, shell, 3.2);
+  // neck guard flare
+  s += SV.path(`M${hx - 25 * k} ${hy + 20 * k} Q${hx} ${hy + 34 * k} ${hx + 25 * k} ${hy + 20 * k} L${hx + 21 * k} ${hy + 29 * k} Q${hx} ${hy + 38 * k} ${hx - 21 * k} ${hy + 29 * k}Z`, dk, 2.6);
+  // centre stripe
+  const stripe = r.id === "bruno" ? null : `M${hx - 4.5 * k} ${hy - 33 * k} L${hx + 4.5 * k} ${hy - 33 * k} L${hx + 5.5 * k} ${hy + 25 * k} L${hx - 5.5 * k} ${hy + 25 * k}Z`;
+  if (stripe) s += `<path d="${stripe}" fill="${trim}" stroke="${OL}" stroke-width="2"/>`;
+  // side vents
+  for (const d of [-1, 1]) for (let i = 0; i < 3; i++) s += `<path d="M${hx + d * 25 * k} ${hy - 12 * k + i * 8 * k} l${-d * 10 * k} ${2.5 * k}" stroke="${OL}" stroke-width="2.6" stroke-linecap="round"/>`;
+  // per-rider shell details
+  switch (r.id) {
+    case "bruno":
+      s += `<path d="M${hx - 31 * k} ${hy - 6 * k} Q${hx} ${hy - 20 * k} ${hx + 31 * k} ${hy - 6 * k} L${hx + 30 * k} ${hy + 4 * k} Q${hx} ${hy - 10 * k} ${hx - 30 * k} ${hy + 4 * k}Z" fill="${trim}" stroke="${OL}" stroke-width="2.4"/>`;
+      for (const [bx, by] of [[-20, -22], [20, -22], [-27, 8], [27, 8]]) s += SV.circ(hx + bx * k, hy + by * k, 3 * k, "#d9dde6", 1.8);
+      s += `<path d="M${hx + 8 * k} ${hy - 30 * k} l8 18 l-6 6" stroke="${OL}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;        // axe nick
+      break;
+    case "yuki":
+      for (const d of [-1, 1]) s += `<path d="M${hx + d * 24 * k} ${hy - 22 * k} Q${hx + d * 30 * k} ${hy - 2 * k} ${hx + d * 25 * k} ${hy + 14 * k}" stroke="${trim}" stroke-width="${5 * k}" stroke-linecap="round" fill="none"/>`;
+      break;
+    case "zara":
+      for (let i = -3; i <= 3; i++) s += SV.circ(hx + i * 8.5 * k, hy + 18 * k - Math.abs(i) * 1.4, 2.6 * k, trim, 1.4);
+      break;
+    case "priya":
+      for (const d of [-1, 1]) s += SV.path(`M${hx + d * 28 * k} ${hy + 8 * k} Q${hx + d * 20 * k} ${hy - 6 * k} ${hx + d * 24 * k} ${hy - 20 * k} Q${hx + d * 12 * k} ${hy - 8 * k} ${hx + d * 12 * k} ${hy + 10 * k}Z`, trim, 2.4);
+      break;
+    case "rex":
+      s += `<path d="M${hx - 26 * k} ${hy - 4 * k} L${hx - 14 * k} ${hy - 10 * k} L${hx - 12 * k} ${hy - 2 * k}Z" fill="${trim}"/><path d="M${hx + 26 * k} ${hy - 4 * k} L${hx + 14 * k} ${hy - 10 * k} L${hx + 12 * k} ${hy - 2 * k}Z" fill="${trim}"/>`;
+      s += SV.circ(hx - 29 * k, hy + 9 * k, 3 * k, "#d9dde6", 1.6) + SV.circ(hx + 29 * k, hy + 9 * k, 3 * k, "#d9dde6", 1.6);
+      break;
+  }
+  // gloss
+  s += `<path d="M${hx - 22 * k} ${hy - 20 * k} Q${hx - 14 * k} ${hy - 29 * k} ${hx - 3 * k} ${hy - 30 * k}" stroke="#fff" stroke-opacity="${sv ? 0.25 : 0.6}" stroke-width="3.2" stroke-linecap="round" fill="none"/>`;
+  // savage: dirt, scratches, dents, blood
+  if (sv) {
+    s += `<path d="M${hx - 28 * k} ${hy + 6 * k} Q${hx} ${hy + 26 * k} ${hx + 28 * k} ${hy + 6 * k} L${hx + 24 * k} ${hy + 24 * k} Q${hx} ${hy + 31 * k} ${hx - 24 * k} ${hy + 24 * k}Z" fill="#000" fill-opacity=".28"/>`;
+    s += scratchMarks(hx - 24 * k, hy - 28 * k, 48 * k, 36 * k, rg, 6, "#e8e0d8", 0.5);
+    s += `<path d="M${hx - 20 * k} ${hy - 16 * k} l8 5 l-3 7" stroke="#000" stroke-opacity=".5" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+    s += bloodMarks(hx - 22 * k, hy - 14 * k, 44 * k, 30 * k, rg, 3);
+  }
+  return s;
+}
+
+/* Body armor seen from behind: big angular shoulder guards, a kidney belt and rib plates. Savage adds scuffs, a torn
+   jersey and blood (a lot more of it right after a hit, in the "hurt" pose). */
+function armorBack(r, k, shW, tY, bY, hipY, waist, pose) {
+  const sv = SAVAGE(), g = GEAR[r.id], plate = sv ? "#2b262d" : shade(gearShell(r), r.id === "yuki" ? -0.18 : -0.1), trim = g.trim;
+  const wide = r.id === "bruno" ? 1.12 : 1;
+  let s = "";
+  const pad = (d) => {
+    const x0 = 120 + d * (shW + 7 * wide), x1 = 120 + d * (shW - 26 * wide), xm = 120 + d * (shW - 4);
+    return SV.path(`M${x0} ${tY + 20} Q${x0 + d * 2} ${tY - 12} ${xm} ${tY - 10} L${x1} ${tY - 4} L${x1 + d * 2} ${tY + 20} Q${xm} ${tY + 28} ${x0} ${tY + 20}Z`, plate, 3) +
+      `<path d="M${x0 - d * 3} ${tY + 8} Q${xm} ${tY - 1} ${x1 + d * 3} ${tY + 4}" stroke="${trim}" stroke-width="4" stroke-linecap="round" fill="none"/>` +
+      SV.circ(xm - d * 4, tY + 14, 2.4, "#d9dde6", 1.4);
+  };
+  s += pad(-1) + pad(1);
+  // kidney belt
+  s += SV.path(`M${120 - waist - 5} ${bY - 10} Q120 ${bY - 4} ${120 + waist + 5} ${bY - 10} L${120 + waist + 4} ${bY + 4} Q120 ${bY + 10} ${120 - waist - 4} ${bY + 4}Z`, plate, 2.8);
+  s += SV.rect(120 - 6, bY - 7, 12, 9, 2, trim, 2);
+  // rib plates down both sides
+  for (const d of [-1, 1]) for (let i = 0; i < 3; i++) s += `<path d="M${120 + d * (waist + 12 - i * 2)} ${tY + 24 + i * 9} l${d * 11} 1" stroke="${plate}" stroke-width="5" stroke-linecap="round"/><path d="M${120 + d * (waist + 12 - i * 2)} ${tY + 24 + i * 9} l${d * 11} 1" stroke="${OL}" stroke-width="1.2" stroke-linecap="round" stroke-opacity=".6"/>`;
+  if (sv) {
+    const rg = gRng(r, 11);
+    s += scratchMarks(120 - shW, tY - 6, shW * 2, 40, rg, 9, "#cfc6bd", 0.4);
+    s += `<path d="M${120 - 14} ${tY + 30} l9 6 l-4 8 l10 4" stroke="#14080a" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-opacity=".7"/>`;
+    s += bloodMarks(120 - shW * 0.8, tY + 8, shW * 1.6, 34, rg, pose === "hurt" ? 8 : 3);
+  }
+  return s;
+}
+
 
 /* ---------------- Full back-view rider sprite ---------------- */
 // pose: ride | punchL | punchR | kickL | kickR | hurt | nohand | super | cancan ; f = animation frame 0/1
@@ -300,10 +359,6 @@ function riderBackSVG(r, v, pose, f) {
     for (let i = 0; i < 5; i++) body += SV.circ(120 - shW + 10 + i * (shW * 2 - 20) / 4, tY + 4, 3, "#d9dde6", 1.5);
     body += `<path d="M${120 - 22} ${tY + 20} l10 10 l10 -10 l10 10 l10 -10" stroke="${r.alt}" stroke-width="3" fill="none"/>`;
   }
-  if (r.id === "bruno") {
-    body += SV.path(`M${120 - shW - 6} ${tY + 16} Q${120 - shW - 4} ${tY - 8} ${120 - shW + 22} ${tY - 6} L${120 - shW + 20} ${tY + 14}Z`, "#8a8f99", 3);
-    body += SV.path(`M${120 + shW + 6} ${tY + 16} Q${120 + shW + 4} ${tY - 8} ${120 + shW - 22} ${tY - 6} L${120 + shW - 20} ${tY + 14}Z`, "#8a8f99", 3);
-  }
   // name + number on the back
   const midY = (tY + bY) / 2;
   if (v === "mtb") {
@@ -315,7 +370,8 @@ function riderBackSVG(r, v, pose, f) {
     body += `<text x="120" y="${tY + 14}" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="9" fill="${r.alt}" letter-spacing="1">${r.name.toUpperCase()}</text>`;
     body += `<text x="120" y="${midY + 14}" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="${26 * k}" fill="${r.alt}" stroke="${OL}" stroke-width="1.2">${r.num}</text>`;
   }
-  // head + hair
+  body += armorBack(r, k, shW, tY, bY, hipY, waist, pose);
+  // head + helmet
   body += backHead(r, head[0], head[1], k, f);
   body += backVehicleOver(v, r, f);
   const rot = tilt ? ` transform="rotate(${tilt} 120 290)"` : "";
@@ -342,6 +398,111 @@ function animeEyes(cx, cy, r, style) {
     return s;
   };
   return one(cx - 30, -1) + one(cx + 30, 1);
+}
+
+/* Front-view gear for the portraits: full-face helmet with a dark visor and glowing angry eyes, cheek guards,
+   per-rider decoration, and shoulder armor. Savage adds scratches, a cracked visor, scars and blood. */
+function portraitGear(r, cx, cy) {
+  const sv = SAVAGE(), g = GEAR[r.id], shell = gearShell(r), trim = g.trim;
+  const dk = shade(shell, -0.35), hi = shade(shell, 0.28), rg = gRng(r, 3);
+  const glow = sv ? "#ff2a2a" : (g.glow || r.eye);       // savage: every visor burns red
+  let front = "", body = "";
+  // ----- shoulder armor (drawn over the outfit) -----
+  const plate = sv ? "#2b262d" : shade(shell, -0.12);
+  const wide = r.id === "bruno" ? 1.1 : 1;
+  const sp = (d) => {
+    const m = (x) => (d < 0 ? x : 300 - x);
+    let t = SV.path(`M${m(48)} 330 L${m(54)} 268 Q${m(66)} 244 ${m(112)} 246 L${m(106)} 298 Q${m(80)} 306 ${m(48)} 330Z`, plate, 3.2);
+    t += `<path d="M${m(60)} 276 Q${m(84)} 258 ${m(106)} 264" stroke="${trim}" stroke-width="5" stroke-linecap="round" fill="none"/>`;
+    t += SV.circ(m(80), 290, 3, "#d9dde6", 1.6) + SV.circ(m(96), 282, 3, "#d9dde6", 1.6);
+    if (sv) t += scratchMarks(m(54) - (d < 0 ? 0 : 50), 256, 52, 44, rg, 4, "#cfc6bd", 0.45);
+    return t;
+  };
+  body += `<g transform="translate(150 0) scale(${wide} 1) translate(-150 0)">${sp(-1)}${sp(1)}</g>`;
+  if (sv) body += bloodMarks(110, 262, 80, 40, rg, 4);
+
+  // ----- visor (under the dome so the dome's V-shaped brow overlaps it) -----
+  const visorP = `M${cx - 62} ${cy - 26} L${cx} ${cy - 12} L${cx + 62} ${cy - 26} L${cx + 58} ${cy + 22} Q${cx} ${cy + 36} ${cx - 58} ${cy + 22}Z`;
+  front += SV.path(visorP, sv ? "#0b0709" : "#14101c", 3.5);
+  // glowing eyes: a soft halo, the slit itself, and a bright core
+  const eye = (d) => {
+    const m = (x) => cx + d * x;
+    const pts = `${m(52)} ${cy - 8} ${m(12)} ${cy + 3} ${m(16)} ${cy + 15} ${m(48)} ${cy + 11}`;
+    const core = `${m(44)} ${cy - 2} ${m(18)} ${cy + 5} ${m(21)} ${cy + 11} ${m(43)} ${cy + 8}`;
+    return `<polygon points="${pts}" fill="${glow}" fill-opacity=".28" stroke="${glow}" stroke-opacity=".35" stroke-width="${sv ? 12 : 9}" stroke-linejoin="round"/>` +
+      `<polygon points="${pts}" fill="${shade(glow, 0.15)}" stroke="${glow}" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<polygon points="${core}" fill="${shade(glow, 0.7)}"/>`;
+  };
+  front += eye(-1) + eye(1);
+  front += `<path d="M${cx - 40} ${cy - 20} L${cx - 22} ${cy - 14} L${cx - 36} ${cy + 22} L${cx - 50} ${cy + 20}Z" fill="#fff" fill-opacity="${sv ? 0.07 : 0.13}"/>`;
+
+  // ----- cheek guards -----
+  const cheek = (d) => {
+    const m = (x) => cx + d * x;
+    return SV.path(`M${m(72)} ${cy - 22} L${m(58)} ${cy - 24} L${m(56)} ${cy + 22} L${m(48)} ${cy + 50} Q${m(60)} ${cy + 52} ${m(70)} ${cy + 36} Q${m(76)} ${cy + 8} ${m(72)} ${cy - 22}Z`, shell, 3.2) +
+      `<path d="M${m(66)} ${cy - 10} l-6 4 M${m(66)} ${cy + 2} l-6 4 M${m(65)} ${cy + 14} l-6 4" stroke="${OL}" stroke-width="2.4" stroke-linecap="round"/>`;
+  };
+  front += cheek(-1) + cheek(1);
+
+  // ----- the dome -----
+  const domeP = `M${cx - 72} ${cy - 20} Q${cx - 84} ${cy - 118} ${cx} ${cy - 126} Q${cx + 84} ${cy - 118} ${cx + 72} ${cy - 20} L${cx} ${cy - 8} Z`;
+  // extras that sit behind the dome
+  if (r.id === "yuki") for (const d of [-1, 1]) front += SV.path(`M${cx + d * 30} ${cy - 108} Q${cx + d * 56} ${cy - 168} ${cx + d * 40} ${cy - 196} Q${cx + d * 12} ${cy - 160} ${cx + d * 6} ${cy - 112}Z`, shell, 3.5) + `<path d="M${cx + d * 24} ${cy - 118} Q${cx + d * 42} ${cy - 160} ${cx + d * 38} ${cy - 184}" stroke="${trim}" stroke-width="8" stroke-linecap="round" fill="none"/>`;
+  if (r.id === "kaito") front += SV.path(`M${cx - 16} ${cy - 118} L${cx + 2} ${cy - 176} L${cx + 16} ${cy - 118}Z`, "#2a1f33", 3.5) + `<path d="M${cx - 2} ${cy - 118} L${cx + 2} ${cy - 164}" stroke="${trim}" stroke-width="3" stroke-linecap="round"/>`;
+  if (r.id === "zara") front += SV.path(`M${cx - 14} ${cy - 118} Q${cx + 6} ${cy - 168} ${cx + 52} ${cy - 150} Q${cx + 20} ${cy - 142} ${cx + 16} ${cy - 118}Z`, trim, 3.5);
+  if (r.id === "priya") for (const [dx, hh] of [[-26, 46], [0, 62], [26, 46]]) front += SV.path(`M${cx + dx - 14} ${cy - 112} Q${cx + dx - 18} ${cy - 112 - hh * 0.6} ${cx + dx + 4} ${cy - 112 - hh} Q${cx + dx + 14} ${cy - 112 - hh * 0.4} ${cx + dx + 14} ${cy - 112}Z`, trim, 3.2);
+  if (r.id === "rex") for (const [dx, hh] of [[-40, 34], [-20, 54], [0, 66], [20, 54], [40, 34]]) front += SV.path(`M${cx + dx - 9} ${cy - 108 + Math.abs(dx) * 0.25} L${cx + dx + (dx > 0 ? 4 : dx < 0 ? -4 : 0)} ${cy - 108 - hh} L${cx + dx + 9} ${cy - 108 + Math.abs(dx) * 0.25}Z`, "#d9dde6", 3.4) + `<path d="M${cx + dx - 3} ${cy - 108 - hh * 0.7} L${cx + dx + (dx > 0 ? 4 : dx < 0 ? -4 : 0)} ${cy - 108 - hh} L${cx + dx + 3} ${cy - 108 - hh * 0.7}Z" fill="${trim}"/>`;
+  front += SV.path(domeP, shell, 3.8);
+  // dome decoration
+  switch (r.id) {
+    case "kaito":
+      front += `<path d="M${cx - 10} ${cy - 125} L${cx + 10} ${cy - 125} L${cx + 11} ${cy - 11} L${cx - 11} ${cy - 11}Z" fill="${trim}" stroke="${OL}" stroke-width="2.6"/>`;
+      front += `<path d="M${cx - 64} ${cy - 64} l20 6 M${cx - 66} ${cy - 50} l22 6 M${cx + 64} ${cy - 64} l-20 6 M${cx + 66} ${cy - 50} l-22 6" stroke="${OL}" stroke-width="3" stroke-linecap="round"/>`;
+      front += `<text x="${cx}" y="${cy - 44}" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="28" fill="#2a1f33" transform="rotate(0)">7</text>`;
+      break;
+    case "bruno":
+      front += `<path d="M${cx - 76} ${cy - 54} Q${cx} ${cy - 84} ${cx + 76} ${cy - 54} L${cx + 73} ${cy - 36} Q${cx} ${cy - 66} ${cx - 73} ${cy - 36}Z" fill="${trim}" stroke="${OL}" stroke-width="3"/>`;
+      for (const [bx, by] of [[-58, -92], [58, -92], [-66, -30], [66, -30]]) front += SV.circ(cx + bx, cy + by, 5, "#d9dde6", 2);
+      front += `<path d="M${cx + 24} ${cy - 120} l12 30 l-8 8" stroke="${OL}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+      front += `<path d="M${cx - 70} ${cy - 22} L${cx} ${cy - 6} L${cx + 70} ${cy - 22} L${cx + 70} ${cy - 12} L${cx} ${cy + 4} L${cx - 70} ${cy - 12}Z" fill="${dk}" stroke="${OL}" stroke-width="2.6"/>`;     // heavy brow guard
+      break;
+    case "yuki":
+      for (const d of [-1, 1]) front += `<path d="M${cx + d * 60} ${cy - 40} Q${cx + d * 70} ${cy - 90} ${cx + d * 38} ${cy - 118}" stroke="${trim}" stroke-width="9" stroke-linecap="round" fill="none"/>`;
+      front += `<path d="M${cx - 8} ${cy - 124} L${cx + 8} ${cy - 124} L${cx + 6} ${cy - 40} L${cx - 6} ${cy - 40}Z" fill="${trim}" fill-opacity=".85" stroke="${OL}" stroke-width="2.4"/>`;
+      break;
+    case "zara":
+      front += `<path d="M${cx - 76} ${cy - 44} Q${cx} ${cy - 84} ${cx + 76} ${cy - 44}" stroke="${trim}" stroke-width="9" stroke-linecap="round" fill="none"/>`;
+      for (let i = -4; i <= 4; i++) front += SV.circ(cx + i * 15, cy - 62 + Math.abs(i) * 5 - (i === 0 ? 0 : 0), 4.4, trim, 1.6);
+      front += `<path d="M${cx - 6} ${cy - 126} L${cx + 6} ${cy - 126} L${cx + 4} ${cy - 90} L${cx - 4} ${cy - 90}Z" fill="${trim}" stroke="${OL}" stroke-width="2"/>`;
+      break;
+    case "priya":
+      for (const d of [-1, 1]) for (let i = 0; i < 2; i++) front += SV.path(`M${cx + d * (70 - i * 14)} ${cy - 24 - i * 16} Q${cx + d * (60 - i * 14)} ${cy - 54 - i * 12} ${cx + d * (66 - i * 14)} ${cy - 80 - i * 8} Q${cx + d * (44 - i * 14)} ${cy - 56 - i * 12} ${cx + d * (40 - i * 12)} ${cy - 26 - i * 14}Z`, trim, 2.8);
+      front += `<path d="M${cx - 6} ${cy - 126} L${cx + 6} ${cy - 126} L${cx + 4} ${cy - 14} L${cx - 4} ${cy - 14}Z" fill="${trim}" fill-opacity=".9" stroke="${OL}" stroke-width="2.2"/>`;
+      break;
+    case "rex":
+      front += `<path d="M${cx - 8} ${cy - 124} L${cx + 8} ${cy - 124} L${cx + 7} ${cy - 11} L${cx - 7} ${cy - 11}Z" fill="${trim}" stroke="${OL}" stroke-width="2.4"/>`;
+      front += `<path d="M${cx - 70} ${cy - 56} l16 -10 l4 14z M${cx + 70} ${cy - 56} l-16 -10 l-4 14z" fill="${trim}" stroke="${OL}" stroke-width="2"/>`;
+      for (const d of [-1, 1]) front += SV.circ(cx + d * 68, cy - 36, 4.5, "#d9dde6", 1.8);
+      break;
+  }
+  // gloss on the dome
+  front += `<path d="M${cx - 56} ${cy - 76} Q${cx - 44} ${cy - 104} ${cx - 14} ${cy - 112}" stroke="#fff" stroke-opacity="${sv ? 0.22 : 0.6}" stroke-width="7" stroke-linecap="round" fill="none"/>`;
+  // ninja mask over Yuki's lower face
+  if (r.id === "yuki") front += SV.path(`M${cx - 52} ${cy + 28} Q${cx} ${cy + 46} ${cx + 52} ${cy + 28} L${cx + 50} ${cy + 70} Q${cx} ${cy + 96} ${cx - 50} ${cy + 70}Z`, sv ? "#2a1f2e" : "#3b2c52", 3.2) + `<path d="M${cx - 40} ${cy + 52} Q${cx} ${cy + 68} ${cx + 40} ${cy + 52}" stroke="${trim}" stroke-width="3" stroke-dasharray="6 5" fill="none"/>`;
+
+  // ----- SAVAGE damage -----
+  if (sv) {
+    front += scratchMarks(cx - 60, cy - 110, 120, 80, rg, 9, "#e8e0d8", 0.5);
+    front += `<path d="M${cx - 30} ${cy - 80} l16 10 l-6 12 l18 8" stroke="#000" stroke-opacity=".55" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+    // cracked visor with light leaking through
+    front += `<path d="M${cx - 6} ${cy - 14} L${cx + 6} ${cy + 4} L${cx - 4} ${cy + 14} L${cx + 8} ${cy + 30}" stroke="#ffd9d0" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-opacity=".9"/>`;
+    front += `<path d="M${cx + 30} ${cy - 20} L${cx + 14} ${cy - 2}" stroke="#ffd9d0" stroke-width="1.8" stroke-linecap="round" stroke-opacity=".7"/>`;
+    // blood: a smear on the cheek guard, drips from the helmet edge, a few splashes
+    front += `<path d="M${cx + 62} ${cy + 6} q-4 22 -14 38 q-10 -4 -6 -16 q8 -10 20 -22z" fill="#a8101c" fill-opacity=".92"/>`;
+    front += `<path d="M${cx - 44} ${cy + 24} l0 16 M${cx - 38} ${cy + 26} l0 10" stroke="#a8101c" stroke-width="4" stroke-linecap="round"/>`;
+    front += bloodMarks(cx - 70, cy - 30, 140, 70, rg, 4);
+  }
+  return { front, body };
 }
 
 function portraitSVG(r) {
@@ -373,12 +534,7 @@ function portraitSVG(r) {
       body += `<path d="M150 276 L150 340" stroke="${OL}" stroke-width="3"/>` + SV.rect(138, 290, 24, 10, 3, "#d9dde6", 2);
       face += brow(4, 6) + `<path d="M${cx - 16} ${cy + 56} Q${cx + 4} ${cy + 62} ${cx + 20} ${cy + 50}" stroke="${OL}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
       face += `<path d="M${cx + 30} ${cy + 46} l10 -4" stroke="${shade(sk, -0.35)}" stroke-width="2" stroke-linecap="round"/>`; // tiny scar
-      front += SV.path(`M${cx - 60} ${cy - 22} L${cx - 54} ${cy - 70} L${cx - 30} ${cy - 40} L${cx - 26} ${cy - 84} L${cx - 2} ${cy - 30} L${cx + 6} ${cy - 86} L${cx + 26} ${cy - 36} L${cx + 40} ${cy - 76} L${cx + 52} ${cy - 30} L${cx + 62} ${cy - 50} L${cx + 62} ${cy - 92} Q${cx} ${cy - 120} ${cx - 62} ${cy - 92}Z`, HG, 3.5);
       // goggles on forehead
-      front += SV.rect(cx - 70, cy - 76, 140, 16, 6, "#e2433b", 3);
-      front += SV.ell(cx - 30, cy - 70, 26, 18, "#2a2a30", 3) + SV.ell(cx + 30, cy - 70, 26, 18, "#2a2a30", 3);
-      front += `<ellipse cx="${cx - 30}" cy="${cy - 70}" rx="19" ry="12" fill="#ff6b4a"/><ellipse cx="${cx + 30}" cy="${cy - 70}" rx="19" ry="12" fill="#ff6b4a"/>`;
-      front += `<path d="M${cx - 42} ${cy - 74} l10 -4 M${cx + 18} ${cy - 74} l10 -4" stroke="#fff" stroke-width="4" stroke-linecap="round"/>`;
       break;
     case "priya":
       back += SV.path(`M${cx - 66} ${cy + 40} Q${cx - 86} ${cy - 60} ${cx} ${cy - 104} Q${cx + 86} ${cy - 60} ${cx + 66} ${cy + 40} L${cx + 60} ${cy - 20} L${cx - 60} ${cy - 20}Z`, HG, 3.5);
@@ -387,15 +543,12 @@ function portraitSVG(r) {
       back += SV.rect(cx + 88, cy + 166, 20, 12, 4, "#ffd23f", 2.5);
       body += SV.path(`M100 250 L150 300 L200 250 L214 262 L150 328 L86 262Z`, r.alt, 3); // jacket lapels
       body += `<path d="M60 300 L96 268 M240 300 L204 268" stroke="#fff" stroke-width="5"/>`;
-      face += brow(-2, 5) + blush;
+      face += brow(-2, 5);
       face += SV.path(`M${cx - 18} ${cy + 52} Q${cx} ${cy + 70} ${cx + 18} ${cy + 52} Q${cx} ${cy + 58} ${cx - 18} ${cy + 52}Z`, "#8a2b3a", 3);
       face += `<path d="M${cx - 12} ${cy + 55} L${cx + 12} ${cy + 55}" stroke="#fff" stroke-width="3"/>`;
       face += SV.circ(cx, cy - 22, 4.5, "#e0193b", 1.5);                     // bindi
       face += SV.circ(cx + 10, cy + 38, 2.2, "#ffd23f", 1);                     // nose stud
       face += `<circle cx="${cx - 62}" cy="${cy + 30}" r="9" fill="none" stroke="#ffd23f" stroke-width="3.5"/><circle cx="${cx + 62}" cy="${cy + 30}" r="9" fill="none" stroke="#ffd23f" stroke-width="3.5"/>`;
-      front += SV.path(`M${cx - 62} ${cy - 10} Q${cx - 66} ${cy - 90} ${cx} ${cy - 98} Q${cx + 66} ${cy - 90} ${cx + 62} ${cy - 10} Q${cx + 44} ${cy - 56} ${cx + 4} ${cy - 62} Q${cx - 30} ${cy - 58} ${cx - 50} ${cy - 30} Q${cx - 56} ${cy - 20} ${cx - 62} ${cy - 10}Z`, HG, 3.5);
-      front += `<path d="M${cx - 30} ${cy - 86} Q${cx - 10} ${cy - 96} ${cx + 14} ${cy - 92}" stroke="${h2}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
-      front += SV.path(`M${cx - 50} ${cy - 80} Q${cx} ${cy - 104} ${cx + 50} ${cy - 80} L${cx + 46} ${cy - 70} Q${cx} ${cy - 92} ${cx - 46} ${cy - 70}Z`, r.main, 2.5); // headband
       break;
     case "bruno":
       body = SV.path(`M20 340 Q24 254 100 240 L200 240 Q276 254 280 340Z`, r.main, 3.5);
@@ -405,10 +558,6 @@ function portraitSVG(r) {
       face += brow(-4, 8) + `<path d="M${cx + 20} ${cy - 30} l12 18" stroke="${shade(sk, 0.25)}" stroke-width="3" stroke-linecap="round"/>`;
       face += SV.path(`M${cx - 50} ${cy + 20} Q${cx - 46} ${cy + 76} ${cx} ${cy + 86} Q${cx + 46} ${cy + 76} ${cx + 50} ${cy + 20} Q${cx + 30} ${cy + 46} ${cx} ${cy + 46} Q${cx - 30} ${cy + 46} ${cx - 50} ${cy + 20}Z`, h, 3);
       face += `<path d="M${cx - 18} ${cy + 58} L${cx + 18} ${cy + 58}" stroke="${shade(sk, -0.2)}" stroke-width="5" stroke-linecap="round"/>`;
-      front += SV.path(`M${cx - 66} ${cy - 18} Q${cx - 72} ${cy - 120} ${cx} ${cy - 120} Q${cx + 72} ${cy - 120} ${cx + 66} ${cy - 18}Z`, r.alt, 3.5);
-      front += SV.rect(cx - 70, cy - 38, 140, 24, 10, shade(r.alt, -0.18), 3.5);
-      for (let i = -4; i <= 4; i++) front += `<path d="M${cx + i * 14} ${cy - 104 + Math.abs(i) * 2} L${cx + i * 14} ${cy - 42}" stroke="${shade(r.alt, -0.28)}" stroke-width="3"/>`;
-      front += SV.circ(cx, cy - 124, 16, "#fff4e0", 3);
       break;
     case "yuki":
       back += SV.path(`M${cx - 66} ${cy + 30} Q${cx - 120} ${cy + 40} ${cx - 120} ${cy + 130} Q${cx - 94} ${cy + 100} ${cx - 80} ${cy + 140} Q${cx - 76} ${cy + 60} ${cx - 50} ${cy + 24}Z`, HG, 3.5);
@@ -417,12 +566,8 @@ function portraitSVG(r) {
       back += SV.path(`M${cx + 24} ${cy - 92} Q${cx + 54} ${cy - 196} ${cx + 40} ${cy - 202} Q${cx + 16} ${cy - 194} ${cx + 6} ${cy - 96}Z`, "#fff", 3.5);
       back += `<path d="M${cx - 18} ${cy - 104} Q${cx - 36} ${cy - 170} ${cx - 32} ${cy - 190}" stroke="#ffb3d1" stroke-width="9" stroke-linecap="round" fill="none"/><path d="M${cx + 18} ${cy - 104} Q${cx + 40} ${cy - 168} ${cx + 36} ${cy - 186}" stroke="#ffb3d1" stroke-width="9" stroke-linecap="round" fill="none"/>`;
       body += SV.path(`M84 262 Q150 230 216 262 Q232 280 210 296 Q150 270 90 296 Q68 280 84 262Z`, "#fff", 3); // fluffy collar
-      face += brow(0, 4) + blush;
+      face += brow(0, 4);
       face += SV.path(`M${cx - 12} ${cy + 54} Q${cx} ${cy + 68} ${cx + 12} ${cy + 54}Z`, "#c4405a", 3);
-      front += SV.path(`M${cx - 72} ${cy + 10} Q${cx - 80} ${cy - 104} ${cx} ${cy - 106} Q${cx + 80} ${cy - 104} ${cx + 72} ${cy + 10} L${cx + 58} ${cy - 30} L${cx + 46} ${cy - 10} L${cx + 34} ${cy - 46} L${cx + 14} ${cy - 22} L${cx} ${cy - 54} L${cx - 14} ${cy - 22} L${cx - 34} ${cy - 46} L${cx - 46} ${cy - 10} L${cx - 58} ${cy - 30}Z`, HG, 3.5);
-      front += SV.path(`M${cx - 78} ${cy - 40} Q${cx - 82} ${cy - 118} ${cx} ${cy - 120} Q${cx + 82} ${cy - 118} ${cx + 78} ${cy - 40} Q${cx} ${cy - 84} ${cx - 78} ${cy - 40}Z`, "#ff79b0", 3.5);
-      front += `<path d="M${cx - 40} ${cy - 100} Q${cx} ${cy - 112} ${cx + 40} ${cy - 100}" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none"/>`;
-      front += `<path d="M${cx + 52} ${cy - 54} l5 -12 l5 12 l12 2 l-9 8 l3 12 l-11 -6 l-11 6 l3 -12 l-9 -8z" fill="#ffd23f" stroke="${OL}" stroke-width="2.5"/>`;
       break;
     case "zara":
       back += SV.path(`M${cx - 80} ${cy + 80} Q${cx - 96} ${cy - 110} ${cx} ${cy - 116} Q${cx + 96} ${cy - 110} ${cx + 80} ${cy + 80} Q${cx + 60} ${cy + 20} ${cx + 60} ${cy - 20} L${cx - 60} ${cy - 20} Q${cx - 60} ${cy + 20} ${cx - 80} ${cy + 80}Z`, r.main, 3.5);
@@ -432,15 +577,8 @@ function portraitSVG(r) {
       face += `<path d="M${cx - 64} ${cy + 8} l-10 -4 M${cx + 64} ${cy + 8} l10 -4" stroke="${OL}" stroke-width="4" stroke-linecap="round"/>`; // kohl wings
       face += `<path d="M${cx - 14} ${cy + 56} Q${cx + 2} ${cy + 60} ${cx + 16} ${cy + 54}" stroke="${OL}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
       face += `<path d="M${cx - 40} ${cy + 40} l-6 10 M${cx - 32} ${cy + 42} l-6 10" stroke="${r.alt}" stroke-width="3" stroke-linecap="round"/>`; // face paint
-      front += SV.path(`M${cx - 52} ${cy - 30} Q${cx - 40} ${cy - 64} ${cx} ${cy - 66} Q${cx + 40} ${cy - 64} ${cx + 52} ${cy - 30} Q${cx + 20} ${cy - 50} ${cx - 4} ${cy - 40} Q${cx - 30} ${cy - 50} ${cx - 52} ${cy - 30}Z`, HG, 3);
-      front += SV.path(`M${cx - 74} ${cy - 30} Q${cx - 80} ${cy - 120} ${cx} ${cy - 122} Q${cx + 80} ${cy - 120} ${cx + 74} ${cy - 30} Q${cx} ${cy - 70} ${cx - 74} ${cy - 30}Z`, r.main, 3.5);
-      for (let i = 0; i < 3; i++) front += `<path d="M${cx - 70} ${cy - 50 - i * 18} Q${cx} ${cy - 90 - i * 14} ${cx + 70} ${cy - 50 - i * 18}" stroke="${shade(r.main, -0.22)}" stroke-width="3" fill="none"/>`;
-      for (let i = -3; i <= 3; i++) front += SV.circ(cx + i * 18, cy - 56 + Math.abs(i) * 4, 6, "#f5c542", 2);
-      front += SV.rect(cx - 50, cy - 108, 100, 26, 10, "#c9a227", 3) + SV.ell(cx - 22, cy - 95, 18, 11, "#3a6b6b", 2.5) + SV.ell(cx + 22, cy - 95, 18, 11, "#3a6b6b", 2.5);
-      front += `<path d="M${cx - 32} ${cy - 98} l8 -3 M${cx + 12} ${cy - 98} l8 -3" stroke="#bff" stroke-width="3" stroke-linecap="round"/>`;
       break;
     case "rex":
-      back += SV.path(`M${cx - 20} ${cy - 90} L${cx - 54} ${cy - 160} L${cx - 14} ${cy - 120} L${cx - 20} ${cy - 196} L${cx + 6} ${cy - 128} L${cx + 26} ${cy - 200} L${cx + 26} ${cy - 120} L${cx + 64} ${cy - 164} L${cx + 26} ${cy - 88}Z`, HG, 3.5);
       body += SV.path(`M96 250 L150 290 L204 250 L230 270 L150 330 L70 270Z`, "#2a2730", 3);
       for (let i = 0; i < 7; i++) body += SV.circ(100 + i * 16.6, 262 + Math.abs(i - 3) * -4 + 10, 4, "#d9dde6", 1.5);
       body += `<path d="M52 316 l14 -24 l10 22 M248 316 l-14 -24 l-10 22" stroke="#d9dde6" stroke-width="4" fill="none"/>`;
@@ -451,12 +589,10 @@ function portraitSVG(r) {
       face += `<path d="M${cx + 14} ${cy - 2} L${cx + 52} ${cy + 26}" stroke="${r.eye}" stroke-width="5" stroke-linecap="round" opacity=".85"/>`; // war paint
       face += SV.circ(cx - 40, cy - 22, 3, "#d9dde6", 1.5) + SV.circ(cx - 32, cy - 26, 3, "#d9dde6", 1.5); // brow piercing
       face += `<circle cx="${cx + 66}" cy="${cy + 20}" r="6" fill="none" stroke="#d9dde6" stroke-width="3"/>`;
-      front += SV.path(`M${cx - 58} ${cy - 40} Q${cx - 56} ${cy - 96} ${cx} ${cy - 98} Q${cx + 56} ${cy - 96} ${cx + 58} ${cy - 40} Q${cx + 40} ${cy - 76} ${cx} ${cy - 78} Q${cx - 40} ${cy - 76} ${cx - 58} ${cy - 40}Z`, shade(sk, -0.05), 3);
-      front += `<path d="M${cx - 50} ${cy - 56} Q${cx} ${cy - 84} ${cx + 50} ${cy - 56}" stroke="${shade(sk, -0.25)}" stroke-width="3" stroke-dasharray="3 5" fill="none"/>`;
-      front += SV.path(`M${cx - 22} ${cy - 84} L${cx - 30} ${cy - 30} L${cx - 8} ${cy - 60} L${cx + 6} ${cy - 22} L${cx + 14} ${cy - 66} L${cx + 26} ${cy - 40} L${cx + 24} ${cy - 92}Z`, HG, 3.5);
       break;
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="390" viewBox="0 -50 300 390"><defs>${defs}</defs>${back + body + face + front}</svg>`;
+  const G = portraitGear(r, cx, cy);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="390" viewBox="0 -50 300 390"><defs>${defs}</defs>${back + body + G.body + face + front + G.front}</svg>`;
 }
 
 /* ---------------- Side-view vehicles (garage) ---------------- */
@@ -535,7 +671,7 @@ const RIDER_POSES = ["ride0", "ride1", "punchL", "punchR", "kickL", "kickR", "hu
 const SPRITE_W = 240, SPRITE_H = 300;
 const riderSpriteCache = {};
 async function buildRiderSprites(riderId, vehId) {
-  const key = riderId + ":" + vehId;
+  const key = riderId + ":" + TONE + ":" + vehId;
   if (riderSpriteCache[key]) return riderSpriteCache[key];
   const r = RIDERS.find((x) => x.id === riderId);
   const out = {};
@@ -546,4 +682,42 @@ async function buildRiderSprites(riderId, vehId) {
   }));
   riderSpriteCache[key] = out;
   return out;
+}
+
+/* ---------------- Emblem (home screen + app icon) ----------------
+   A spiked tire inside a shield, torn by three claw slashes, with crossed lightning bolts behind it. No characters. */
+function emblemSVG(opts = {}) {
+  const sv = opts.savage ?? SAVAGE();
+  const c1 = sv ? "#8f0f1a" : "#ff3d7f", c2 = sv ? "#e0a93a" : "#ffd23f", c3 = sv ? "#2b1316" : "#2a1240", rim = sv ? "#c9c2b8" : "#ffffff";
+  const cx = 200, cy = 200;
+  let s = `<defs>
+    <linearGradient id="emb-sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sv ? "#3a1a1d" : "#4b2a7a"}"/><stop offset="1" stop-color="${c3}"/></linearGradient>
+    <linearGradient id="emb-bolt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sv ? "#f2d27a" : "#fff6b0"}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+    <radialGradient id="emb-glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="${c1}" stop-opacity=".55"/><stop offset="1" stop-color="${c1}" stop-opacity="0"/></radialGradient>
+  </defs>`;
+  if (!opts.noGlow) s += `<circle cx="${cx}" cy="${cy}" r="196" fill="url(#emb-glow)"/>`;
+  // crossed bolts
+  const bolt = (rot) => `<g transform="rotate(${rot} ${cx} ${cy})"><path d="M${cx - 14} 18 L${cx + 26} 18 L${cx + 6} 150 L${cx + 34} 150 L${cx - 22} 390 L${cx - 6} 236 L${cx - 34} 236Z" fill="url(#emb-bolt)" stroke="${OL}" stroke-width="7" stroke-linejoin="round"/></g>`;
+  s += bolt(-38) + bolt(38);
+  // shield
+  const sh = `M${cx} 46 L${cx + 128} 92 Q${cx + 132} 250 ${cx} 352 Q${cx - 132} 250 ${cx - 128} 92Z`;
+  s += `<path d="${sh}" fill="url(#emb-sh)" stroke="${OL}" stroke-width="10" stroke-linejoin="round"/>`;
+  s += `<path d="M${cx} 64 L${cx + 112} 104 Q${cx + 114} 244 ${cx} 334 Q${cx - 114} 244 ${cx - 112} 104Z" fill="none" stroke="${c2}" stroke-width="5" stroke-linejoin="round"/>`;
+  // spiked tire
+  const R = 82, wy = cy + 8;
+  let knobs = "";
+  for (let i = 0; i < 16; i++) { const a = (i / 16) * TAU; const x = cx + Math.cos(a) * (R + 6), y = wy + Math.sin(a) * (R + 6); knobs += `<rect x="${(x - 10).toFixed(1)}" y="${(y - 8).toFixed(1)}" width="20" height="16" rx="3" fill="#15121a" stroke="${OL}" stroke-width="3" transform="rotate(${(a * 180 / Math.PI).toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`; }
+  s += `<g class="emb-wheel" style="transform-origin:${cx}px ${wy}px">${knobs}<circle cx="${cx}" cy="${wy}" r="${R}" fill="#1b1820" stroke="${OL}" stroke-width="6"/>`;
+  s += `<circle cx="${cx}" cy="${wy}" r="${R - 20}" fill="${rim}" stroke="${OL}" stroke-width="5"/><circle cx="${cx}" cy="${wy}" r="${R - 30}" fill="${sv ? "#2a2226" : "#3a2d55"}" stroke="${OL}" stroke-width="3"/>`;
+  for (let i = 0; i < 5; i++) { const a = (i / 5) * TAU - Math.PI / 2; s += `<path d="M${cx} ${wy} L${(cx + Math.cos(a) * (R - 30)).toFixed(1)} ${(wy + Math.sin(a) * (R - 30)).toFixed(1)}" stroke="${rim}" stroke-width="9" stroke-linecap="round"/>`; }
+  s += `<circle cx="${cx}" cy="${wy}" r="16" fill="${c1}" stroke="${OL}" stroke-width="4"/></g>`;
+  // claw slashes (tear through the tire)
+  for (let i = 0; i < 3; i++) {
+    const ox = (i - 1) * 34;
+    const d = `M${cx - 70 + ox} ${wy - 96} Q${cx - 30 + ox} ${wy} ${cx + 40 + ox} ${wy + 102} L${cx + 26 + ox} ${wy + 104} Q${cx - 40 + ox} ${wy + 10} ${cx - 84 + ox} ${wy - 92}Z`;
+    s += `<path d="${d}" fill="${OL}" transform="translate(5 5)" opacity=".55"/><path d="${d}" fill="${c1}" stroke="${OL}" stroke-width="4" stroke-linejoin="round"/>`;
+    s += `<path d="M${cx - 72 + ox} ${wy - 88} Q${cx - 36 + ox} ${wy} ${cx + 28 + ox} ${wy + 96}" stroke="#fff" stroke-opacity="${sv ? 0.35 : 0.65}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  }
+  if (sv) s += `<path d="M${cx + 30} ${wy + 100} l0 26 M${cx + 64} ${wy + 98} l0 18 M${cx - 4} ${wy + 102} l0 14" stroke="#a8101c" stroke-width="7" stroke-linecap="round"/>`;
+  return opts.raw ? s : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">${s}</svg>`;
 }

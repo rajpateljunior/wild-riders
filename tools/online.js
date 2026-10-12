@@ -4,7 +4,7 @@ const URL = 'http://localhost:8765/index.html?peerhost=127.0.0.1&peerport=9000';
 const out = process.argv[2];
 (async () => {
   const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
-  const mk = async () => { const c = await b.newContext({viewport:{width:844,height:390}, deviceScaleFactor:1}); const p = await c.newPage(); p.errs = []; p.on('pageerror', e => p.errs.push(e.message)); p.on('console', m => { if (m.type()==='error') p.errs.push(m.text()); }); await p.goto(URL); await p.waitForTimeout(1500); return p; };
+  const mk = async () => { const c = await b.newContext({viewport:{width:844,height:390}, deviceScaleFactor:1}); const p = await c.newPage(); p.errs = []; p.on('pageerror', e => p.errs.push(e.message)); p.on('console', m => { if (m.type()==='error') p.errs.push(m.text()); }); await require('./nospin')(p); await p.goto(URL); await p.waitForTimeout(1500); return p; };
   const H = await mk(), G = await mk();
   const auto = () => { window.readPlayer = (i) => { const h = App.race && App.race.humans[i]; if (!h) return {}; h.ai = h.ai || { skill: 0.9, aggr: 0.9, t: 0, tx: 0, inp: {} }; return Object.assign({}, aiThink(App.race, h, 1/60, h.z)); }; };
   await H.evaluate(auto); await G.evaluate(auto);

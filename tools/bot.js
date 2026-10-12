@@ -5,7 +5,7 @@ const skill = +(process.argv[2] || 0.9), veh = process.argv[3] || 'mtb', rider =
   const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
   const p = await b.newPage({viewport:{width:844,height:390}});
   const errs = []; p.on('pageerror', e => errs.push(e.message));
-  await p.goto('http://localhost:8765/index.html'); await p.waitForTimeout(1200);
+  await require('./nospin')(p); await p.goto('http://localhost:8765/index.html'); await p.waitForTimeout(1200);
   const res = await p.evaluate(async ({skill, veh, rider, only}) => {
     stopDemo(); App.screen = null;
     const out = [];

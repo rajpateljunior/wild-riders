@@ -9,7 +9,7 @@ const W = +(process.argv[3]||844), H = +(process.argv[4]||390);
   const errs = [];
   p.on('pageerror', e => errs.push('PAGEERR ' + e.message));
   p.on('console', m => { if (m.type()==='error') errs.push('CONSOLE ' + m.text()); });
-  await p.goto('http://localhost:8765/index.html');
+  await require('./nospin')(p); await p.goto('http://localhost:8765/index.html');
   await p.waitForTimeout(2500);
   await p.screenshot({path: out + '/title.png'});
   await p.evaluate(() => { App.save.seenHelp = true; App.mode='race'; App.pick={riders:['kaito'],vehs:['mtb'],track:process_track()}; function process_track(){return new URLSearchParams(location.search).get('t')||'f1'} startRace(); });

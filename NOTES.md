@@ -1,6 +1,6 @@
 # Wild Riders: NOTES
 
-Last reviewed: 2026-10-11 (late update: auto-accelerate again, plain road with no stripes/seam lines, light beams and low-health smoke removed; earlier today: 6 vehicles in unlock order, smaller ATV, camera tilt + zoom-out, hand-designed trails, secret cutie mode). Build and test commands are in `README.md`; this file covers decisions, data and risks.
+Last reviewed: 2026-10-12 (corner event feed, Arcade/Savage style, tougher rider gear, emblem logo + icons, new rider order with save migration + refund, Daily Spin).
 
 ## What it is
 A Downhill Domination–style bike and ATV racer for iPhone, iPad and desktop. Anime riders, punches and kicks, throwables, health that slows you down, boost pads, ramps, tricks, six biomes (12 tracks), bots, two-player split screen, and online 2-player with room codes.
@@ -21,10 +21,16 @@ Live: https://rajpateljunior.github.io/wild-riders/ · Repo: `rajpateljunior/wil
 - Secret cutie mode (Raj's request): hold the 2 PLAYERS · ONE SCREEN button for 2 s (tiny pink dot = on; hold again = off). In split screen Player 2 always wins; online, the OTHER phone's rider always wins (works whether Raj hosts or joins; her phone shows nothing). Raj can still place 2nd/3rd. Must not look like a glitch.
 - Online play: direct phone-to-phone WebRTC via PeerJS with room codes. Host simulates bots; each player owns their own health.
 - No image or audio files: art is SVG drawn in code, sound is WebAudio.
+- On-screen text (Raj: it blocked the view): trick/hit/pickup messages are a small fading feed in the TOP-RIGHT corner under the timer (`drawHUD`, "event feed"); damage shows as a red "-N" next to the HP bar; hits flash red on the screen EDGES only; "STAY ON THE TRAIL!" sits under the progress bar. Only the countdown, GO! and the finish place still use the middle (Raj approved). Never draw gameplay text over the centre.
+- Two styles, switched in Settings → Style (`save.settings.tone`, `TONE` / `SAVAGE()` in `core.js`): **ARCADE** (default, bright, anime-cool, kid friendly) and **SAVAGE** (Raj asked for grittier with "a little blood and gore"): darker colour grade (`drawSavageGrade`), red visors, scratched/cracked/bloodied gear, blood droplets on hits (`bloodBurst` in `game.js`) and blood splats on the screen edges (`drawBloodSplats`). Kept cartoon-level on purpose: no dismemberment or realistic gore. Style is per device and never changes the rules, so online players can differ. Art caches are keyed by tone.
+- Riders look tougher (Raj): full-face helmets with dark visors and glowing eyes, cheek guards, shoulder armor and kidney belt (`GEAR`, `backHead`, `armorBack`, `portraitGear` in `art.js`). Signature looks: Kaito centre fin + #7, Bruno riveted brow guard, Yuki armored bunny ears + ninja mask + scarf, Zara gold crest + coin band + scarf, Priya flame fins + braid, Rex steel spikes + chain.
+- Home screen shows the emblem (claw-slashed spiked wheel in a shield, crossed bolts, `emblemSVG()` in `art.js`) instead of rider portraits; the wordmark has three claw slashes; the attract-mode race plays behind. App icons are rendered from the same emblem (`node tools/icons.js`).
+- Rider unlock order (Raj): Kaito, Bruno (free) → Yuki 1200 → Zara 1500 → Priya 1800 → Rex 2200. Bruno is the free 2nd starter (split screen needs two riders).
+- Daily Spin (Raj chose a wheel): offered automatically the first time the game is opened each day (device midnight), plus a DAILY SPIN button top-left with a countdown. 8 slices: 100 / 250 / 500 / 1500 jackpot coins, or a one-race perk: START BOOST (full meter), SHIELD (blocks first hit), POWER THROWS (3 items, +40% throw damage), DOUBLE COINS. Weights in `WHEEL` (`src/spin.js`): jackpot 2%. 7 days in a row → day 7 is a guaranteed 500 or 1500. Perk waits in `save.perk`, shows as a chip on the home screen and in the race HUD, applies to Player 1's next race and is used up.
 
 ## Architecture
 - **Source of truth is `src/`.** `index.html` and `sw.js` are build outputs. After editing, run `python3 tools/build.py`, then commit `src/`, `index.html` and `sw.js` together. Never hand-edit `index.html`.
-- `tools/build.py` inlines `src/style.css` and the JS files (order: core, data, art, art_world, audio, track, render, game, input, net, ui, main) into `src/shell.html`, and stamps `sw.js` with a cache name `wild-riders-<hash of assets>`. So the cache name bumps automatically on any asset change.
+- `tools/build.py` inlines `src/style.css` and the JS files (order: core, data, art, art_world, audio, track, render, game, input, net, ui, spin, main) into `src/shell.html`, and stamps `sw.js` with a cache name `wild-riders-<hash of assets>`. So the cache name bumps automatically on any asset change.
 - Module map is in `README.md`.
 - Vendored libs and assets: `peerjs.min.js` (v1.5.4), `fonts/` (Bangers, Chakra Petch), `icons/`.
 - Service worker is cache-first with background refresh and ignores cross-origin requests.
@@ -38,7 +44,8 @@ Live: https://rajpateljunior.github.io/wild-riders/ · Repo: `rajpateljunior/wil
 - Simulated (24 split races, weak and decent partner; 2 full online races both ways): she won every one; Raj usually 2nd. If she stops completely, everyone else waits just short of the line (accepted by Raj: "she should still win regardless").
 
 ## Data tables (`src/data.js`)
-- `RIDERS`: kaito and priya (free), bruno 1200, yuki 1500, zara 1800, rex 2200 coins.
+- `RIDERS` (array order = unlock order): kaito, bruno (free), yuki 1200, zara 1500, priya 1800, rex 2200. `OLD_RIDER_COST` keeps the pre-2026-10-12 prices (kaito/priya 0, bruno 1200, yuki 1500, zara 1800, rex 2200), used only for the refund.
+- `WHEEL` / `PERK_NAMES` in `src/spin.js`: Daily Spin slices and weights.
 - `VEHICLES` (unlock order): mtb, bmx (free), Enduro E-Bike 1500 (boost regen), dirt bike 2000, ATV 2600, Sport Quad 3400. Fields: `w` hit width, `sw` drawn width, `shove`, `regen`.
 - `ITEMS`: 12 throwables (pinecone, pear, snowball, coconut, magma, iceshard, shuriken, chili, boulder, snowburst, sandbomb, paint).
 - `BIOMES` (stars to unlock): Redwood Run 0, Saffron Dunes 3, Glacier Peak 7, Monsoon Ghats 11, Ember Caldera 15, Aurora Tundra 19.
@@ -47,9 +54,11 @@ Live: https://rajpateljunior.github.io/wild-riders/ · Repo: `rajpateljunior/wil
 - `PAYOUT` (coins by place): 600, 420, 300, 220, 170, 130, 100, 80. `UPG_COST` per level: 400, 900, 1700. `UPGRADES`: gearing, tires, armor. `TRICKS`: 4.
 
 ## Save format
-- `localStorage` key `wild-riders-save-v1`, object with `v: 1`: `{ v, tl, coins, stars:{trackId:n}, best:{trackId:…}, riders:[ids], vehs:[ids], upg:{…}, last:{…}, settings:{music,sfx,diff,gfx}, seenHelp, races }`. Starts with 500 coins, riders kaito and priya, vehicles mtb and bmx.
+- `localStorage` key `wild-riders-save-v1`, object with `v: 1`: `{ v, tl, rl, coins, stars:{trackId:n}, best:{trackId:…}, riders:[ids], vehs:[ids], upg:{…}, last:{…}, settings:{music,sfx,diff,gfx,tone}, seenHelp, races, spin:{last,streak,seen}, perk, note }`. Starts with 500 coins, riders kaito and bruno, vehicles mtb and bmx. `spin`, `perk`, `note`, `tone` are optional; older saves without them load fine.
 - `loadSave()` merges onto `defaultSave()` but **only accepts `v === 1`**. Any save-format change must keep reading v1 saves, and if the version is bumped the loader must migrate rather than fall back to defaults (which would wipe progress).
 - `tl` = trail-layout generation (2 since the redesign). `migrateSave()` clears `best` times once when `tl` < 2; everything else is kept. Old save codes still load.
+- `rl` = rider-lineup generation (2 since 2026-10-12). Raj's rule: the rider order changes for EVERYONE, only riders reset, all other progress stays. `migrateRiders()` runs once when `rl` < 2: copies the untouched save to `localStorage` key `wild-riders-save-v1-backup-rl1` (only if that key is empty), sets `riders` to kaito+bruno, refunds every coin paid for riders at the OLD price, fixes `last.rider/rider2` if they're no longer owned, sets `rl: 2`, and queues `note` → the one-time "RIDER LINEUP UPDATED" popup. Nothing else is touched. `boot()` saves straight after loading so it can't run twice. Old `WILDR1-` codes go through the same migration when loaded; `encodeSave` strips `note`. Tested by `tools/migrate_test.js` (fresh, veteran with all riders, mid-way, older-layout saves, save codes, re-run). To undo for a player: copy the backup key back over the save key (riders, coins).
+- Daily Spin clock guard: `spin.seen` remembers the latest time seen, so moving the phone clock BACK never gives another spin. Moving it FORWARD can't be prevented offline (accepted).
 - Copy-and-paste save code: prefix `WILDR1-` followed by base64 of the JSON (`encodeSave` / `decodeSave`, also require `v === 1`).
 - Install hint dismissal: `localStorage` key `wr-install-dismissed`.
 
@@ -64,9 +73,10 @@ Road slices are drawn near to far as separate shapes, and canvas anti-aliasing l
 Never use `scrollIntoView` inside a screen: on iOS/Chromium it also scrolls the `overflow:hidden` `.screen` sideways, which shifted the whole Choose Your Ride screen right (Dirt Bike selected). `scrollSel()` in `src/ui.js` scrolls only the card strip and resets the screen's scroll.
 
 ## Tests (Playwright, Chromium)
-Listed in `README.md`: bot drives all tracks, screenshots, menus, touch, auto-accelerate check (`tools/throttle.js`), offline, online. Serve the folder first (`python3 -m http.server 8765`). Latest session: all 12 trails finishable by the bot; auto-accelerate test passes; offline passes; screenshots at 844x390, 1180x820 and split screen show no seam lines. Online play and cutie mode were not re-run after this change (they do not touch the changed code).
+Listed in `README.md`: bot drives all tracks, screenshots, menus, touch, auto-accelerate check (`tools/throttle.js`), offline, online, save migration (`tools/migrate_test.js`), Daily Spin (`tools/spin_test.js`). Tests that load the game call `tools/nospin.js` first so today's spin popup doesn't cover the screen. Online test needs a local PeerServer on 127.0.0.1:9000 (npm `peer`, `PeerServer({port:9000, host:'127.0.0.1'})`). Serve the folder first (`python3 -m http.server 8765`). 2026-10-12 session: QA tap-through at 844x390 and 1180x820, all 12 trails finishable, throttle, touch, offline, online (local PeerServer), migration and spin tests all pass; screenshots checked in both styles and split screen. Previous session: all 12 trails finishable by the bot; auto-accelerate test passes; offline passes; screenshots at 844x390, 1180x820 and split screen show no seam lines. Online play and cutie mode were not re-run after this change (they do not touch the changed code).
 
 ## Known issues / untested
+- 2026-10-12 changes not seen on a real iPhone yet: new Home Screen icon, wheel spin animation smoothness, Savage colour grade cost on older phones, corner-feed readability at arm's length. The rider migration was tested only on simulated saves, not Raj's real phone data (the backup key exists if anything looks wrong).
 - Auto-accelerate stick (left/right slider) and hairpin difficulty not tried on a real iPhone yet. With the bike always at full speed, hairpins may feel harder: tuning knobs are hairpin strength `PIN` in `track.js` and `handling` in `src/data.js`. Not checked: whether Raj meant exactly these effects by "the flashing light" (see Design decisions); each is one small edit to restore.
 - Not verified on a real iPhone or iPad by this session: touch feel, iOS audio, Home Screen fullscreen behavior. The latest commit fixed a landscape cut-off in the iOS Home Screen app; I did not re-test it.
 - Online play: some cellular networks block direct WebRTC connections. The README names a relay (e.g. Firebase Realtime Database) as the fallback, not built. Depends on the free public PeerJS server staying available.

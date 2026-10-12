@@ -150,6 +150,8 @@ function setupPWA() {
 
 async function boot() {
   App.save = loadSave();
+  saveGame();                       // persist any one-time migration right away so it can never run twice
+  setTone(App.save.settings.tone);
   resize();
   window.addEventListener("resize", settleViewport);
   window.addEventListener("orientationchange", settleViewport);
@@ -187,5 +189,7 @@ async function boot() {
   setupPWA();
   requestAnimationFrame(frame);
   startDemo();
+  refreshTitleExtras();
+  setTimeout(startupPopups, 600);
 }
 boot();

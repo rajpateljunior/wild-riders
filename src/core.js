@@ -54,5 +54,15 @@ function mix(h1, h2, t) {
 function shade(hex, amt) { return amt < 0 ? mix(hex, "#000000", -amt) : mix(hex, "#ffffff", amt); }
 function rgba(hex, a) { const [r, g, b] = hexToRgb(hex); return `rgba(${r},${g},${b},${a})`; }
 
+/* Tone: "arcade" (bright, anime-cool, kid friendly) or "savage" (dark and gritty, cartoon-level blood).
+   Chosen in Settings, stored in save.settings.tone. It only changes how things LOOK on this device (art, palette,
+   hit effects), never the rules, so online players can each use their own. */
+let TONE = "arcade";
+function setTone(t) {
+  TONE = t === "savage" ? "savage" : "arcade";
+  if (document.body) document.body.classList.toggle("savage", TONE === "savage");
+}
+const SAVAGE = () => TONE === "savage";
+
 const IS_TOUCH = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 const now = () => performance.now() / 1000;

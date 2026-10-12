@@ -32,6 +32,7 @@ function makeRiderEntity(rdef, vdef, opts) {
     invuln: 0, flash: 0, wobble: 0, blindT: 0, burnT: 0, shake: 0, fovKick: 0, wipeT: 0,
     trick: null, chain: 0, trickPts: 0, takedowns: 0, wipes: 0,
     finished: false, finishTime: 0, place: 0, popups: [], lastSeg: 0, lastPad: -99,
+    dmgT: 0, dmgAmt: 0, bloodT: 0, bloodSeed: 1, perk: null, shield: 0, coinMul: 1,
     ai: opts.human ? null : { skill: opts.skill || 0.85, aggr: 0.5 + Math.random() * 0.5, t: 0, tx: 0, inp: {} },
     sprites: null, face: null,
   };
@@ -95,7 +96,7 @@ async function createRace(cfg, onProgress) {
   });
   // sprites (prebuilt per rider+vehicle)
   for (const e of riders) {
-    const key = e.rider.vid || e.rider.id;
+    const key = (e.rider.vid || e.rider.id) + ":" + TONE;      // art differs per tone, so each tone has its own cache
     if (!riderSpriteCache[key + ":" + e.veh.id]) {
       const out = {};
       await Promise.all(RIDER_POSES.map(async (pose) => {
@@ -122,7 +123,7 @@ async function createRace(cfg, onProgress) {
 
 const faceCache = {};
 async function faceIcon(r) {
-  const key = r.vid || r.id;
+  const key = (r.vid || r.id) + ":" + TONE;
   if (faceCache[key]) return faceCache[key];
   // crop the portrait head into a round icon
   const c = await svgToCanvas(portraitSVG(r), 150, 195);
@@ -214,6 +215,7 @@ function updateRider(race, e, inp, dt) {
   e.hurtT -= dt; e.atkT -= dt; e.atkCD -= dt; e.invuln -= dt; e.flash -= dt * 2; e.wobble -= dt;
   e.blindT -= dt; e.padT -= dt; e.meleeImm -= dt; e.shake = Math.max(0, e.shake - dt * 30); e.comboT -= dt;
   e.hpShow = lerp(e.hpShow, e.hp, Math.min(1, dt * 6));
+  e.dmgT -= dt; e.bloodT -= dt;
   updatePopups(e, dt);
   if (e.burnT > 0) { e.burnT -= dt; damage(race, e, 5 * dt, null, "burn", true); }
 
@@ -464,15 +466,26 @@ function damage(race, e, amt, by, kind, silent) {
     return;
   }
   if (e.invuln > 0 && (kind === "melee" || kind === "item" || kind === "crash")) return;
+  if (e.shield > 0 && (kind === "melee" || kind === "item" || kind === "crash" || kind === "bump")) {      // Daily Spin perk: blocks the first hit
+    e.shield = 0; e.invuln = 0.7; e.flash = 0;
+    popup(e, "SHIELD BLOCKED IT!", "#2bd9c5", true);
+    race.events.push({ snd: "unlock", e });
+    return;
+  }
   if (kind === "melee") { if (e.meleeImm > 0) return; e.meleeImm = 0.38; }
   // bots hit humans a bit softer (scaled by difficulty) so a good rider isn't ganged into constant wipeouts
   if (by && !by.human && e.human) amt *= [0.6, 0.78, 0.95][race.cfg.difficulty ?? 1];
   if (e === cutieFav(race)) amt *= 0.55;
   e.hp -= amt * (1 - e.armor);
-  if (!silent) { e.flash = 1; e.hurtT = Math.max(e.hurtT, 0.35); e.wobble = Math.max(e.wobble, 0.5); }
+  if (!silent) {
+    e.flash = 1; e.hurtT = Math.max(e.hurtT, 0.35); e.wobble = Math.max(e.wobble, 0.5);
+    if (e.human) { e.dmgAmt = (e.dmgT > 0 ? e.dmgAmt : 0) + amt * (1 - e.armor); e.dmgT = 1.1; }   // number shown on the HP bar
+    if (SAVAGE() && amt >= 6) bloodBurst(race, e, amt >= 14 ? 2 : 1);
+  }
   if (e.hp <= 0) {
     e.hp = 0; e.wipeT = 1.8; e.trick = null; e.wipes++; e.vh = 0;
     popup(e, "WIPEOUT!", "#ff3b3b", true);
+    if (SAVAGE()) bloodBurst(race, e, 3);
     race.events.push({ snd: "wipe", e });
     if (by) {
       by.takedowns++;
@@ -558,7 +571,7 @@ function updateProjectiles(race, dt) {
       if (o === p.owner || o.wipeT > 0 || o.finished || o.h > 700 || o.remote) continue;
       if (Math.abs(o.z - p.z) < 200 && Math.abs(o.x - p.x) < 0.3) {
         if (o.invuln > 0) { hit = true; break; }
-        damage(race, o, it.dmg, p.owner, "item");
+        damage(race, o, it.dmg * (p.owner.itemMul || 1), p.owner, "item");
         o.speed *= it.slow; o.hurtT = Math.max(o.hurtT, 0.5);
         if (it.burn) o.burnT = 2.4;
         if (it.blind) { o.blindT = 1.6; o.blindCol = it.col; }
@@ -607,6 +620,13 @@ function riderCollisions(race) {
 function spawnFx(race, z, x, h, col, size, life, vh = 0) {
   if (race.fx.length > 220) return;
   race.fx.push({ type: "fx", z, x, h, col, size, life, max: life, vh, vx: rnd(-0.3, 0.3) });
+}
+/* Savage tone only: cartoon-level blood. Flying droplets around the rider, plus (for the rider you are playing) a few
+   splats on the screen edges. No gore, no body damage: just red. */
+function bloodBurst(race, e, power) {
+  const n = 4 + power * 4;
+  for (let k = 0; k < n; k++) spawnFx(race, e.z + rnd(-40, 40), e.x + rnd(-0.12, 0.12), 350 + Math.random() * 250, k % 3 ? "#a8101c" : "#d4202e", 24 + Math.random() * 26, 0.5 + Math.random() * 0.5, 500 + Math.random() * 900);
+  if (e.human) { e.bloodT = 0.9 + power * 0.35; e.bloodSeed = (Math.random() * 1e6) | 0; e.bloodPow = power; }
 }
 function updateFx(race, dt) {
   for (const f of race.fx) { f.life -= dt; f.h += f.vh * dt; f.vh -= 1800 * dt; if (f.h < 0) { f.h = 0; f.vh = 0; } f.x += f.vx * dt; }

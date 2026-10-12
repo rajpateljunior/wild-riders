@@ -7,7 +7,7 @@ const out = process.argv[2] || 'art.png';
   const html = `<html><body style="margin:0;background:#556"><div id=g style="display:flex;flex-wrap:wrap;gap:6px;padding:6px"></div><script>${src}
   const g=document.getElementById('g');
   const add=(svg,w,bg='#334')=>{const d=document.createElement('div');d.style.cssText='background:'+bg+';width:'+w+'px';d.innerHTML=svg;d.firstChild.style.width='100%';d.firstChild.style.height='auto';g.appendChild(d);};
-  const mode='${process.argv[3]||'all'}';
+  const mode='${process.argv[3]||'all'}'; if('${process.argv[6]||''}'==='savage') setTone('savage');
   if(mode==='all'||mode==='por') RIDERS.forEach(r=>add(portraitSVG(r),400));
   if(mode==='all'||mode==='back') RIDERS.forEach((r,i)=>['mtb','bmx','dirt','atv'].forEach(v=>add(riderBackSVG(r,v,'ride',0),150,'#8a9')));
   if(mode==='poses') ['ride','punchL','punchR','kickL','kickR','hurt','nohand','super','cancan'].forEach(p=>add(riderBackSVG(RIDERS[${process.argv[4]||0}],'${process.argv[5]||'mtb'}',p,0),150,'#8a9'));

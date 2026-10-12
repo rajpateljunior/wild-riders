@@ -10,7 +10,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
 
 JS_ORDER = ["core.js", "data.js", "art.js", "art_world.js", "audio.js",
-            "track.js", "render.js", "game.js", "input.js", "net.js", "ui.js", "main.js"]
+            "track.js", "render.js", "game.js", "input.js", "net.js", "ui.js", "spin.js", "main.js"]
 
 def main():
     shell = (SRC / "shell.html").read_text()

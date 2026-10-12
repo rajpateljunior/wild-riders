@@ -5,7 +5,7 @@ const out = process.argv[2], W = +process.argv[3], H = +process.argv[4];
   const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
   const ctx = await b.newContext({viewport:{width:W,height:H}, deviceScaleFactor:2, hasTouch:true, isMobile:true});
   const p = await ctx.newPage(); const errs=[]; p.on('pageerror', e => errs.push(e.message));
-  await p.goto('http://localhost:8765/index.html'); await p.waitForTimeout(2000);
+  await require('./nospin')(p); await p.goto('http://localhost:8765/index.html'); await p.waitForTimeout(2000);
   const tag = `${W}x${H}`;
   await p.screenshot({path:`${out}/m-title-${tag}.png`});
   await p.click('[data-act="race"]'); await p.waitForTimeout(400); await p.screenshot({path:`${out}/m-rider-${tag}.png`});

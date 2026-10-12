@@ -10,7 +10,7 @@ const log = (...a) => console.log(`[${W}x${H}]`, ...a);
   const T = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x,y,id]) => ({x, y, id})) });
   const tap = async (sel) => { await p.tap(sel, { force: true }); await p.waitForTimeout(350); };
   const vis = (sel) => p.evaluate((s) => { const e = document.querySelector(s); if (!e) return 'missing'; const r = e.getBoundingClientRect(); return (r.width > 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1 && r.left >= -1 && r.top >= -1) ? 'ok' : `offscreen ${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.right)},${Math.round(r.bottom)}`; }, sel);
-  await p.goto('http://localhost:8765/index.html'); await p.waitForTimeout(2200);
+  await require('./nospin')(p); await p.goto('http://localhost:8765/index.html'); await p.waitForTimeout(2200);
   for (const s of ['[data-act="race"]','[data-act="split"]','[data-act="online"]','[data-act="garage"]','[data-act="settings"]']) log('title btn', s, await vis(s));
   // single race via taps
   await tap('[data-act="race"]'); log('rider screen', await p.evaluate(() => App.screen), 'go', await vis('#rider-go'));

@@ -123,8 +123,37 @@ function renderView(ctx, vp, race, me, tnow) {
   ctx.save();
   ctx.beginPath(); ctx.rect(vp.x, vp.y, w, h); ctx.clip();
   ctx.translate(vp.x, vp.y);
+  if (SAVAGE()) drawSavageGrade(ctx, w, h);
   if (!race.demo) { drawScreenFX(ctx, w, h, me, race, tnow); drawHUD(ctx, w, h, me, race, tnow); }
   ctx.restore();
+}
+
+/* Savage tone: darker, warmer, grittier picture (a multiply tint plus dark edges). The HUD is drawn after this, so it stays bright. */
+function drawSavageGrade(ctx, w, h) {
+  ctx.globalCompositeOperation = "multiply";
+  ctx.fillStyle = "#b8a6a6"; ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = "source-over";
+  const g = ctx.createRadialGradient(w / 2, h / 2, h * 0.4, w / 2, h / 2, h * 1.05);
+  g.addColorStop(0, "rgba(14,0,4,0)"); g.addColorStop(1, "rgba(14,0,4,.6)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+}
+
+/* Savage tone: blood splats on the screen EDGES after a hard hit (never in the middle, so the road stays visible). */
+function drawBloodSplats(ctx, w, h, me) {
+  const a = clamp(me.bloodT / 0.6, 0, 1);
+  const R = rng(me.bloodSeed || 1);
+  const n = 4 + (me.bloodPow || 1) * 3;
+  for (let i = 0; i < n; i++) {
+    const ang = R() * TAU, rr = 0.9 + R() * 0.25;
+    const x = w / 2 + Math.cos(ang) * w * 0.5 * rr, y = h / 2 + Math.sin(ang) * h * 0.55 * rr;
+    const s = h * (0.035 + R() * 0.06);
+    ctx.globalAlpha = a * 0.88;
+    ctx.fillStyle = R() < 0.5 ? "#8f0f1a" : "#b3121f";
+    ctx.beginPath(); ctx.arc(x, y, s, 0, TAU); ctx.fill();
+    for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(x + (R() - 0.5) * s * 3.2, y + (R() - 0.5) * s * 3.2, s * (0.2 + R() * 0.3), 0, TAU); ctx.fill(); }
+    ctx.fillRect(x - s * 0.18, y, s * 0.36, s * (1.4 + R() * 2.2) * (1 - a * 0.4));      // drip
+  }
+  ctx.globalAlpha = 1;
 }
 
 function drawSky(ctx, w, h, hz, biome, t, me) {
@@ -469,11 +498,13 @@ function drawScreenFX(ctx, w, h, me, race, t) {
     ctx.stroke();
   }
   // damage flash
+  // (red glow on the screen edges only: the middle stays clear so you can still see the road)
   if (me.flash > 0) {
-    const g = ctx.createRadialGradient(w / 2, h / 2, h * 0.25, w / 2, h / 2, h * 0.85);
-    g.addColorStop(0, "rgba(255,40,40,0)"); g.addColorStop(1, `rgba(255,30,30,${me.flash * 0.5})`);
+    const g = ctx.createRadialGradient(w / 2, h / 2, h * 0.5, w / 2, h / 2, h * 0.95);
+    g.addColorStop(0, "rgba(255,40,40,0)"); g.addColorStop(1, `rgba(${SAVAGE() ? "170,10,20" : "255,30,30"},${me.flash * 0.62})`);
     ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
   }
+  if (SAVAGE() && me.bloodT > 0) drawBloodSplats(ctx, w, h, me);
   // paint / sand splat blind
   if (me.blindT > 0) {
     const a = clamp(me.blindT / 1.2, 0, 1);
@@ -528,6 +559,12 @@ function drawHUD(ctx, w, h, me, race, t) {
   ctx.fillStyle = hcol; roundRect(ctx, hx + 2, by + 2, (bw - 4) * hp, bh - 4, (bh - 4) / 2); ctx.fill();
   ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fillRect(hx + bh / 2, by + 3, Math.max(0, (bw - 4) * hp - bh), (bh - 6) * 0.35);
   hudText(ctx, "HP", hx + bw + u * 0.8, by + bh * 0.9, u * 2.2, "#fff");
+  // damage taken, shown on the health bar instead of floating over the rider
+  if (me.dmgT > 0 && me.dmgAmt >= 1) {
+    ctx.globalAlpha = clamp(me.dmgT / 0.5, 0, 1);
+    hudText(ctx, "-" + Math.round(me.dmgAmt), hx + bw + u * 5.4, by + bh * 0.95, u * 2.6, "#ff5a5a");
+    ctx.globalAlpha = 1;
+  }
   // boost meter
   const my = by + bh + u * 1.1;
   ctx.fillStyle = "rgba(10,8,20,.6)"; roundRect(ctx, hx, my, bw, bh * 0.75, bh * 0.37); ctx.fill();
@@ -544,6 +581,12 @@ function drawHUD(ctx, w, h, me, race, t) {
     ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 1.5; ctx.stroke();
     if (me.items[i]) ctx.drawImage(race.assets.items[me.items[i]], ix + u * 0.4, iy + u * 0.4, u * 4, u * 4);
   }
+  // Daily Spin perks that are active this race (small chips under the item slots)
+  let cy2 = iy + u * 5.6;
+  const chip = (txt, col) => { hudText(ctx, txt, hx, cy2, u * 2, col, "left"); cy2 += u * 2.3; };
+  if (me.shield > 0) chip("SHIELD READY", "#2bd9c5");
+  if (me.coinMul > 1) chip("DOUBLE COINS", "#ffd23f");
+  if (me.itemMul > 1) chip("POWER THROWS", "#ff8a1c");
   // speed (bottom center-ish)
   const kmh = Math.round(me.speed / 11000 * 88);
   const sx = w / 2, sy = h - (race.touch ? u * 2.4 : u * 3);
@@ -584,16 +627,19 @@ function drawHUD(ctx, w, h, me, race, t) {
     hudText(ctx, "!", ax, ay + u * 0.6, u * 3, "#fff", "center", "#ff3b3b");
     ctx.globalAlpha = 1;
   }
-  // trick / event popups
-  let py = h * 0.3;
+  // event feed: tricks, hits, pickups. Small lines stacked in the top-right corner (under the timer) so nothing
+  // ever covers the rider or the road in the middle of the screen. Newest line is on top and fades after ~1.2 s.
+  let fy = top + u * 8.6;
   for (const p of me.popups) {
-    const a = clamp(p.t / 0.3, 0, 1) * clamp((p.life) / 0.4, 0, 1);
+    const a = clamp(p.t / 0.18, 0, 1) * clamp(p.life / 0.4, 0, 1);
+    const s = u * (p.big ? 3.1 : 2.3);
     ctx.globalAlpha = a;
-    const s = u * (p.big ? 7 : 4.2) * (1 + Math.max(0, 0.3 - p.t) * 1.5);
-    hudText(ctx, p.txt, w / 2, py, s, p.col || "#fff", "center");
-    if (p.sub) hudText(ctx, p.sub, w / 2, py + s * 0.7, s * 0.5, "#ffd23f", "center");
+    const fx = w - padR + (1 - clamp(p.t / 0.2, 0, 1)) * u * 4;
+    hudText(ctx, p.txt, fx, fy, s, p.col || "#fff", "right");
+    fy += s * 0.95;
+    if (p.sub) { hudText(ctx, p.sub, fx, fy, s * 0.62, "#ffd23f", "right"); fy += s * 0.62; }
     ctx.globalAlpha = 1;
-    py += s * (p.sub ? 1.4 : 1.05);
+    fy += u * 0.5;
   }
   // countdown
   if (race.countdown > 0) {
@@ -607,7 +653,8 @@ function drawHUD(ctx, w, h, me, race, t) {
     hudText(ctx, ordinal(me.place).toUpperCase() + " PLACE!", w / 2, h * 0.42, u * 9, me.place === 1 ? "#ffd23f" : "#fff", "center");
     hudText(ctx, fmtTime(me.finishTime), w / 2, h * 0.42 + u * 7, u * 4.2, "#bff6ff", "center");
   }
-  if (me.wrongWay) hudText(ctx, "STAY ON THE TRAIL!", w / 2, h * 0.6, u * 4, "#ff8a1c", "center");
+  // warning sits under the progress bar at the top, not over the road
+  if (me.wrongWay) hudText(ctx, "STAY ON THE TRAIL!", w / 2, pby + u * (race.avalanche || race.stormWarn > 0 ? 9.2 : 5), u * 2.8, "#ff8a1c", "center");
 }
 
 function fmtTime(t) {

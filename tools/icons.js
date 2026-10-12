@@ -1,4 +1,4 @@
-// Renders the app icons from the game's own art (Kaito portrait over a sunset mountain).
+// Renders the app icons from the game's emblem (claw-slashed spiked wheel in a shield) over a sunset mountain. No characters.
 const { chromium } = require('/opt/npm-tools/node_modules/playwright');
 const fs = require('fs'), path = require('path');
 (async () => {
@@ -8,15 +8,13 @@ const fs = require('fs'), path = require('path');
   for (const [name, size, mask] of shots) {
     const p = await b.newPage({viewport:{width:size,height:size}});
     const html = `<html><body style="margin:0"><div id=i></div><script>${src}
-      const r = RIDERS[0]; const por = portraitSVG(r).replace(/^<svg[^>]*>/,'').replace(/<\\/svg>$/,'');
-      const pad = ${mask} ? 0.16 : 0;
+      const emb = emblemSVG({ raw: true, savage: false, noGlow: true });
+      const pad = ${mask} ? 0.2 : 0.04;
       document.getElementById('i').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 512 512">'+
       '<defs><radialGradient id="bgx" cx="50%" cy="30%" r="80%"><stop offset="0" stop-color="#ffd23f"/><stop offset=".45" stop-color="#ff6a3d"/><stop offset=".8" stop-color="#c2185b"/><stop offset="1" stop-color="#3a1257"/></radialGradient></defs>'+
       '<rect width="512" height="512" fill="url(#bgx)"/>'+
-      '<g opacity=".25" stroke="#fff" stroke-width="6">'+Array.from({length:14},(_, k)=>'<path d="M'+(k*40-40)+' 0 L'+(k*40+120)+' 512"/>').join('')+'</g>'+
-      '<path d="M0 380 L90 260 L150 310 L250 190 L340 300 L410 240 L512 340 L512 512 L0 512Z" fill="#2a1240"/>'+
-      '<path d="M250 190 L290 238 L270 232 L250 250 L232 232 L214 238Z" fill="#fff" opacity=".85"/>'+
-      '<g transform="translate('+(256-150*(1-pad)*1.25)+','+(60+pad*80)+') scale('+(1.25*(1-pad))+')"><svg viewBox="0 -50 300 390" width="300" height="390">'+por+'</svg></g>'+
+      '<path d="M0 400 L90 290 L150 330 L250 230 L340 320 L410 270 L512 360 L512 512 L0 512Z" fill="#2a1240"/>'+
+      '<g transform="translate('+(256-200*(1-pad)*1.28)+','+(256-200*(1-pad)*1.28)+') scale('+(1.28*(1-pad))+')">'+emb+'</g>'+
       '</svg>';
     </script></body></html>`;
     await p.setContent(html); await p.waitForTimeout(150);

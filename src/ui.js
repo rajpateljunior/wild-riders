@@ -2,21 +2,46 @@
 
 const SAVE_KEY = "wild-riders-save-v1";
 function defaultSave() {
-  return { v: 1, tl: 2, coins: 500, stars: {}, best: {}, riders: ["kaito", "priya"], vehs: ["mtb", "bmx"], upg: {},
-    last: { rider: "kaito", rider2: "priya", veh: "mtb", veh2: "bmx", track: "f1" },
-    settings: { music: true, sfx: true, diff: 1, gfx: "auto" }, seenHelp: false, races: 0 };
+  return { v: 1, tl: 2, rl: 2, coins: 500, stars: {}, best: {}, riders: ["kaito", "bruno"], vehs: ["mtb", "bmx"], upg: {},
+    last: { rider: "kaito", rider2: "bruno", veh: "mtb", veh2: "bmx", track: "f1" },
+    settings: { music: true, sfx: true, diff: 1, gfx: "auto", tone: "arcade" }, seenHelp: false, races: 0 };
 }
 function loadSave() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
-    if (s && s.v === 1) return migrateSave(Object.assign(defaultSave(), { tl: 1 }, s, { settings: Object.assign(defaultSave().settings, s.settings || {}), last: Object.assign(defaultSave().last, s.last || {}) }));
+    if (s && s.v === 1) return migrateSave(Object.assign(defaultSave(), { tl: 1, rl: 1 }, s, { settings: Object.assign(defaultSave().settings, s.settings || {}), last: Object.assign(defaultSave().last, s.last || {}) }));
   } catch (_) {}
   return defaultSave();
 }
-// Still save format v1. `tl` = track-layout generation: the trails were redesigned in generation 2, so best times
-// from older layouts are cleared once (stars, coins, riders, rides and upgrades are kept).
+// Still save format v1. Two one-time migrations, each tracked by a generation number in the save (so they never run twice):
+//  `tl` = track-layout generation: the trails were redesigned in generation 2, so best times from older layouts are
+//         cleared once (stars, coins, riders, rides and upgrades are kept).
+//  `rl` = rider-lineup generation: generation 2 moved Priya to 5th place in the unlock order and made Bruno the free
+//         second starter. Everyone's UNLOCKED RIDERS reset to Kaito + Bruno and every coin spent on a rider (at the OLD
+//         price) is refunded. NOTHING ELSE is touched: stars, best times, coins, vehicles, upgrades, settings, races.
+//         The untouched save is first copied to its own backup key, and a notice is queued for the next title screen.
+const BACKUP_KEY = "wild-riders-save-v1-backup-rl1";
 function migrateSave(s) {
   if ((s.tl || 1) < 2) { s.best = {}; s.tl = 2; }
+  if ((s.rl || 1) < 2) migrateRiders(s);
+  return s;
+}
+function migrateRiders(s) {
+  try { if (!localStorage.getItem(BACKUP_KEY)) localStorage.setItem(BACKUP_KEY, JSON.stringify(s)); } catch (_) {}   // safety copy of the save as it was before this change
+  const owned = Array.isArray(s.riders) ? s.riders : [];
+  let refund = 0;
+  const paid = [];
+  owned.forEach((id) => {
+    const c = OLD_RIDER_COST[id], r = RIDERS.find((x) => x.id === id);
+    if (c > 0) { refund += c; if (r) paid.push(r.name); }
+  });
+  s.coins = (Number.isFinite(s.coins) ? s.coins : 0) + refund;
+  s.riders = ["kaito", "bruno"];
+  s.last = Object.assign({ rider: "kaito", rider2: "bruno" }, s.last || {});
+  if (!s.riders.includes(s.last.rider)) s.last.rider = "kaito";
+  if (!s.riders.includes(s.last.rider2)) s.last.rider2 = "bruno";
+  s.rl = 2;
+  s.note = { kind: "lineup", refund, paid };      // shown once on the title screen, then deleted
   return s;
 }
 function saveGame() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(App.save)); } catch (_) {} }
@@ -55,7 +80,7 @@ function wireCutieSwitch() {
   b.addEventListener("contextmenu", (e) => e.preventDefault());
   cutieMark();
 }
-function encodeSave() { return "WILDR1-" + btoa(unescape(encodeURIComponent(JSON.stringify(App.save)))); }
+function encodeSave() { const c = Object.assign({}, App.save); delete c.note; return "WILDR1-" + btoa(unescape(encodeURIComponent(JSON.stringify(c)))); }      // (a pending one-time notice never travels in a code)
 function decodeSave(code) {
   try {
     code = code.trim();
@@ -89,22 +114,16 @@ function closeModal() { $("#modal").classList.add("hidden"); }
 
 /* ---------- title ---------- */
 function renderTitle() {
+  // Home screen art: the emblem (no characters) with dust kicking up below it. Redrawn when the tone changes.
   const cast = $("#cast");
-  if (!cast.childElementCount) {
-    const picks = [RIDERS[1], RIDERS[0], RIDERS[3]];
-    const pos = [[2, 0.9], [33, 1.0], [64, 0.92]];
-    picks.forEach((r, i) => {
-      const d = document.createElement("div");
-      d.className = "por";
-      d.style.left = pos[i][0] + "%";
-      d.style.width = 34 * pos[i][1] + "%";
-      d.style.animationDelay = i * 0.4 + "s";
-      d.style.zIndex = i === 1 ? 2 : 1;
-      d.innerHTML = portraitSVG(r);
-      cast.appendChild(d);
-    });
+  if (cast.dataset.tone !== TONE) {
+    cast.dataset.tone = TONE;
+    let dust = "";
+    for (let i = 0; i < 9; i++) dust += `<i style="left:${8 + i * 10}%;animation-delay:${(i * 0.37) % 2.2}s;animation-duration:${1.8 + (i % 3) * 0.5}s"></i>`;
+    cast.innerHTML = `<div class="emblem">${emblemSVG()}</div><div class="dust">${dust}</div>`;
   }
   show("scr-title");
+  refreshTitleExtras();
 }
 
 /* ---------- rider select ---------- */
@@ -307,7 +326,8 @@ function openSettings() {
     <div class="setrow">Sound FX ${seg("sfx", [[true, "ON"], [false, "OFF"]])}</div>
     <div class="setrow">Rival difficulty ${seg("diff", [[0, "EASY"], [1, "NORMAL"], [2, "HARD"]])}</div>
     <div class="setrow">Graphics ${seg("gfx", [["auto", "AUTO"], ["smooth", "SMOOTH"], ["sharp", "SHARP"]])}</div>
-    <p style="font-size:12px;color:var(--mute)">AUTO lowers resolution if your device drops frames. iPhone tip: the silent switch mutes game sound.</p>
+    <div class="setrow">Style ${seg("tone", [["arcade", "ARCADE"], ["savage", "SAVAGE"]])}</div>
+    <p style="font-size:12px;color:var(--mute)">${s.tone === "savage" ? "SAVAGE: dark, gritty, battle-scarred riders and cartoon blood." : "ARCADE: bright, anime-cool and kid friendly."} AUTO graphics lowers resolution if frames drop. iPhone: the silent switch mutes sound.</p>
     <div class="acts"><button class="btn sm" style="--c:#13a89e" data-a="help">HOW TO PLAY</button><button class="btn sm" style="--c:#2b9cff" data-a="code">SAVE CODE</button><button class="btn sm ghost" data-a="close">CLOSE</button></div>`, (box) => {
     $$(".seg", box).forEach((g) => g.querySelectorAll("button").forEach((b) => (b.onclick = () => {
       const k = g.dataset.k; let v = b.dataset.v;
@@ -322,6 +342,9 @@ function openSettings() {
 function applySettings() {
   const s = App.save.settings;
   SFX.setMusic(s.music); SFX.setSfx(s.sfx);
+  const before = TONE;
+  setTone(s.tone);
+  if (TONE !== before && App.screen === "scr-title") { stopDemo(); startDemo(); }     // rebuild the title demo race in the new look
   resize();
 }
 function openHelp(after) {
@@ -355,7 +378,7 @@ function openSaveCode() {
       const s = decodeSave(box.querySelector("#sc-in").value);
       if (!s) { toast("THAT CODE DOESN'T WORK"); return; }
       if (!armed) { armed = true; ev.target.textContent = "TAP AGAIN TO REPLACE"; return; }
-      App.save = migrateSave(Object.assign(defaultSave(), { tl: 1 }, s)); saveGame(); applySettings(); closeModal(); toast("PROGRESS LOADED!"); renderTitle();
+      App.save = migrateSave(Object.assign(defaultSave(), { tl: 1, rl: 1 }, s)); saveGame(); applySettings(); closeModal(); toast("PROGRESS LOADED!"); renderTitle(); setTimeout(startupPopups, 400);
     };
     box.querySelector('[data-a="close"]').onclick = () => { SFX.play("back"); closeModal(); };
   });
@@ -385,6 +408,7 @@ async function launchRace(cfg) {
   const race = await createRace(cfg, (p) => ($("#loading .lb i").style.width = Math.round(10 + p * 90) + "%"));
   App.race = race;
   App.paused = false;
+  if (!race.demo && race.humans[0]) applyPerk(race.humans[0]);        // Daily Spin perk (used up by this race)
   resetInput();
   Input.split = race.split;
   Input.enabled = true;
@@ -462,14 +486,15 @@ function finishRace() {
   let coins = 0;
   race.humans.forEach((h, i) => {
     const pay = PAYOUT[h.place - 1] || 50, td = h.takedowns * 40, tk = Math.floor(h.trickPts / 20);
-    coins += pay + td + tk;
+    const mul = h.coinMul > 1 ? h.coinMul : 1;                 // Daily Spin "double coins" perk
+    coins += (pay + td + tk) * mul;
     const st = starsForPlace(h.place);
     if (App.mode === "race") {
       App.save.stars[tid] = Math.max(App.save.stars[tid] || 0, st);
       if (h.finished && (!App.save.best[tid] || h.finishTime < App.save.best[tid])) { App.save.best[tid] = h.finishTime; html += `<div class="ln" style="color:var(--teal)"><span>NEW BEST TIME</span><span>${fmtTime(h.finishTime)}</span></div>`; }
     }
     html = `${race.humans.length > 1 ? `<div class="nm" style="font:400 22px Bangers;color:${i ? "var(--hot)" : "var(--teal)"}">PLAYER ${i + 1} — ${ordinal(h.place).toUpperCase()}</div>` : `<div class="big">${ordinal(h.place).toUpperCase()}</div><div class="stars">${[1, 2, 3].map((k) => `<span class="${k <= st ? "" : "off"}">★</span>`).join("")}</div>`}
-      <div class="ln"><span>Finish</span><span>+${pay}</span></div><div class="ln"><span>Takedowns × ${h.takedowns}</span><span>+${td}</span></div><div class="ln"><span>Trick points ${h.trickPts}</span><span>+${tk}</span></div>` + html;
+      <div class="ln"><span>Finish</span><span>+${pay}</span></div><div class="ln"><span>Takedowns × ${h.takedowns}</span><span>+${td}</span></div><div class="ln"><span>Trick points ${h.trickPts}</span><span>+${tk}</span></div>` + (mul > 1 ? `<div class="ln" style="color:var(--sun)"><span>DOUBLE COINS (Daily Spin)</span><span>×2</span></div>` : "") + html;
   });
   App.save.coins += coins;
   App.save.races++;
@@ -516,6 +541,8 @@ function stopDemo() { App.demo = null; }
 /* ---------- menu wiring ---------- */
 function wireMenus() {
   wireCutieSwitch();
+  const sb = document.querySelector("#spin-btn");
+  if (sb) sb.addEventListener("click", () => { SFX.unlock(); SFX.play("click"); openDaily(); });
   $$("[data-act]").forEach((b) => b.addEventListener("click", () => {
     if (b.dataset.held) { delete b.dataset.held; return; }      // that was the secret long-press, not a tap
     const a = b.dataset.act;

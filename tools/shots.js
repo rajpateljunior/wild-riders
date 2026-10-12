@@ -6,7 +6,7 @@ const out = process.argv[2], W = +process.argv[3], H = +process.argv[4], tracks 
   const ctx = await b.newContext({viewport:{width:W,height:H}, deviceScaleFactor:2, hasTouch:true, isMobile:true});
   const p = await ctx.newPage();
   const errs=[]; p.on('pageerror', e => errs.push(e.message));
-  await p.goto('http://localhost:8765/index.html'); await p.waitForTimeout(1500);
+  await require('./nospin')(p); await p.goto('http://localhost:8765/index.html'); await p.waitForTimeout(1500);
   for (const t of tracks) {
     await p.evaluate(async ({t, split}) => {
       App.save.seenHelp = true; App.mode = split ? 'split' : 'race';

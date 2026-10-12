@@ -5,7 +5,7 @@ const { chromium } = require('/opt/npm-tools/node_modules/playwright');
   const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
   const ctx = await b.newContext({viewport:{width:844,height:390}, deviceScaleFactor:2, hasTouch:true, isMobile:true});
   const p = await ctx.newPage(); const errs=[]; p.on('pageerror', e => errs.push(e.message));
-  await p.goto('http://localhost:8765/index.html'); await p.waitForTimeout(1500);
+  await require('./nospin')(p); await p.goto('http://localhost:8765/index.html'); await p.waitForTimeout(1500);
   await p.evaluate(async () => { App.save.seenHelp = true; App.mode='race'; App.pick={riders:['kaito'],vehs:['mtb'],track:'f1'}; await startRace(); App.race.countdown = 0; });
   const cdp = await ctx.newCDPSession(p);
   const T = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x,y,id]) => ({x, y, id})) });
