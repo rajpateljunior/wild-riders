@@ -26,8 +26,8 @@ Source lives in `src/`. After editing, rebuild:
 python3 tools/build.py
 ```
 
-That writes `index.html` and stamps a new cache name into `sw.js` (so installed copies update).
-Commit `src/`, `index.html` and `sw.js` together.
+That writes `index.html`, `version.json` and stamps a new cache name into `sw.js` (installed copies then show an UPDATE banner).
+Commit `src/`, `index.html`, `sw.js` and `version.json` together. Before a release, edit `APP_VERSION` / `WHATS_NEW` in `src/update.js`.
 
 | File | What's in it |
 |---|---|
@@ -41,6 +41,7 @@ Commit `src/`, `index.html` and `sw.js` together.
 | `src/audio.js` | Synth SFX, engines, procedural music |
 | `src/ui.js` | Menus, progression, saving + save migrations, results |
 | `src/spin.js` | Daily Spin wheel, race perks, startup popups |
+| `src/update.js` | UPDATE banner, What's New (edit APP_VERSION/WHATS_NEW each release), backup reminder |
 | `src/main.js` | Boot, main loop, PWA glue |
 
 ## Tests (Playwright, Chromium)
@@ -53,6 +54,8 @@ Commit `src/`, `index.html` and `sw.js` together.
 - `node tools/online.js <outdir>` — two browsers race each other online (needs a local PeerServer).
 - `node tools/migrate_test.js` — old saves → new rider order: only riders reset, exact refund, nothing else changes.
 - `node tools/restore_test.js` — older stored progress is offered back and restores correctly; unreadable saves are kept.
+- `node tools/backup_test.js` — backup reminder timing and that its code restores the same progress.
+- `node tools/update_test.js` — UPDATE banner, What's New, progress kept, offline after update (see NOTES).
 - `node tools/spin_test.js` — Daily Spin: one per day, prize saved, clock-rollback guard, streaks, odds, perks.
 - `node tools/icons.js` — re-render the app icons from the emblem.
 

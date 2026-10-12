@@ -183,6 +183,7 @@ function startupPopups() {
   if (App.screen !== "scr-title" || !App.save || App.race) return;
   const spinMaybe = () => { if (App.screen === "scr-title" && spinAvailable()) setTimeout(openDaily, 250); };
   if (bestStoredCopy() && !App.save.note) return restoreOffer(spinMaybe);
+  if (whatsNewDue() && !App.save.note) return openWhatsNew(spinMaybe);
   if (App.save.note && App.save.note.kind === "lineup") return lineupNotice(spinMaybe);
   spinMaybe();
 }

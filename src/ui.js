@@ -559,6 +559,7 @@ function finishRace() {
   }));
   show("scr-results");
   SFX.music(6);
+  setTimeout(maybeBackupReminder, 1400);       // every few races: show the save code so a copy lives outside the game
 }
 
 /* ---------- attract-mode demo race behind the title ---------- */
@@ -581,6 +582,8 @@ function stopDemo() { App.demo = null; }
 /* ---------- menu wiring ---------- */
 function wireMenus() {
   wireCutieSwitch();
+  const ub = document.querySelector("#upd button");
+  if (ub) ub.addEventListener("click", () => { SFX.unlock(); SFX.play("click"); applyUpdate(); });
   const sb = document.querySelector("#spin-btn");
   if (sb) sb.addEventListener("click", () => { SFX.unlock(); SFX.play("click"); openDaily(); });
   $$("[data-act]").forEach((b) => b.addEventListener("click", () => {

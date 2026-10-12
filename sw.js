@@ -1,6 +1,9 @@
-// Wild Riders service worker — offline cache-first with background refresh.
-// Cache name is stamped by tools/build.py from a hash of all assets.
-const CACHE = "wild-riders-cae038bedd";
+// Wild Riders service worker: offline, cache-first, with an "update available" handshake.
+// Cache name is stamped by tools/build.py from a hash of all assets, so ANY change makes a new worker.
+// A new worker takes over as soon as it has cached the new files (so the newest version is used from the next open).
+// The game also checks version.json (never cached) and shows an UPDATE banner so you can switch right away.
+// Saves live in localStorage and are never touched by any of this.
+const CACHE = "wild-riders-05767335d0";
 const ASSETS = [
   './',
   './manifest.webmanifest',
@@ -16,13 +19,15 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // cache: "reload" skips the browser's HTTP cache so the new version is really the new files
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS.map((a) => new Request(a, { cache: "reload" })))));
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("wild-riders-") && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -32,13 +37,12 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // never cache cross-origin (online play signalling)
+  if (url.pathname.endsWith("/version.json")) return; // always ask the network: this is how the game spots a new version
+  // Serve only from THIS version's cache, so files from two versions never mix. Misses go to the network.
   e.respondWith(
-    caches.match(req, { ignoreSearch: true }).then((hit) => {
-      const net = fetch(req).then((res) => {
-        if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
-        return res;
-      }).catch(() => hit);
-      return hit || net;
-    })
+    caches.open(CACHE).then((c) => c.match(req, { ignoreSearch: true }).then((hit) => hit || fetch(req).then((res) => {
+      if (res && res.ok && url.pathname.indexOf("/sw.js") < 0) c.put(req, res.clone());
+      return res;
+    }).catch(() => (req.mode === "navigate" ? c.match("./") : undefined))))
   );
 });

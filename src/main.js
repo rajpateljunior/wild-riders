@@ -124,7 +124,8 @@ function frame(tms) {
 
 /* PWA */
 function setupPWA() {
-  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) navigator.serviceWorker.register("sw.js").catch(() => {});
+  setupUpdates();                       // service worker + "update available" banner (src/update.js)
+  if (location.search.indexOf("u=") >= 0) try { history.replaceState(null, "", location.pathname); } catch (_) {}
   const standalone = window.navigator.standalone || window.matchMedia("(display-mode: standalone)").matches;
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   let dismissed = false;

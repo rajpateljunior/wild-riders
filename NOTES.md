@@ -28,9 +28,17 @@ Live: https://rajpateljunior.github.io/wild-riders/ · Repo: `rajpateljunior/wil
 - Rider unlock order (Raj): Kaito, Bruno (free) → Yuki 1200 → Zara 1500 → Priya 1800 → Rex 2200. Bruno is the free 2nd starter (split screen needs two riders).
 - Daily Spin (Raj chose a wheel): offered automatically the first time the game is opened each day (device midnight), plus a DAILY SPIN button top-left with a countdown. 8 slices: 100 / 250 / 500 / 1500 jackpot coins, or a one-race perk: START BOOST (full meter), SHIELD (blocks first hit), POWER THROWS (3 items, +40% throw damage), DOUBLE COINS. Weights in `WHEEL` (`src/spin.js`): jackpot 2%. 7 days in a row → day 7 is a guaranteed 500 or 1500. Perk waits in `save.perk`, shows as a chip on the home screen and in the race HUD, applies to Player 1's next race and is used up.
 
+## Updates (how a release reaches Raj's phone) — READ BEFORE EVERY RELEASE
+- **Never tell Raj to delete and re-add the Home Screen app.** On iPhone that erases the app's storage, including the save. It cost Raj his progress on 2026-10-12. For the same reason, keep the app icon unchanged unless he asks (iOS only refreshes it on re-add).
+- On every release: edit `APP_VERSION` and `WHATS_NEW` at the top of `src/update.js`, then `python3 tools/build.py` (it stamps `BUILD_ID` into the page and writes `version.json`; commit `version.json` too).
+- How it works (`src/update.js`, `src/sw.template.js`): on open, on return to the front and every 30 min the game fetches `version.json` (no-store; the service worker never caches it). If its `build` differs from the page's `BUILD_ID`, a green **New update available · UPDATE** banner shows on menus (never in a race). UPDATE unregisters the service worker, deletes the `wild-riders-*` caches and reloads from the network; saves are in localStorage and untouched. After reload, a **WHAT'S NEW** popup lists `WHATS_NEW` once per `APP_VERSION` (skipped on brand-new installs). The service worker also self-updates (`skipWaiting`), so ignoring the banner still gets the new version on a later open. GitHub Pages caches files up to ~10 min, so the banner can lag a release by that much.
+- Tell Raj after a release: "open the game, tap UPDATE on the green banner".
+- Backup reminder: after the 3rd race, then every 5 races but at most every 3 days, the results screen shows **BACK UP YOUR PROGRESS** with the save code, COPY and (iPhone) SHARE. Tracked in localStorage `wr-backup` (not in the save).
+- Tests: `tools/update_test.js` (real service worker; needs `WR_UPD_DIR` with `live` = previous release, `v2` = this build, `v3` = this build with APP_VERSION bumped, served on :8795), `tools/backup_test.js`.
+
 ## Architecture
 - **Source of truth is `src/`.** `index.html` and `sw.js` are build outputs. After editing, run `python3 tools/build.py`, then commit `src/`, `index.html` and `sw.js` together. Never hand-edit `index.html`.
-- `tools/build.py` inlines `src/style.css` and the JS files (order: core, data, art, art_world, audio, track, render, game, input, net, ui, spin, main) into `src/shell.html`, and stamps `sw.js` with a cache name `wild-riders-<hash of assets>`. So the cache name bumps automatically on any asset change.
+- `tools/build.py` inlines `src/style.css` and the JS files (order: core, data, art, art_world, audio, track, render, game, input, net, ui, spin, update, main) into `src/shell.html`, and stamps `sw.js` with a cache name `wild-riders-<hash of assets>`. So the cache name bumps automatically on any asset change.
 - Module map is in `README.md`.
 - Vendored libs and assets: `peerjs.min.js` (v1.5.4), `fonts/` (Bangers, Chakra Petch), `icons/`.
 - Service worker is cache-first with background refresh and ignores cross-origin requests.
