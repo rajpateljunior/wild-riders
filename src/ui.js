@@ -7,11 +7,44 @@ function defaultSave() {
     settings: { music: true, sfx: true, diff: 1, gfx: "auto", tone: "arcade" }, seenHelp: false, races: 0 };
 }
 function loadSave() {
+  let raw = null;
   try {
-    const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+    raw = localStorage.getItem(SAVE_KEY);
+    const s = JSON.parse(raw || "null");
     if (s && s.v === 1) return migrateSave(Object.assign(defaultSave(), { tl: 1, rl: 1 }, s, { settings: Object.assign(defaultSave().settings, s.settings || {}), last: Object.assign(defaultSave().last, s.last || {}) }));
   } catch (_) {}
+  // Never lose a save we couldn't read: park the raw text under its own key before starting fresh,
+  // so it can be restored from Settings → Save Code → RESTORE.
+  if (raw) { try { localStorage.setItem(RESCUE_KEY, raw); } catch (_) {} }
   return defaultSave();
+}
+const RESCUE_KEY = "wild-riders-save-v1-rescue";
+// Progress score used to decide whether a stored copy is worth offering back (stars count most, then rides, upgrades, races).
+function progressScore(s) {
+  if (!s || typeof s !== "object") return 0;
+  const st = Object.values(s.stars || {}).reduce((a, b) => a + (+b || 0), 0);
+  const up = Object.values(s.upg || {}).reduce((a, l) => a + (Array.isArray(l) ? l.reduce((x, y) => x + (+y || 0), 0) : 0), 0);
+  return st * 1000 + (Array.isArray(s.vehs) ? s.vehs.length : 0) * 100 + up * 10 + (+s.races || 0);
+}
+// Any stored older copy (pre-lineup backup, or an unreadable save parked by loadSave) with MORE progress than now.
+function bestStoredCopy() {
+  let best = null;
+  for (const k of [BACKUP_KEY, RESCUE_KEY]) {
+    try {
+      const s = JSON.parse(localStorage.getItem(k) || "null");
+      if (s && s.v === 1 && progressScore(s) > progressScore(App.save) && (!best || progressScore(s) > progressScore(best))) best = s;
+    } catch (_) {}
+  }
+  return best;
+}
+function restoreStoredCopy(s) {
+  // keep today's spin and style choice; everything else comes from the stored copy, then the normal migrations run
+  const keep = { spin: App.save.spin, perk: App.save.perk, tone: App.save.settings.tone };
+  const m = migrateSave(Object.assign(defaultSave(), { tl: 1, rl: 1 }, JSON.parse(JSON.stringify(s)), { settings: Object.assign(defaultSave().settings, s.settings || {}, { tone: keep.tone }), last: Object.assign(defaultSave().last, s.last || {}) }));
+  if (keep.spin) m.spin = keep.spin;
+  if (keep.perk) m.perk = keep.perk;
+  delete m.note;
+  return m;
 }
 // Still save format v1. Two one-time migrations, each tracked by a generation number in the save (so they never run twice):
 //  `tl` = track-layout generation: the trails were redesigned in generation 2, so best times from older layouts are
@@ -368,7 +401,14 @@ function openSaveCode() {
     <textarea id="sc-out" readonly>${encodeSave()}</textarea>
     <div class="acts"><button class="btn sm" style="--c:#2b9cff" data-a="copy">COPY</button></div>
     <textarea id="sc-in" placeholder="Paste a WILDR1- code here"></textarea>
-    <div class="acts"><button class="btn sm" style="--c:#ff8a1c" data-a="load">LOAD CODE</button><button class="btn sm ghost" data-a="close">CLOSE</button></div>`, (box) => {
+    <div class="acts"><button class="btn sm" style="--c:#ff8a1c" data-a="load">LOAD CODE</button><button class="btn sm ghost" data-a="close">CLOSE</button></div>
+    ${bestStoredCopy() ? `<p style="color:var(--sun)">An older copy of your progress with more stars is saved on this device (${Object.values(bestStoredCopy().stars || {}).reduce((a, b) => a + b, 0)} ★).</p><div class="acts"><button class="btn sm" style="--c:#2bd96a" data-a="restore">RESTORE OLDER PROGRESS</button></div>` : ""}`, (box) => {
+    const rb = box.querySelector('[data-a="restore"]');
+    if (rb) { let armed2 = false; rb.onclick = () => {
+      if (!armed2) { armed2 = true; rb.textContent = "TAP AGAIN TO RESTORE"; return; }
+      const c = bestStoredCopy(); if (!c) return;
+      App.save = restoreStoredCopy(c); saveGame(); applySettings(); closeModal(); toast("PROGRESS RESTORED!"); renderTitle();
+    }; }
     box.querySelector('[data-a="copy"]').onclick = () => {
       const t = box.querySelector("#sc-out"); t.select();
       (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(() => toast("COPIED!")).catch(() => { document.execCommand("copy"); toast("COPIED!"); });

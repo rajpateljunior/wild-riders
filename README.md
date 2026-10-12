@@ -52,6 +52,7 @@ Commit `src/`, `index.html` and `sw.js` together.
 - `node tools/offline.js` — service worker + offline race.
 - `node tools/online.js <outdir>` — two browsers race each other online (needs a local PeerServer).
 - `node tools/migrate_test.js` — old saves → new rider order: only riders reset, exact refund, nothing else changes.
+- `node tools/restore_test.js` — older stored progress is offered back and restores correctly; unreadable saves are kept.
 - `node tools/spin_test.js` — Daily Spin: one per day, prize saved, clock-rollback guard, streaks, odds, perks.
 - `node tools/icons.js` — re-render the app icons from the emblem.
 

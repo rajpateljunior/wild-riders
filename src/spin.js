@@ -167,9 +167,22 @@ function lineupNotice(after) {
   });
 }
 
+function restoreOffer(after) {
+  const c = bestStoredCopy();
+  const n = Object.values(c.stars || {}).reduce((a, b) => a + b, 0), now = Object.values(App.save.stars || {}).reduce((a, b) => a + b, 0);
+  modal(`<h3>FOUND YOUR OLDER PROGRESS</h3>
+    <p>This device has a saved copy with <b>${n} ★</b> and <b>${(c.vehs || []).length} rides</b>. Right now you have ${now} ★ and ${(App.save.vehs || []).length} rides.</p>
+    <p>Restore it? Your stars, best times, rides, upgrades and coins come back (riders follow the new unlock order, with coins refunded).</p>
+    <div class="acts"><button class="btn" style="--c:#2bd96a" data-a="yes">RESTORE</button><button class="btn sm ghost" data-a="no">NOT NOW</button></div>`, (box) => {
+    box.querySelector('[data-a="yes"]').onclick = () => { App.save = restoreStoredCopy(c); saveGame(); applySettings(); closeModal(); toast("PROGRESS RESTORED!"); renderTitle(); after && after(); };
+    box.querySelector('[data-a="no"]').onclick = () => { SFX.play("back"); closeModal(); after && after(); };
+  });
+}
+
 function startupPopups() {
   if (App.screen !== "scr-title" || !App.save || App.race) return;
   const spinMaybe = () => { if (App.screen === "scr-title" && spinAvailable()) setTimeout(openDaily, 250); };
+  if (bestStoredCopy() && !App.save.note) return restoreOffer(spinMaybe);
   if (App.save.note && App.save.note.kind === "lineup") return lineupNotice(spinMaybe);
   spinMaybe();
 }

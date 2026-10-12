@@ -1,6 +1,6 @@
 // Wild Riders service worker — offline cache-first with background refresh.
 // Cache name is stamped by tools/build.py from a hash of all assets.
-const CACHE = "wild-riders-aa800b4137";
+const CACHE = "wild-riders-cae038bedd";
 const ASSETS = [
   './',
   './manifest.webmanifest',
