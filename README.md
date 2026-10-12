@@ -47,7 +47,7 @@ Commit `src/`, `index.html` and `sw.js` together.
 - `node tools/shots.js <outdir> 844 390 f1,d1 [split]` — gameplay screenshots.
 - `node tools/menus.js <outdir> 844 390` — menu screenshots.
 - `node tools/touch.js` — multi-touch steering/boost/punch check.
-- `node tools/throttle.js` — the push-up-to-go stick: idle = no movement, up = go, down = brake, release = coast to a stop.
+- `node tools/throttle.js` — auto-accelerate: the bike goes with no thumb down, the stick only steers left/right, releasing keeps it going.
 - `node tools/offline.js` — service worker + offline race.
 - `node tools/online.js <outdir>` — two browsers race each other online (needs a local PeerServer).
 

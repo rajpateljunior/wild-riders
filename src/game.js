@@ -260,7 +260,7 @@ function updateRider(race, e, inp, dt) {
   if (e.drafting) { max *= 1.04; e.boost = Math.min(100, e.boost + 8 * dt); }
   if (e.veh.regen && !e.finished) e.boost = Math.min(100, e.boost + e.veh.regen * dt);
   if (e.finished) max *= 0.7;
-  // throttle: humans push the stick up to go (0..1); bots and finished riders always ride (undefined = full)
+  // throttle: everyone auto-accelerates (humans send throttle 1; undefined = full). Kept as a 0..1 knob for tuning.
   let thr = inp.throttle === undefined ? 1 : clamp(inp.throttle, 0, 1);
   if (e.boosting || e.padT > 0) thr = 1;
   const target = max * thr;

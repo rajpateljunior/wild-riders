@@ -364,7 +364,7 @@ function openSaveCode() {
 /* ---------- race flow ---------- */
 async function startRace() {
   const tips = ["Tricks fill your boost meter — but land before they finish!", "Every 3rd punch in a row is a heavy KICK.", "Low health = lower top speed. Repair kits are green.",
-    "Forks hide boost pads on the riskier side.", "Push the stick UP to go — let go and you coast to a stop.", "Yellow arrow signs = hairpin. Ease off or drift!", "Draft right behind a rival to charge boost.", "Swipe down on PUNCH to throw an item backward.", "Quads shove lighter riders out of the way."];
+    "Forks hide boost pads on the riskier side.", "Your ride accelerates by itself — just steer left and right.", "Yellow arrow signs = hairpin. Ease off or drift!", "Draft right behind a rival to charge boost.", "Swipe down on PUNCH to throw an item backward.", "Quads shove lighter riders out of the way."];
   $("#loading .tip").textContent = "TIP: " + pick(tips);
   $("#loading .lb i").style.width = "5%";
   $("#loading").classList.remove("hidden");

@@ -11,7 +11,7 @@ const Input = {
 };
 
 function mkPlayerInput() {
-  return { steer: 0, touchSteer: 0, touchGas: 0, touchStop: false, brake: false, boost: false, attackQ: 0, backQ: 0, trickQ: 0, steerTouch: null, anchor: null, knob: null, btn: {} };
+  return { steer: 0, touchSteer: 0, brake: false, boost: false, attackQ: 0, backQ: 0, trickQ: 0, steerTouch: null, anchor: null, knob: null, btn: {} };
 }
 
 function computeLayout(W, H, split, safe) {
@@ -68,7 +68,7 @@ function initInput(canvas) {
       Input.touches[t.identifier] = Object.assign(role, { sx: x, sy: y, x, y, t0: now() });
       const P = Input.players[role.p];
       if (role.role === "pause") Input.onPause && Input.onPause();
-      if (role.role === "steer") { P.anchor = [x, y]; P.knob = [x, y]; P.steerTouch = t.identifier; P.touchGas = 0; P.touchStop = false; }
+      if (role.role === "steer") { P.anchor = [x, y]; P.knob = [x, y]; P.steerTouch = t.identifier; }
       if (role.role === "bst") P.boost = true;
       if (role.role === "brk") P.brake = true;
       if (role.role === "atk") P.btn.atk = true;
@@ -84,14 +84,10 @@ function initInput(canvas) {
       T.x = x; T.y = y;
       if (T.role === "steer") {
         const P = Input.players[T.p], range = Input.layout.players[T.p].steerRange;
-        let dx = x - P.anchor[0], dy = y - P.anchor[1];
+        let dx = x - P.anchor[0];
         if (Math.abs(dx) > range * 1.4) { P.anchor[0] = x - sign(dx) * range * 1.4; dx = sign(dx) * range * 1.4; }
-        if (Math.abs(dy) > range * 1.4) { P.anchor[1] = y - sign(dy) * range * 1.4; dy = sign(dy) * range * 1.4; }
-        P.knob = [x, y];
-        P.touchSteer = clamp(dx / range, -1, 1);
-        // push up = gas (small dead zone, full at ~80% of the ring); pull down = brake
-        P.touchGas = clamp((-dy - range * 0.12) / (range * 0.68), 0, 1);
-        P.touchStop = dy > range * 0.38;
+        P.knob = [x, P.anchor[1]];            // the knob only slides sideways
+        P.touchSteer = clamp(dx / range, -1, 1);   // left / right only: the bike accelerates by itself
       }
     }
   };
@@ -103,7 +99,7 @@ function initInput(canvas) {
       delete Input.touches[t.identifier];
       const P = Input.players[T.p];
       if (!P) continue;
-      if (T.role === "steer") { P.touchSteer = 0; P.touchGas = 0; P.touchStop = false; P.anchor = null; P.knob = null; P.steerTouch = null; }
+      if (T.role === "steer") { P.touchSteer = 0; P.anchor = null; P.knob = null; P.steerTouch = null; }
       if (T.role === "bst") P.boost = Object.values(Input.touches).some((o) => o.role === "bst" && o.p === T.p);
       if (T.role === "brk") P.brake = Object.values(Input.touches).some((o) => o.role === "brk" && o.p === T.p);
       if (T.role === "atk" || T.role === "swipe") {
@@ -159,7 +155,7 @@ function initInput(canvas) {
 function readPlayer(p) {
   const P = Input.players[p];
   const k = Input.keys;
-  // [left, right, drift, boost, gas, brake]
+  // [left, right, drift, boost, (unused), brake] -- the bike always accelerates by itself, so there is no gas key
   const sets = Input.split ? [[["KeyA"], ["KeyD"], ["KeyE"], ["KeyG", "ShiftLeft"], ["KeyW"], ["KeyS"]], [["ArrowLeft"], ["ArrowRight"], ["KeyJ"], ["KeyK", "ShiftRight"], ["ArrowUp"], ["ArrowDown"]]][p]
     : [["KeyA", "ArrowLeft"], ["KeyD", "ArrowRight"], ["KeyE", "KeyJ"], ["KeyG", "KeyK", "ShiftLeft", "ShiftRight"], ["KeyW", "ArrowUp"], ["KeyS", "ArrowDown"]];
   const any = (arr) => arr.some((c) => k[c]);
@@ -170,8 +166,8 @@ function readPlayer(p) {
     steer: P.steer,
     brake: P.brake || any(sets[2]),
     boost: P.boost || any(sets[3]),
-    throttle: P.anchor ? P.touchGas : any(sets[4]) ? 1 : 0,
-    stop: (P.anchor && P.touchStop) || any(sets[5]),
+    throttle: 1,                       // auto-accelerate
+    stop: any(sets[5]),                // desktop only: S / Down arrow brakes
     attack: P.attackQ > 0, throwBack: P.backQ > 0, trick: P.trickQ || 0,
   };
   return out;
@@ -191,26 +187,18 @@ function drawControls(ctx, race) {
     const P = L.players[p], I = Input.players[p];
     const me = race.humans[p];
     if (!me) continue;
-    // steering ring
+    // steering slider (left / right only)
     const a = I.anchor || [P.ghost.x, P.ghost.y];
+    const rr = P.steerRange, kr = P.R * 0.5;
     ctx.globalAlpha = I.anchor ? 0.55 : 0.28;
     ctx.strokeStyle = "#fff"; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(a[0], a[1], P.steerRange, 0, TAU); ctx.stroke();
+    roundRect(ctx, a[0] - rr - kr, a[1] - kr * 1.15, (rr + kr) * 2, kr * 2.3, kr * 1.15); ctx.stroke();
     ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fill();
-    // GO arrow at the top of the ring, BRAKE mark at the bottom
-    const rr = P.steerRange;
-    ctx.globalAlpha = I.anchor ? 0.85 : 0.55;
-    ctx.fillStyle = I.touchGas > 0.05 ? "#2bd96a" : "#ffffff";
-    ctx.beginPath(); ctx.moveTo(a[0], a[1] - rr - P.R * 0.32); ctx.lineTo(a[0] + P.R * 0.3, a[1] - rr + P.R * 0.06); ctx.lineTo(a[0] - P.R * 0.3, a[1] - rr + P.R * 0.06); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = I.touchStop ? "#ff3b3b" : "rgba(255,255,255,.7)";
-    ctx.fillRect(a[0] - P.R * 0.22, a[1] + rr - P.R * 0.08, P.R * 0.44, P.R * 0.16);
-    if (!I.anchor) { ctx.font = `${P.R * 0.32}px Bangers, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff"; ctx.fillText("GO", a[0], a[1] - rr - P.R * 0.62); }
     const kx = I.anchor ? a[0] + I.touchSteer * rr : a[0];
-    const ky = I.anchor ? a[1] + clamp(I.knob[1] - a[1], -rr, rr) : a[1];
     ctx.globalAlpha = I.anchor ? 0.9 : 0.4;
-    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(kx, ky, P.R * 0.5, 0, TAU); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(kx, a[1], kr, 0, TAU); ctx.fill();
     ctx.fillStyle = "#14101c"; ctx.font = `${P.R * 0.45}px Bangers, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("◀ ▶", kx, ky + 1);
+    ctx.fillText("◀ ▶", kx, a[1] + 1);
     ctx.globalAlpha = 1;
     // buttons
     const air = me.h > 120;

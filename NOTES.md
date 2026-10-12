@@ -1,6 +1,6 @@
 # Wild Riders: NOTES
 
-Last reviewed: 2026-10-11 (big update: throttle stick, 6 vehicles in unlock order, smaller ATV, camera tilt + zoom-out, hand-designed trails, secret cutie mode). Build and test commands are in `README.md`; this file covers decisions, data and risks.
+Last reviewed: 2026-10-11 (late update: auto-accelerate again, plain road with no stripes/seam lines, light beams and low-health smoke removed; earlier today: 6 vehicles in unlock order, smaller ATV, camera tilt + zoom-out, hand-designed trails, secret cutie mode). Build and test commands are in `README.md`; this file covers decisions, data and risks.
 
 ## What it is
 A Downhill Domination–style bike and ATV racer for iPhone, iPad and desktop. Anime riders, punches and kicks, throwables, health that slows you down, boost pads, ramps, tricks, six biomes (12 tracks), bots, two-player split screen, and online 2-player with room codes.
@@ -11,9 +11,11 @@ Live: https://rajpateljunior.github.io/wild-riders/ · Repo: `rajpateljunior/wil
 - Pseudo-3D segment road renderer on canvas 2D, fixed 60 Hz simulation, seeded track generation.
 - Combat with health: damage slows you down. Each biome has its own throwable.
 - Stars per track: top 3 = ★, top 2 = ★★, win = ★★★. Biomes unlock by total stars.
-- Controls: you must push the left stick UP to go (further = faster), slide sideways to steer, pull DOWN to brake; let go and you roll to a stop. DRIFT button kept. Keyboard: W/↑ gas, S/↓ brake, E/J drift.
+- Controls (Raj reverted the push-up-to-go stick): the bike ALWAYS accelerates by itself. The left stick is a left/right slider only (the knob slides sideways; up/down does nothing). DRIFT button kept. Keyboard: A/D or ←/→ steer, E/J drift, S/↓ still brakes on desktop; there is no gas key. `throttle` is always 1 from `readPlayer` in `src/input.js`; `game.js` still treats it as a 0..1 knob.
 - Riders and rides unlock strictly in order (only the first one you don't own can be bought). Already-owned out-of-order items are kept.
 - ATV was far too big (its sprite was scaled by its hit width). Every vehicle now draws the rider at the same size (`sw` in VEHICLES); ATV redesigned.
+- Road look (Raj's request): the drivable road is ONE flat colour (`biome.road[0]`, bridge planks `plank[0]`, ice patches one tone). Lines/stripes are fine only off the road (curbs, ground, water). The tire-rut diagonal streaks stay (he likes them).
+- No flashing/pulsing light on riders (Raj's request): the Redwood "light shafts" beams were removed, the red low-health edge glow is steady (no pulse), and the grey low-health smoke circles above riders were removed (burning flames from magma/chili stay). Boost flame, hit flicker and dark-biome headlamp/rider glows are unchanged.
 - Camera tilts down with the slope ahead (`RENDER.PITCH_DOWN`) and the view is zoomed out ~14% (`RENDER.ZOOM` 0.86).
 - Every trail is hand-designed (`plan` in TRACKS) with its own bends, hairpins, switchbacks, tunnels, bridges, cliffs, rivers and scenery zones; the 2nd trail of each biome has its own sky (`look`).
 - Secret cutie mode (Raj's request): hold the 2 PLAYERS · ONE SCREEN button for 2 s (tiny pink dot = on; hold again = off). In split screen Player 2 always wins; online, the OTHER phone's rider always wins (works whether Raj hosts or joins; her phone shows nothing). Raj can still place 2nd/3rd. Must not look like a glitch.
@@ -55,14 +57,17 @@ Live: https://rajpateljunior.github.io/wild-riders/ · Repo: `rajpateljunior/wil
 `RENDER.CAM_LIFT` in `src/render.js` raises the camera (0 = original low view; now 0.6, Raj asked for "slightly higher, not bird's-eye"; was 0.3). The horizon moves up with it so the rider stays put on screen. Do not go much past ~0.8 without checking the sky strip and HUD.
 `RENDER.ZOOM` (0.86) widens the view; the horizon is offset so the rider stays at the same screen spot. Pitch: `camFollow` computes `e.pitch` from the slope 10–26 segments ahead; `renderView` shears world heights by `pitch × distance`, so downhill road fills the view and the backdrop rises. `PITCH_DOWN` 0.82 / `PITCH_UP` 0.45.
 
+## Road renderer gotcha (seam lines)
+Road slices are drawn near to far as separate shapes, and canvas anti-aliasing leaks whatever is painted underneath through the shared edges (it showed as thin ground-, curb- or fog-coloured lines across the road). In `drawSegment` / the fog fill in `renderView`: every slice is stretched 1px UP (the next slice repaints it), the ground band is shifted 1px up and never overshoots toward the camera, the curb is drawn as two side strips (never under the road), and the fog band extends 1px up. Do not add full-width fills that overshoot downward or put colour underneath the road quad.
+
 ## UI gotcha
 Never use `scrollIntoView` inside a screen: on iOS/Chromium it also scrolls the `overflow:hidden` `.screen` sideways, which shifted the whole Choose Your Ride screen right (Dirt Bike selected). `scrollSel()` in `src/ui.js` scrolls only the card strip and resets the screen's scroll.
 
 ## Tests (Playwright, Chromium)
-Listed in `README.md`: bot drives all tracks, screenshots, menus, touch, throttle stick, offline, online. Serve the folder first (`python3 -m http.server 8765`). This session: all 12 trails finishable by the bot; throttle test passes; online + offline pass; cutie-mode simulations as above.
+Listed in `README.md`: bot drives all tracks, screenshots, menus, touch, auto-accelerate check (`tools/throttle.js`), offline, online. Serve the folder first (`python3 -m http.server 8765`). Latest session: all 12 trails finishable by the bot; auto-accelerate test passes; offline passes; screenshots at 844x390, 1180x820 and split screen show no seam lines. Online play and cutie mode were not re-run after this change (they do not touch the changed code).
 
 ## Known issues / untested
-- New stick feel (push up to go) and hairpin difficulty not tried on a real iPhone yet. Tuning knobs: dead zone / full-throttle point in `input.js` (`touchGas`), coast rate in `updateRider`, hairpin strength `PIN` in `track.js`.
+- Auto-accelerate stick (left/right slider) and hairpin difficulty not tried on a real iPhone yet. With the bike always at full speed, hairpins may feel harder: tuning knobs are hairpin strength `PIN` in `track.js` and `handling` in `src/data.js`. Not checked: whether Raj meant exactly these effects by "the flashing light" (see Design decisions); each is one small edit to restore.
 - Not verified on a real iPhone or iPad by this session: touch feel, iOS audio, Home Screen fullscreen behavior. The latest commit fixed a landscape cut-off in the iOS Home Screen app; I did not re-test it.
 - Online play: some cellular networks block direct WebRTC connections. The README names a relay (e.g. Firebase Realtime Database) as the fallback, not built. Depends on the free public PeerJS server staying available.
 - Online play was tested only by `tools/online.js` against a local PeerServer, not over the real internet from this session.

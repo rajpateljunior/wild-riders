@@ -82,7 +82,7 @@ function renderView(ctx, vp, race, me, tnow) {
     if (s.sy2 >= s.sy1 || s.sy2 >= maxy) { s.vis = true; drawn.push(s); continue; }
     s.vis = true; drawn.push(s);
     drawSegment(ctx, w, s, biome, tnow, maxy);
-    if (s.fog > 0.02) { ctx.fillStyle = rgba(fogC, s.fog); ctx.fillRect(0, s.sy2, w, Math.min(maxy, s.sy1) - s.sy2 + 1); }
+    if (s.fog > 0.02) { ctx.fillStyle = rgba(fogC, s.fog); ctx.fillRect(0, s.sy2 - 1, w, Math.min(maxy, s.sy1) - s.sy2 + 1); }   // 1px up: the next slice repaints the overlap, so no fog seam
     maxy = s.sy2;
   }
 
@@ -181,23 +181,30 @@ function drawLayer(ctx, img, w, h, hz, off, frac, biome) {
 }
 
 function drawSegment(ctx, w, s, biome, t, maxy) {
-  const { sx1, sy1, sx2, sy2 } = s;
+  // Every slice is stretched 1px UP (towards the horizon). Slices are drawn near -> far, so the next slice paints over the
+  // overlap; this removes the thin ground-coloured lines that used to show across the road between slices.
+  const { sx1, sy1, sx2 } = s;
+  const sy2 = s.sy2 - 1;
   const y1 = Math.min(sy1, maxy);
+  // ground band: same height as the slice, shifted 1px up, so it never paints over the overlap of the slice in front
+  // (that is where ground colour used to peek through as a line across the road)
+  const gh = Math.max(0, y1 - sy2 - 1);
   const rw1 = s.rw1 * s.w, rw2 = s.rw2 * s.w;
   // ground band (each side can be river, lava, drop-off, rock or ice — see track features)
   if (s.gL || s.gR) {
     const mx = (sx1 + sx2) / 2;
-    ctx.fillStyle = sideGround(s.gL, s, biome, t); ctx.fillRect(-w * 0.2, sy2, mx + w * 0.2, y1 - sy2 + 1);
-    ctx.fillStyle = sideGround(s.gR, s, biome, t); ctx.fillRect(mx, sy2, w * 1.2 - mx, y1 - sy2 + 1);
+    ctx.fillStyle = sideGround(s.gL, s, biome, t); ctx.fillRect(-w * 0.2, sy2, mx + w * 0.2, gh);
+    ctx.fillStyle = sideGround(s.gR, s, biome, t); ctx.fillRect(mx, sy2, w * 1.2 - mx, gh);
   } else {
     ctx.fillStyle = biome.ground[s.dark];
-    ctx.fillRect(-w * 0.2, sy2, w * 1.4, y1 - sy2 + 1);
+    ctx.fillRect(-w * 0.2, sy2, w * 1.4, gh);
   }
-  // rumble edges
-  const r1 = rw1 * 1.12, r2 = rw2 * 1.12;
-  quad(ctx, sx1 - r1, sy1, sx1 + r1, sy1, sx2 + r2, sy2, sx2 - r2, sy2, s.bridge ? "#3a2a20" : biome.edge[s.dark]);
+  // rumble edges: two side strips only (nothing is painted under the road surface, so no curb colour can show as a line across it)
+  const r1 = rw1 * 1.12, r2 = rw2 * 1.12, i1 = rw1 * 0.97, i2 = rw2 * 0.97, edgeCol = s.bridge ? "#3a2a20" : biome.edge[s.dark];
+  quad(ctx, sx1 - r1, sy1, sx1 - i1, sy1, sx2 - i2, sy2, sx2 - r2, sy2, edgeCol);
+  quad(ctx, sx1 + i1, sy1, sx1 + r1, sy1, sx2 + r2, sy2, sx2 + i2, sy2, edgeCol);
   // road (planks on bridges)
-  quad(ctx, sx1 - rw1, sy1, sx1 + rw1, sy1, sx2 + rw2, sy2, sx2 - rw2, sy2, s.bridge ? biome.plank[s.i % 2] : biome.road[s.dark]);
+  quad(ctx, sx1 - rw1, sy1, sx1 + rw1, sy1, sx2 + rw2, sy2, sx2 - rw2, sy2, s.bridge ? biome.plank[0] : biome.road[0]);   // one flat colour: no stripes on the drivable surface
   // tire ruts
   if (s.rw1 > 6 && !s.bridge) {
     for (const rx of [-0.42, 0.42]) {
@@ -220,7 +227,7 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
     let col2 = col;
     if (sf.type === "water") col2 = (s.i + Math.floor(t * 8)) % 3 === 0 ? "#7cc6f2" : col;
     if (sf.type === "lava") col2 = (s.i + Math.floor(t * 6)) % 2 ? "#ff7a1f" : "#ffb347";
-    if (sf.type === "ice") col2 = biome.dark ? (s.dark ? "#6f8fb8" : "#7a9ac2") : s.dark ? "#cdeffd" : "#b2e2fb";
+    if (sf.type === "ice") col2 = biome.dark ? "#7a9ac2" : "#b2e2fb";
     quad(ctx, sx1 + (c - hw) * s.rw1, sy1, sx1 + (c + hw) * s.rw1, sy1, sx2 + (c + hw) * s.rw2, sy2, sx2 + (c - hw) * s.rw2, sy2, col2);
     if (sf.type === "lava") { const hw2 = hw * 0.35; quad(ctx, sx1 + (c - hw2) * s.rw1, sy1, sx1 + (c + hw2) * s.rw1, sy1, sx2 + (c + hw2) * s.rw2, sy2, sx2 + (c - hw2) * s.rw2, sy2, "#ffe08a"); }
   }
@@ -340,9 +347,9 @@ function drawRider(ctx, e, px, py, sc, clipY, me, race, glows, t) {
       star(ctx, px + Math.cos(a) * dw * 0.35, y - dh * 1.02 + Math.sin(a) * dh * 0.06, dw * 0.07);
     }
   }
-  // burning / low-health smoke
-  if (e.burnT > 0 || e.hp / e.maxHp < 0.3) {
-    ctx.fillStyle = e.burnT > 0 ? "rgba(255,120,40,.55)" : "rgba(60,60,60,.35)";
+  // burning flames (the grey low-health smoke circles above riders were removed: they read as a light blinking over the rider)
+  if (e.burnT > 0) {
+    ctx.fillStyle = "rgba(255,120,40,.55)";
     for (let i = 0; i < 3; i++) { const ph = (t * 1.5 + i / 3) % 1; ctx.beginPath(); ctx.arc(px + Math.sin(t * 3 + i) * dw * 0.1, y - dh * (0.5 + ph * 0.7), dw * (0.06 + ph * 0.1), 0, TAU); ctx.fill(); }
   }
   // boost flame
@@ -413,15 +420,7 @@ function drawWeather(ctx, w, h, biome, race, me, t) {
     }
     if (race.stormFog > 0) { ctx.fillStyle = `rgba(214,160,96,${race.stormFog * 0.45})`; ctx.fillRect(0, 0, w, h); }
   } else if (kind === "shafts") {
-    ctx.globalCompositeOperation = "lighter";
-    for (let i = 0; i < 4; i++) {
-      const x0 = ((i * 0.3 + 0.1 - me.bgX * 0.00005) % 1.3 + 1.3) % 1.3 * w - w * 0.15;
-      const g = ctx.createLinearGradient(x0, 0, x0 + w * 0.2, h);
-      g.addColorStop(0, "rgba(255,240,180,.14)"); g.addColorStop(1, "rgba(255,240,180,0)");
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.moveTo(x0, 0); ctx.lineTo(x0 + w * 0.08, 0); ctx.lineTo(x0 + w * 0.32, h); ctx.lineTo(x0 + w * 0.16, h); ctx.closePath(); ctx.fill();
-    }
-    ctx.globalCompositeOperation = "source-over";
+    // (the drifting light beams were removed: they looked like a flashing light shining down on the riders)
     ctx.fillStyle = "#d9772f";
     for (let i = 0; i < 14; i++) {
       const p = P[i];
@@ -485,7 +484,7 @@ function drawScreenFX(ctx, w, h, me, race, t) {
   // low health vignette
   if (me.hp / me.maxHp < 0.3 && me.wipeT <= 0) {
     const g = ctx.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, h * 0.9);
-    g.addColorStop(0, "rgba(255,0,0,0)"); g.addColorStop(1, `rgba(200,0,0,${0.25 + Math.sin(t * 6) * 0.1})`);
+    g.addColorStop(0, "rgba(255,0,0,0)"); g.addColorStop(1, `rgba(200,0,0,0.25)`);
     ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
   }
   // avalanche behind you
