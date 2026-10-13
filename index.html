@@ -268,6 +268,17 @@ body.savage .title-cast .dust i { background: rgba(120,90,80,.5); }
   #scr-rider .footer .desc b { font-size: 10.5px; }
 }
 
+/* Choose a Trail (Raj): same small, fixed-height description as Choose Your Rider */
+#scr-track .footer { height: 46px; min-height: 0; flex: none; padding-top: 4px; }
+#scr-track .footer .desc { font-size: 11px; line-height: 1.25; height: 3.75em; overflow: hidden; display: flex; align-items: center; }
+#scr-track .footer .desc b { font-size: 12px; }
+#scr-track .footer .desc > span { display: block; }
+@media (max-width: 720px) {
+  #scr-track .footer { height: 50px; }
+  #scr-track .footer .desc { font-size: 9.5px; height: 5em; }
+  #scr-track .footer .desc b { font-size: 10.5px; }
+}
+
 </style>
 </head>
 <body>
@@ -5169,7 +5180,7 @@ function openTrack() {
   });
   wrap.style.gridAutoColumns = "minmax(210px, 1fr)";
   const t = TRACKS.find((x) => x.id === cur), b = BIOMES[t.biome];
-  $("#track-desc").innerHTML = `<b>${t.name}</b> — ${t.blurb || b.hazard} <span style="color:var(--sun)">${STAR_RULE}</span>`;
+  $("#track-desc").innerHTML = `<span><b>${t.name}</b> — ${t.blurb || b.hazard} <i style="color:var(--sun);font-style:normal">${STAR_RULE}</i></span>`;
   $("#track-go").onclick = () => { SFX.play("click"); App.save.last.track = cur; saveGame(); if (App.mode === "online") return netHost(); startRace(); };
   show("scr-track");
   scrollSel(wrap);
@@ -5640,7 +5651,7 @@ function startupPopups() {
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.14c";
+const APP_VERSION = "2026.10.14d";
 const WHATS_NEW = [
   "<b>Super moves:</b> punches, hits, tricks and takedowns fill the gold SUPER bar. When full, tap SUPER.",
   "<b>Kaito</b> TEMPEST wind dash + 5 shurikens · <b>Bruno</b> TIMBERFALL smashes everyone he touches.",
@@ -5651,7 +5662,7 @@ const WHATS_NEW = [
 ];
 // ============================================
 
-const BUILD_ID = "wild-riders-9eace17e8f";            // stamped by tools/build.py; matches version.json of this build
+const BUILD_ID = "wild-riders-0dfc0f2c63";            // stamped by tools/build.py; matches version.json of this build
 const VERSION_KEY = "wr-version", BACKUP_INFO_KEY = "wr-backup";
 const Upd = { reg: null, ready: false };
 

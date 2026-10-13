@@ -250,3 +250,14 @@ body.savage .title-cast .dust i { background: rgba(120,90,80,.5); }
   #scr-rider .footer .desc { font-size: 9.5px; height: 5em; }   /* 4 short lines on small phones */
   #scr-rider .footer .desc b { font-size: 10.5px; }
 }
+
+/* Choose a Trail (Raj): same small, fixed-height description as Choose Your Rider */
+#scr-track .footer { height: 46px; min-height: 0; flex: none; padding-top: 4px; }
+#scr-track .footer .desc { font-size: 11px; line-height: 1.25; height: 3.75em; overflow: hidden; display: flex; align-items: center; }
+#scr-track .footer .desc b { font-size: 12px; }
+#scr-track .footer .desc > span { display: block; }
+@media (max-width: 720px) {
+  #scr-track .footer { height: 50px; }
+  #scr-track .footer .desc { font-size: 9.5px; height: 5em; }
+  #scr-track .footer .desc b { font-size: 10.5px; }
+}

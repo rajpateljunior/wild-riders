@@ -355,7 +355,7 @@ function openTrack() {
   });
   wrap.style.gridAutoColumns = "minmax(210px, 1fr)";
   const t = TRACKS.find((x) => x.id === cur), b = BIOMES[t.biome];
-  $("#track-desc").innerHTML = `<b>${t.name}</b> — ${t.blurb || b.hazard} <span style="color:var(--sun)">${STAR_RULE}</span>`;
+  $("#track-desc").innerHTML = `<span><b>${t.name}</b> — ${t.blurb || b.hazard} <i style="color:var(--sun);font-style:normal">${STAR_RULE}</i></span>`;
   $("#track-go").onclick = () => { SFX.play("click"); App.save.last.track = cur; saveGame(); if (App.mode === "online") return netHost(); startRace(); };
   show("scr-track");
   scrollSel(wrap);
