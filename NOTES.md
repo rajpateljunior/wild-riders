@@ -48,6 +48,8 @@ Live: https://rajpateljunior.github.io/wild-riders/ · Repo: `rajpateljunior/wil
   - Throws: 0.12 s overhand wind-up (`windup` pose + the item drawn in the hand) then `hurl` pose; forward throws fly 15% faster, start at hand height, and are aimed at the nearest rider ahead (`aimVx`, then a gentle curve toward them in flight; a dodge still makes it miss).
   - Online: events `super`, `mine`, `boom`; throw events carry `vx`; rider-state flags add bit 16 wind-up, 32 hurl, 64 shield. Each phone only damages riders it owns (same rule as before). Tested with `tools/online.js` (local PeerServer).
 
+- Choose Your Rider (Raj, 2026-10-14): smaller description text (11px) and compact card info so the portraits are bigger (`#scr-rider` rules at the end of `style.css`; portrait SVG at 114% of the art area).
+
 ## Updates (how a release reaches Raj's phone) — READ BEFORE EVERY RELEASE
 - **Never tell Raj to delete and re-add the Home Screen app.** On iPhone that erases the app's storage, including the save. It cost Raj his progress on 2026-10-12. For the same reason, keep the app icon unchanged unless he asks (iOS only refreshes it on re-add).
 - On every release: edit `APP_VERSION` and `WHATS_NEW` at the top of `src/update.js`, then `python3 tools/build.py` (it stamps `BUILD_ID` into the page and writes `version.json`; commit `version.json` too).
