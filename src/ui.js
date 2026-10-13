@@ -257,19 +257,19 @@ function openVeh() {
   });
   const v = VEHICLES.find((x) => x.id === cur);
   const owned = App.save.vehs.includes(cur);
-  $("#veh-desc").innerHTML = `<b>${v.name}</b> — ${v.blurb}`;
-  // upgrades
+  $("#veh-desc").innerHTML = `<span><b>${v.name}</b> — ${v.blurb}</span>`;
+  // upgrades: shared by every ride, so they're always shown (keeps the screen layout the same for every bike)
   const up = $("#veh-upg");
   up.innerHTML = "";
-  if (owned) {
+  {
     const lv = myUpg();             // upgrades are shared by every ride
     UPGRADES.forEach((u, i) => {
       const row = document.createElement("div");
       row.className = "u";
       const cost = UPG_COST[lv[i]];
-      row.innerHTML = `<span style="width:58px">${u.name}</span><span class="pips">${[0, 1, 2].map((k) => `<i class="${k < lv[i] ? "on" : ""}"></i>`).join("")}</span>`;
+      row.innerHTML = `<span class="un">${u.name}</span><span class="pips">${[0, 1, 2].map((k) => `<i class="${k < lv[i] ? "on" : ""}"></i>`).join("")}</span>`;
       const b = document.createElement("button");
-      b.className = "btn sm"; b.style.cssText = "height:30px;font-size:15px;padding:0 10px;--c:#2bd96a";
+      b.className = "btn sm ub"; b.style.cssText = "--c:#2bd96a";
       b.textContent = lv[i] >= 3 ? "MAX" : "+ " + cost;
       b.disabled = lv[i] >= 3 || App.save.coins < cost;
       b.title = u.desc;

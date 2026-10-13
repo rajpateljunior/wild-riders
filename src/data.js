@@ -44,13 +44,13 @@ const VEHICLES = [
     max: 1.0, acc: 1.0, grip: 1.1, armor: 0.0, trick: 1.15, mass: 1.0, w: 520, sw: 650, cost: 0 },
   { id: "bmx", name: "BMX", short: "BMX", blurb: "Tiny and twitchy. Biggest trick boost, lowest top speed.",
     max: 0.95, acc: 1.15, grip: 1.2, armor: -0.1, trick: 1.45, mass: 0.8, w: 460, sw: 600, cost: 0 },
-  { id: "ebike", name: "Enduro E-Bike", short: "E-BIKE", blurb: "Electric kick off the line, and the battery slowly refills your boost. Light frame, so hits hurt.",
+  { id: "ebike", name: "Enduro E-Bike", short: "E-BIKE", blurb: "Electric kick off the line; the battery refills your boost. Light frame, hits hurt.",
     max: 1.0, acc: 1.3, grip: 1.05, armor: -0.08, trick: 1.0, mass: 1.05, w: 540, sw: 660, regen: 2.4, cost: 1500 },
   { id: "dirt", name: "Dirt Bike", short: "DIRT", blurb: "Raw engine power. The fastest machine on the mountain.",
     max: 1.08, acc: 1.1, grip: 0.95, armor: 0.1, trick: 0.9, mass: 1.3, w: 600, sw: 740, cost: 2000 },
   { id: "atv", name: "ATV Quad", short: "ATV", blurb: "Four-wheeled tank. Shrugs off hits and shoves riders aside.",
     max: 1.03, acc: 0.9, grip: 0.86, armor: 0.3, trick: 0.6, mass: 1.8, w: 680, sw: 780, shove: 1, cost: 2600 },
-  { id: "squad", name: "Sport Quad", short: "SPORT", blurb: "A race-tuned quad: lighter and faster than the ATV, still shoves bikes aside, but less armor.",
+  { id: "squad", name: "Sport Quad", short: "SPORT", blurb: "Race-tuned quad: faster than the ATV, shoves bikes aside, less armor.",
     max: 1.07, acc: 1.02, grip: 0.95, armor: 0.14, trick: 0.75, mass: 1.5, w: 650, sw: 760, shove: 1, cost: 3400 },
 ];
 

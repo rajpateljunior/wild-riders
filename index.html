@@ -279,6 +279,28 @@ body.savage .title-cast .dust i { background: rgba(120,90,80,.5); }
   #scr-track .footer .desc b { font-size: 10.5px; }
 }
 
+/* Choose Your Ride / Garage (Raj): cards never change size when you tap another bike.
+   Fixed-height footer: description (fixed lines) on top, the 3 shared upgrades in one compact row below, button on the right. */
+#scr-veh .footer { display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; column-gap: 10px; row-gap: 3px; height: 64px; min-height: 0; flex: none; padding-top: 4px; align-items: center; }
+#scr-veh .footer .desc { grid-column: 1; grid-row: 1; font-size: 11px; line-height: 1.25; height: 2.5em; overflow: hidden; display: flex; align-items: center; }
+#scr-veh .footer .desc b { font-size: 12px; }
+#scr-veh .footer .desc > span { display: block; }
+#scr-veh .footer .btn:not(.ub) { grid-column: 2; grid-row: 1 / span 2; }
+#scr-veh .upg { grid-column: 1; grid-row: 2; flex-direction: row; gap: 8px; min-width: 0; }
+#scr-veh .upg .u { flex: 1; min-width: 0; gap: 5px; font-size: 10.5px; }
+#scr-veh .upg .un { flex: none; color: var(--mute); }
+#scr-veh .upg .pips { min-width: 22px; }
+#scr-veh .upg .pips i { height: 6px; }
+#scr-veh .upg .ub { flex: none; height: 24px; font-size: 12px; padding: 0 7px; }
+@media (max-width: 720px) {
+  #scr-veh .footer { height: 62px; }
+  #scr-veh .footer .desc { font-size: 9.5px; height: 2.5em; }
+  #scr-veh .footer .desc b { font-size: 10.5px; }
+  #scr-veh .upg { gap: 5px; }
+  #scr-veh .upg .u { font-size: 9px; gap: 3px; }
+  #scr-veh .upg .ub { height: 22px; font-size: 11px; padding: 0 5px; }
+}
+
 </style>
 </head>
 <body>
@@ -451,13 +473,13 @@ const VEHICLES = [
     max: 1.0, acc: 1.0, grip: 1.1, armor: 0.0, trick: 1.15, mass: 1.0, w: 520, sw: 650, cost: 0 },
   { id: "bmx", name: "BMX", short: "BMX", blurb: "Tiny and twitchy. Biggest trick boost, lowest top speed.",
     max: 0.95, acc: 1.15, grip: 1.2, armor: -0.1, trick: 1.45, mass: 0.8, w: 460, sw: 600, cost: 0 },
-  { id: "ebike", name: "Enduro E-Bike", short: "E-BIKE", blurb: "Electric kick off the line, and the battery slowly refills your boost. Light frame, so hits hurt.",
+  { id: "ebike", name: "Enduro E-Bike", short: "E-BIKE", blurb: "Electric kick off the line; the battery refills your boost. Light frame, hits hurt.",
     max: 1.0, acc: 1.3, grip: 1.05, armor: -0.08, trick: 1.0, mass: 1.05, w: 540, sw: 660, regen: 2.4, cost: 1500 },
   { id: "dirt", name: "Dirt Bike", short: "DIRT", blurb: "Raw engine power. The fastest machine on the mountain.",
     max: 1.08, acc: 1.1, grip: 0.95, armor: 0.1, trick: 0.9, mass: 1.3, w: 600, sw: 740, cost: 2000 },
   { id: "atv", name: "ATV Quad", short: "ATV", blurb: "Four-wheeled tank. Shrugs off hits and shoves riders aside.",
     max: 1.03, acc: 0.9, grip: 0.86, armor: 0.3, trick: 0.6, mass: 1.8, w: 680, sw: 780, shove: 1, cost: 2600 },
-  { id: "squad", name: "Sport Quad", short: "SPORT", blurb: "A race-tuned quad: lighter and faster than the ATV, still shoves bikes aside, but less armor.",
+  { id: "squad", name: "Sport Quad", short: "SPORT", blurb: "Race-tuned quad: faster than the ATV, shoves bikes aside, less armor.",
     max: 1.07, acc: 1.02, grip: 0.95, armor: 0.14, trick: 0.75, mass: 1.5, w: 650, sw: 760, shove: 1, cost: 3400 },
 ];
 
@@ -5082,19 +5104,19 @@ function openVeh() {
   });
   const v = VEHICLES.find((x) => x.id === cur);
   const owned = App.save.vehs.includes(cur);
-  $("#veh-desc").innerHTML = `<b>${v.name}</b> — ${v.blurb}`;
-  // upgrades
+  $("#veh-desc").innerHTML = `<span><b>${v.name}</b> — ${v.blurb}</span>`;
+  // upgrades: shared by every ride, so they're always shown (keeps the screen layout the same for every bike)
   const up = $("#veh-upg");
   up.innerHTML = "";
-  if (owned) {
+  {
     const lv = myUpg();             // upgrades are shared by every ride
     UPGRADES.forEach((u, i) => {
       const row = document.createElement("div");
       row.className = "u";
       const cost = UPG_COST[lv[i]];
-      row.innerHTML = `<span style="width:58px">${u.name}</span><span class="pips">${[0, 1, 2].map((k) => `<i class="${k < lv[i] ? "on" : ""}"></i>`).join("")}</span>`;
+      row.innerHTML = `<span class="un">${u.name}</span><span class="pips">${[0, 1, 2].map((k) => `<i class="${k < lv[i] ? "on" : ""}"></i>`).join("")}</span>`;
       const b = document.createElement("button");
-      b.className = "btn sm"; b.style.cssText = "height:30px;font-size:15px;padding:0 10px;--c:#2bd96a";
+      b.className = "btn sm ub"; b.style.cssText = "--c:#2bd96a";
       b.textContent = lv[i] >= 3 ? "MAX" : "+ " + cost;
       b.disabled = lv[i] >= 3 || App.save.coins < cost;
       b.title = u.desc;
@@ -5651,7 +5673,7 @@ function startupPopups() {
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.14d";
+const APP_VERSION = "2026.10.14e";
 const WHATS_NEW = [
   "<b>Super moves:</b> punches, hits, tricks and takedowns fill the gold SUPER bar. When full, tap SUPER.",
   "<b>Kaito</b> TEMPEST wind dash + 5 shurikens · <b>Bruno</b> TIMBERFALL smashes everyone he touches.",
@@ -5662,7 +5684,7 @@ const WHATS_NEW = [
 ];
 // ============================================
 
-const BUILD_ID = "wild-riders-0dfc0f2c63";            // stamped by tools/build.py; matches version.json of this build
+const BUILD_ID = "wild-riders-09b6f006ef";            // stamped by tools/build.py; matches version.json of this build
 const VERSION_KEY = "wr-version", BACKUP_INFO_KEY = "wr-backup";
 const Upd = { reg: null, ready: false };
 
