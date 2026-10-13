@@ -43,7 +43,7 @@ function netStatus(title, msg, extra = "", onCancel) {
 function makeCode() { let c = ""; for (let i = 0; i < 4; i++) c += CODE_CHARS[(Math.random() * CODE_CHARS.length) | 0]; return c; }
 
 function myHello() {
-  return { t: "hello", ver: 1, cz: cutieOn() ? 1 : 0, rider: App.pick.riders[0] || App.save.last.rider, veh: App.pick.vehs[0] || App.save.last.veh, upg: App.save.upg[App.pick.vehs[0] || App.save.last.veh] || [0, 0, 0] };
+  return { t: "hello", ver: 1, cz: cutieOn() ? 1 : 0, rider: App.pick.riders[0] || App.save.last.rider, veh: App.pick.vehs[0] || App.save.last.veh, upg: myUpg() };
 }
 
 /* ---------------- host ---------------- */
@@ -237,7 +237,7 @@ function netApplyEvent(race, m) {
     if (v) for (let k = 0; k < 8; k++) spawnFx(race, v.z, v.x + rnd(-0.2, 0.2), 300 + rnd(-100, 100), "#fff6a8", 50, 0.5, 600);
   } else if (m.k === "take") {
     const s = race.track.segs[m.s];
-    if (s && s.objs[m.o]) s.objs[m.o].taken = race.time + 6;
+    if (s && s.objs[m.o]) s.objs[m.o].taken = race.time + RESPAWN_T;
   } else if (m.k === "hit") {
     const e = race.riders[m.v], by = race.riders[m.by];
     if (!e || e.remote) return;

@@ -64,6 +64,7 @@ const SFX = (() => {
     hit: () => { noise(0.18, 0.5, 400, 0.6); tone(220, 0.1, "square", 0.12, sfxBus, 0, 0.5); },
     pickup: () => { [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.09, "square", 0.08, sfxBus, i * 0.05)); },
     repair: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.14, "triangle", 0.12, sfxBus, i * 0.06)); },
+    tier: () => { tone(900, 0.07, "triangle", 0.12); tone(1350, 0.09, "triangle", 0.1, sfxBus, 0.05); },
     pad: () => { tone(300, 0.35, "sawtooth", 0.12, sfxBus, 0, 4); noise(0.35, 0.2, 800, 2, "bandpass", 0, sfxBus, 5); },
     boost: () => noise(0.5, 0.25, 500, 2, "bandpass", 0, sfxBus, 6),
     jump: () => tone(220, 0.25, "triangle", 0.12, sfxBus, 0, 2.2),
@@ -109,7 +110,7 @@ const SFX = (() => {
     if (!e || !ac) return;
     const t = T();
     e.g.gain.setTargetAtTime(sfxOn ? 0.5 * vol : 0, t, 0.1);
-    e.wind.g.gain.setTargetAtTime(0.05 + speedPct * speedPct * 0.25, t, 0.1);
+    e.wind.g.gain.setTargetAtTime(0.05 + speedPct * speedPct * 0.32 + (boosting ? 0.08 : 0), t, 0.1);   // wind rises with speed
     e.wind.f.frequency.setTargetAtTime(400 + speedPct * 900 + (boosting ? 500 : 0), t, 0.1);
     if (e.lp) {
       const f = 45 + speedPct * 110 + (boosting ? 30 : 0) + (air ? 40 : 0);

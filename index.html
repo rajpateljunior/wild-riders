@@ -1825,6 +1825,7 @@ const SFX = (() => {
     hit: () => { noise(0.18, 0.5, 400, 0.6); tone(220, 0.1, "square", 0.12, sfxBus, 0, 0.5); },
     pickup: () => { [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.09, "square", 0.08, sfxBus, i * 0.05)); },
     repair: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.14, "triangle", 0.12, sfxBus, i * 0.06)); },
+    tier: () => { tone(900, 0.07, "triangle", 0.12); tone(1350, 0.09, "triangle", 0.1, sfxBus, 0.05); },
     pad: () => { tone(300, 0.35, "sawtooth", 0.12, sfxBus, 0, 4); noise(0.35, 0.2, 800, 2, "bandpass", 0, sfxBus, 5); },
     boost: () => noise(0.5, 0.25, 500, 2, "bandpass", 0, sfxBus, 6),
     jump: () => tone(220, 0.25, "triangle", 0.12, sfxBus, 0, 2.2),
@@ -1870,7 +1871,7 @@ const SFX = (() => {
     if (!e || !ac) return;
     const t = T();
     e.g.gain.setTargetAtTime(sfxOn ? 0.5 * vol : 0, t, 0.1);
-    e.wind.g.gain.setTargetAtTime(0.05 + speedPct * speedPct * 0.25, t, 0.1);
+    e.wind.g.gain.setTargetAtTime(0.05 + speedPct * speedPct * 0.32 + (boosting ? 0.08 : 0), t, 0.1);   // wind rises with speed
     e.wind.f.frequency.setTargetAtTime(400 + speedPct * 900 + (boosting ? 500 : 0), t, 0.1);
     if (e.lp) {
       const f = 45 + speedPct * 110 + (boosting ? 30 : 0) + (air ? 40 : 0);
@@ -2292,7 +2293,7 @@ function renderView(ctx, vp, race, me, tnow) {
 
   const shake = me.shake > 0 ? me.shake : 0;
   const K0 = projK(w, h);
-  const K = K0 * RENDER.ZOOM * (1 - me.fovKick * 0.12);
+  const K = K0 * RENDER.ZOOM * (1 - me.fovKick * 0.16);   // camera pulls back a little while boosting
   // keep the rider at the same spot on screen as before the zoom-out
   const hz = h * 0.38 + K0 * 0.97 - (1 + RENDER.CAM_LIFT) * K;
   const camZ = me.z - PLAYER_DIST;
@@ -2370,12 +2371,17 @@ function renderView(ctx, vp, race, me, tnow) {
       if (S.glow && (biome.dark || tun > 0.05)) glows.push([s.sx1 + s.sc1 * sp.x * ROAD_W * K, s.sy1 - S.wh * s.sc1 * K * 0.7, S.ww * s.sc1 * K * 1.2, S.glow]);
     }
     for (const o of s.objs) {
-      if (o.taken > race.time) continue;
+      let oa = alpha;
+      if (o.taken > race.time) {
+        // empty crate spot: riders in the back half still get an item here, so they see a faint outline
+        if (o.kind !== "crate" || race.demo || !me.human || !inBackHalf(race, me) || (o.gotBy && o.gotBy.has(me))) continue;
+        oa = alpha * 0.32;
+      }
       const S = assets.sprites[o.kind];
       const bob = Math.sin(tnow * 4 + s.i) * 60;
       const sc = s.sc1 * K;
-      drawSprite(ctx, S, s.sx1 + s.sc1 * o.x * ROAD_W * K, s.sy1 - (180 + bob) * sc, sc, s.clip, alpha, false);
-      if (biome.dark || tun > 0.05) glows.push([s.sx1 + s.sc1 * o.x * ROAD_W * K, s.sy1 - 400 * sc, 700 * sc, S.glow]);
+      drawSprite(ctx, S, s.sx1 + s.sc1 * o.x * ROAD_W * K, s.sy1 - (180 + bob) * sc, sc, s.clip, oa, false);
+      if ((biome.dark || tun > 0.05) && oa === alpha) glows.push([s.sx1 + s.sc1 * o.x * ROAD_W * K, s.sy1 - 400 * sc, 700 * sc, S.glow]);
     }
     const list = buckets[s.i];
     if (list) {
@@ -2752,22 +2758,35 @@ function drawDarkness(ctx, w, h, hz, glows, me, k = 1) {
   ctx.globalCompositeOperation = "source-over";
 }
 
-function drawScreenFX(ctx, w, h, me, race, t) {
-  // speed lines when boosting
-  const sp = me.speed / 11000;
-  if (me.boosting || me.padT > 0 || sp > 1.12) {
-    ctx.strokeStyle = me.padT > 0 ? "rgba(140,255,240,.55)" : "rgba(255,255,255,.45)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let i = 0; i < 18; i++) {
-      const a = (i / 18) * TAU + t * 0.7;
-      const r0 = h * (0.55 + ((t * 3 + i * 0.37) % 1) * 0.4);
-      const cx = w / 2, cy = h * 0.5;
-      ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0 * 0.7);
-      ctx.lineTo(cx + Math.cos(a) * (r0 + h * 0.2), cy + Math.sin(a) * (r0 + h * 0.2) * 0.7);
+/* Speed streaks: thin white lines flowing outward along the far LEFT and RIGHT edges only (never over the road or the
+   rider), when you're near top speed, and thicker on boost / boost pads / drift turbos. Each streak fades in and out
+   smoothly, so nothing flashes. Strength eases in and out with me.streakK. */
+function drawSpeedStreaks(ctx, w, h, me, t) {
+  const pct = me.speed / (me.maxSpd || 1);
+  const tgt = me.boosting || me.padT > 0 ? 1 : clamp((pct - 0.88) / 0.12, 0, 1) * 0.55;
+  me.streakK = lerp(me.streakK || 0, me.wipeT > 0 || me.finished ? 0 : tgt, 0.08);
+  const k = me.streakK;
+  if (k < 0.03) return;
+  const band = w * 0.15, thick = me.padT > 0 ? 3.2 : me.boosting ? 2.6 : 1.8;
+  ctx.save();
+  ctx.lineCap = "round"; ctx.strokeStyle = me.padT > 0 ? "#c8fff6" : "#ffffff"; ctx.lineWidth = thick;
+  for (let side = -1; side <= 1; side += 2) {
+    for (let i = 0; i < 12; i++) {
+      const r1 = ((i * 97 + (side > 0 ? 31 : 0)) % 101) / 101, r2 = ((i * 53 + 17) % 89) / 89, r3 = ((i * 29 + 7) % 61) / 61;
+      const ph = (t * (1.5 + r2 * 0.9) * (0.7 + 0.5 * k) + r1) % 1;
+      const y = h * (0.3 + r3 * 0.62) + ph * h * 0.06;
+      const len = band * (0.35 + 0.45 * ph);
+      const xin = band * (1 - ph * 1.1);                       // inner end slides out toward the screen edge
+      const x0 = side < 0 ? xin : w - xin, x1 = side < 0 ? xin - len : w - xin + len;
+      ctx.globalAlpha = k * 0.42 * Math.sin(ph * Math.PI);
+      ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y + len * 0.12); ctx.stroke();
     }
-    ctx.stroke();
   }
+  ctx.restore();
+}
+
+function drawScreenFX(ctx, w, h, me, race, t) {
+  drawSpeedStreaks(ctx, w, h, me, t);
   // damage flash
   // (red glow on the screen edges only: the middle stays clear so you can still see the road)
   if (me.flash > 0) {
@@ -2913,7 +2932,10 @@ function drawHUD(ctx, w, h, me, race, t) {
     fy += u * 0.5;
   }
   // countdown
-  if (race.countdown > 0) {
+  if (race.resumeT > 0) {
+    const n = Math.ceil(race.resumeT), f = race.resumeT % 1;
+    hudText(ctx, String(n), w / 2, h * 0.5, u * (12 + f * 6), ["#2bd96a", "#2bd96a", "#ffd23f", "#ff8a1c"][n] || "#fff", "center");
+  } else if (race.countdown > 0) {
     const n = Math.ceil(race.countdown);
     const f = race.countdown % 1;
     hudText(ctx, String(n), w / 2, h * 0.5, u * (14 + f * 8), ["#2bd96a", "#ffd23f", "#ff8a1c", "#ff3b3b"][n] || "#fff", "center");
@@ -2973,6 +2995,7 @@ function makeRiderEntity(rdef, vdef, opts) {
     trick: null, chain: 0, trickPts: 0, takedowns: 0, wipes: 0,
     finished: false, finishTime: 0, place: 0, popups: [], lastSeg: 0, lastPad: -99,
     dmgT: 0, dmgAmt: 0, bloodT: 0, bloodSeed: 1, perk: null, shield: 0, coinMul: 1,
+    driftT: 0, driftOff: 0, driftTier: 0, stallT: 0, cdBoost: false, cdTap: 0, streakK: 0,
     ai: opts.human ? null : { skill: opts.skill || 0.85, aggr: 0.5 + Math.random() * 0.5, t: 0, tx: 0, inp: {} },
     sprites: null, face: null,
   };
@@ -3054,7 +3077,9 @@ async function createRace(cfg, onProgress) {
     cfg, track, assets, riders, humans: riders.filter((e) => e.human && e.local),
     projs: [], fx: [], buckets: {}, time: 0, countdown: 3.99, lastBeep: 4,
     split: cfg.humans.filter((h) => !h.remote).length > 1, over: false, overT: 0, finishOrder: [],
-    avalanche: def.avalanche ? { z: track.startZ - 7000, speed: BASE_SPEED * 0.8 } : null,
+    // Avalanche! starts well behind the grid and only gets up to full speed after ~12 s, so riders can get away at the
+    // start (it used to catch everyone ~1 s after GO, while they were still accelerating from a standstill).
+    avalanche: def.avalanche ? { z: track.startZ - 16000, speed: 0 } : null,
     storm: def.storm ? { t: 14, on: 0 } : null, stormFog: 0, stormWarn: 0,
     touch: IS_TOUCH, events: [],
   };
@@ -3085,6 +3110,8 @@ function stepRace(race, inputs, dt) {
     const n = Math.ceil(race.countdown);
     if (n < race.lastBeep) { race.lastBeep = n; race.events.push(n > 0 ? "beep" : "go"); }
     for (const e of race.riders) { e.hpShow = e.hp; updatePopups(e, dt); }
+    startTiming(race, inputs);
+    if (race.countdown <= 0) applyStarts(race);
     rebuildBuckets(race);
     return;
   }
@@ -3093,9 +3120,10 @@ function stepRace(race, inputs, dt) {
   // hazards: avalanche & sandstorm
   if (race.avalanche) {
     const lead = Math.min(...race.riders.filter((e) => !e.finished).map((e) => e.z).concat([tr.finishZ]));
-    race.avalanche.speed = BASE_SPEED * (0.7 + Math.min(0.12, race.time * 0.0012));
+    const ramp = clamp(race.time / 12, 0, 1);                       // 0 → full speed over the first 12 s
+    race.avalanche.speed = BASE_SPEED * (0.7 + Math.min(0.12, race.time * 0.0012)) * (0.25 + 0.75 * ramp * ramp);
     race.avalanche.z += race.avalanche.speed * dt;
-    race.avalanche.z = Math.max(race.avalanche.z, lead - 9000);
+    if (race.time > 12) race.avalanche.z = Math.max(race.avalanche.z, lead - 9000);   // never falls hopelessly far behind
   }
   if (race.storm) {
     const s = race.storm;
@@ -3134,6 +3162,36 @@ function stepRace(race, inputs, dt) {
   if (!race.over && localHumans.length && localHumans.every((e) => e.finished)) { race.over = true; race.overT = 3.2; }
   if (race.over) race.overT -= dt;
   rebuildBuckets(race);
+}
+
+/* ---------------- Perfect start ----------------
+   Tap BOOST in the last half-second of the countdown (the second half of "1") = PERFECT START: a launch burst at GO.
+   Tap it earlier = TOO EARLY: a short stall at GO. Only the FIRST tap counts, so mashing doesn't work.
+   Bots sometimes get a good start too. */
+const START_WINDOW = 0.5;
+function startTiming(race, inputs) {
+  if (race.demo) return;
+  for (const e of race.riders) {
+    if (!e.human || e.remote || e.cdTap) continue;
+    const down = !!(inputs[e.pIndex] && inputs[e.pIndex].boost);
+    if (down && !e.cdBoost) e.cdTap = race.countdown <= START_WINDOW ? 1 : -1;
+    e.cdBoost = down;
+  }
+}
+function applyStarts(race) {
+  for (const e of race.riders) {
+    if (e.remote) continue;
+    let r = e.cdTap;
+    if (!e.human) r = Math.random() < 0.18 + 0.2 * (e.ai ? e.ai.skill - 0.7 : 0) ? 1 : 0;
+    if (r === 1) {
+      e.speed = e.maxSpd * 0.45; e.padT = Math.max(e.padT, 1.3);
+      popup(e, "PERFECT START!", "#2bd9c5", true);
+      race.events.push({ snd: "pad", e });
+    } else if (r === -1) {
+      e.stallT = 0.7;
+      popup(e, "TOO EARLY!", "#ff8a1c");
+    }
+  }
 }
 
 function rebuildBuckets(race) {
@@ -3205,6 +3263,7 @@ function updateRider(race, e, inp, dt) {
   // throttle: everyone auto-accelerates (humans send throttle 1; undefined = full). Kept as a 0..1 knob for tuning.
   let thr = inp.throttle === undefined ? 1 : clamp(inp.throttle, 0, 1);
   if (e.boosting || e.padT > 0) thr = 1;
+  if (e.stallT > 0) { e.stallT -= dt; thr = 0; }                   // TOO EARLY at the start
   const target = max * thr;
   let accel = e.accel * (e.boosting || e.padT > 0 ? 2.4 : 1);
   const drifting = !!inp.brake && Math.abs(inp.steer || 0) > 0.35 && pct > 0.4 && e.h <= 0;
@@ -3215,10 +3274,7 @@ function updateRider(race, e, inp, dt) {
   else if (e.h <= 0) e.speed = Math.max(target, e.speed - BASE_SPEED * (0.3 + 0.25 * pct) * dt);   // off the throttle: roll to a stop
   if (e.speedCap !== undefined && e.speed > e.speedCap) e.speed = Math.max(e.speedCap, e.speed - BASE_SPEED * 0.6 * dt);
   if (e.speed < 0) e.speed = 0;
-  if (drifting) {
-    e.boost = Math.min(100, e.boost + 11 * dt);
-    if (Math.random() < 0.5) spawnFx(race, e.z - 30, e.x + rnd(-0.08, 0.08), 30, "#ffd36b", 30, 0.25, 200);
-  }
+  driftTurbo(race, e, drifting, dt);
   e.fovKick = lerp(e.fovKick, e.boosting || e.padT > 0 ? 1 : 0, dt * 4);
 
   // ----- steering -----
@@ -3275,8 +3331,9 @@ function updateRider(race, e, inp, dt) {
     if (e.h <= 0 && s.vent && Math.abs(e.x - s.vent.x) < 0.32) { launch(race, e, 3600); for (let k = 0; k < 14; k++) spawnFx(race, s.i * SEG, s.vent.x + rnd(-0.2, 0.2), 120 + Math.random() * 120, "#f0f0f0", 40 + k * 60, 1.2, 1400); }
     if (e.h < 380 && e.invuln <= 0) collideSprites(race, e, s);
     for (const o of s.objs) {
-      if (o.taken > race.time || Math.abs(e.x - o.x) > 0.34 || e.h > 1100) continue;
-      o.taken = race.time + 6;
+      if (Math.abs(e.x - o.x) > 0.34 || e.h > 1100) continue;
+      if (o.taken > race.time) { catchUpCrate(race, e, o); continue; }
+      o.taken = race.time + RESPAWN_T;
       if (race.net && !e.remote) race.net.send({ t: "ev", k: "take", s: s.i, o: s.objs.indexOf(o) });
       if (o.kind === "crate") {
         const lucky = e === cutieFav(race);
@@ -3321,6 +3378,57 @@ function updateRider(race, e, inp, dt) {
   if (e.z > tr.length - SEG * 160) e.speed = Math.min(e.speed, e.maxSpd * 0.4);
 
   camFollow(race, e, dt, { steer });
+}
+
+/* ---------------- Crates & repair kits ----------------
+   Taken crates and repair kits come back after RESPAWN_T seconds. Catch-up: a HUMAN rider in the back half of the pack who
+   rides through an EMPTY crate spot still gets an item (once per crate spot per rider). They see a faint outline of
+   the crate there (render.js). Leaders don't, so the help goes to whoever is behind. */
+const RESPAWN_T = 4;
+function inBackHalf(race, e) { return e.place > race.riders.length / 2; }
+function catchUpCrate(race, e, o) {
+  // humans only: when bots got it too, twice as many items were thrown at the player (simulated), so it stays a
+  // catch-up for people, not more ammo for the pack
+  if (!e.human || o.kind !== "crate" || !inBackHalf(race, e) || e.items.length >= 3 || e.finished) return;
+  const got = o.gotBy || (o.gotBy = new Set());
+  if (got.has(e)) return;
+  got.add(e);
+  e.items.push(Math.random() < 0.25 ? e.rider.item : race.track.biome.item);
+  popup(e, "+ " + ITEMS[e.items[e.items.length - 1]].name.toUpperCase(), "#ffd23f");
+  race.events.push({ snd: "pickup", e });
+}
+
+/* ---------------- Drift mini-turbos ----------------
+   Hold DRIFT through a corner: sparks under the wheels go BLUE → ORANGE → PINK the longer the drift lasts.
+   Let go (or straighten up) and you get a speed burst; bigger for each colour. A short grace period means a quick
+   wobble of the stick doesn't cancel the drift. Tune the times / burst lengths here. */
+const DRIFT_TIERS = [0.7, 1.5, 2.4];            // seconds of drifting for blue, orange, pink
+const DRIFT_BURST = [0.55, 0.95, 1.4];          // burst length (s) at each tier (uses the boost-pad speed bonus)
+const DRIFT_COLS = ["#4fb3ff", "#ff8a1c", "#ff4fd8"];
+const DRIFT_NAMES = ["MINI-TURBO", "SUPER TURBO", "ULTRA TURBO"];
+function driftTurbo(race, e, drifting, dt) {
+  if (drifting) {
+    e.driftT += dt; e.driftOff = 0;
+    const tier = DRIFT_TIERS.filter((x) => e.driftT >= x).length;
+    if (tier > e.driftTier) { e.driftTier = tier; if (e.human) race.events.push({ snd: "tier", e }); }
+    const col = tier ? DRIFT_COLS[tier - 1] : "#f4ecd8";
+    const n = tier ? 3 : Math.random() < 0.5 ? 1 : 0;              // sparks spray from both sides of the rear wheel
+    for (let k = 0; k < n; k++) {
+      const side = k % 2 ? -1 : 1;
+      spawnFx(race, e.z + 15 + rnd(-10, 10), e.x + side * (0.07 + Math.random() * 0.05), 10 + Math.random() * 30, col, tier ? 34 + tier * 8 : 22, 0.22, 250 + Math.random() * 350);
+      const f = race.fx[race.fx.length - 1]; if (f) f.vz = e.speed * 0.92;      // sparks travel with the bike (they'd fly back at the camera otherwise)
+    }
+    return;
+  }
+  if (e.driftT <= 0) return;
+  e.driftOff += dt;
+  if (e.driftOff < 0.15 && e.h <= 0) return;   // grace: a quick wobble keeps the drift alive
+  const tier = e.driftTier;
+  e.driftT = 0; e.driftOff = 0; e.driftTier = 0;
+  if (!tier) return;
+  e.padT = Math.max(e.padT, DRIFT_BURST[tier - 1]);
+  popup(e, DRIFT_NAMES[tier - 1] + "!", DRIFT_COLS[tier - 1]);
+  race.events.push({ snd: "pad", e });
 }
 
 function camFollow(race, e, dt, inp) {
@@ -3569,7 +3677,7 @@ function bloodBurst(race, e, power) {
   if (e.human) { e.bloodT = 0.9 + power * 0.35; e.bloodSeed = (Math.random() * 1e6) | 0; e.bloodPow = power; }
 }
 function updateFx(race, dt) {
-  for (const f of race.fx) { f.life -= dt; f.h += f.vh * dt; f.vh -= 1800 * dt; if (f.h < 0) { f.h = 0; f.vh = 0; } f.x += f.vx * dt; }
+  for (const f of race.fx) { f.life -= dt; if (f.vz) f.z += f.vz * dt; f.h += f.vh * dt; f.vh -= 1800 * dt; if (f.h < 0) { f.h = 0; f.vh = 0; } f.x += f.vx * dt; }
   race.fx = race.fx.filter((f) => f.life > 0);
 }
 
@@ -4016,7 +4124,7 @@ function netStatus(title, msg, extra = "", onCancel) {
 function makeCode() { let c = ""; for (let i = 0; i < 4; i++) c += CODE_CHARS[(Math.random() * CODE_CHARS.length) | 0]; return c; }
 
 function myHello() {
-  return { t: "hello", ver: 1, cz: cutieOn() ? 1 : 0, rider: App.pick.riders[0] || App.save.last.rider, veh: App.pick.vehs[0] || App.save.last.veh, upg: App.save.upg[App.pick.vehs[0] || App.save.last.veh] || [0, 0, 0] };
+  return { t: "hello", ver: 1, cz: cutieOn() ? 1 : 0, rider: App.pick.riders[0] || App.save.last.rider, veh: App.pick.vehs[0] || App.save.last.veh, upg: myUpg() };
 }
 
 /* ---------------- host ---------------- */
@@ -4210,7 +4318,7 @@ function netApplyEvent(race, m) {
     if (v) for (let k = 0; k < 8; k++) spawnFx(race, v.z, v.x + rnd(-0.2, 0.2), 300 + rnd(-100, 100), "#fff6a8", 50, 0.5, 600);
   } else if (m.k === "take") {
     const s = race.track.segs[m.s];
-    if (s && s.objs[m.o]) s.objs[m.o].taken = race.time + 6;
+    if (s && s.objs[m.o]) s.objs[m.o].taken = race.time + RESPAWN_T;
   } else if (m.k === "hit") {
     const e = race.riders[m.v], by = race.riders[m.by];
     if (!e || e.remote) return;
@@ -4280,14 +4388,14 @@ function loadSave() {
   // Never lose a save we couldn't read: park the raw text under its own key before starting fresh,
   // so it can be restored from Settings → Save Code → RESTORE.
   if (raw) { try { localStorage.setItem(RESCUE_KEY, raw); } catch (_) {} }
-  return defaultSave();
+  return migrateSave(defaultSave());
 }
 const RESCUE_KEY = "wild-riders-save-v1-rescue";
 // Progress score used to decide whether a stored copy is worth offering back (stars count most, then rides, upgrades, races).
 function progressScore(s) {
   if (!s || typeof s !== "object") return 0;
   const st = Object.values(s.stars || {}).reduce((a, b) => a + (+b || 0), 0);
-  const up = Object.values(s.upg || {}).reduce((a, l) => a + (Array.isArray(l) ? l.reduce((x, y) => x + (+y || 0), 0) : 0), 0);
+  const up = Array.isArray(s.upgAll) ? s.upgAll.reduce((x, y) => x + (+y || 0), 0) : Object.values(s.upg || {}).reduce((a, l) => a + (Array.isArray(l) ? l.reduce((x, y) => x + (+y || 0), 0) : 0), 0);
   return st * 1000 + (Array.isArray(s.vehs) ? s.vehs.length : 0) * 100 + up * 10 + (+s.races || 0);
 }
 // Any stored older copy (pre-lineup backup, or an unreadable save parked by loadSave) with MORE progress than now.
@@ -4321,8 +4429,18 @@ const BACKUP_KEY = "wild-riders-save-v1-backup-rl1";
 function migrateSave(s) {
   if ((s.tl || 1) < 2) { s.best = {}; s.tl = 2; }
   if ((s.rl || 1) < 2) migrateRiders(s);
+  if (!Array.isArray(s.upgAll)) s.upgAll = mergeUpgrades(s.upg);
   return s;
 }
+// Upgrades belong to the PLAYER (save field `upgAll` = [gearing, tires, armor]) and work on every ride.
+// They used to be bought per ride (`upg` = { vehId: [..] }). First time a save without `upgAll` loads, each upgrade
+// takes the HIGHEST level bought on any ride, so nobody loses anything. The old `upg` is left untouched.
+function mergeUpgrades(upg) {
+  const out = [0, 0, 0];
+  if (upg && typeof upg === "object") for (const l of Object.values(upg)) if (Array.isArray(l)) for (let i = 0; i < 3; i++) out[i] = Math.max(out[i], clamp(Math.floor(+l[i] || 0), 0, 3));
+  return out;
+}
+function myUpg() { return App.save.upgAll || (App.save.upgAll = [0, 0, 0]); }
 function migrateRiders(s) {
   try { if (!localStorage.getItem(BACKUP_KEY)) localStorage.setItem(BACKUP_KEY, JSON.stringify(s)); } catch (_) {}   // safety copy of the save as it was before this change
   const owned = Array.isArray(s.riders) ? s.riders : [];
@@ -4498,7 +4616,7 @@ function openVeh() {
   const nextV = nextToUnlock(VEHICLES, App.save.vehs);
   VEHICLES.forEach((v) => {
     const owned = App.save.vehs.includes(v.id);
-    const upg = App.save.upg[v.id] || [0, 0, 0];
+    const upg = myUpg();
     const c = document.createElement("div");
     c.className = "card" + (v.id === cur ? " sel" : "");
     c.style.setProperty("--c1", "#3a2d55"); c.style.setProperty("--c2", "#1a1230");
@@ -4515,7 +4633,7 @@ function openVeh() {
   const up = $("#veh-upg");
   up.innerHTML = "";
   if (owned) {
-    const lv = App.save.upg[v.id] || (App.save.upg[v.id] = [0, 0, 0]);
+    const lv = myUpg();             // upgrades are shared by every ride
     UPGRADES.forEach((u, i) => {
       const row = document.createElement("div");
       row.className = "u";
@@ -4526,7 +4644,7 @@ function openVeh() {
       b.textContent = lv[i] >= 3 ? "MAX" : "+ " + cost;
       b.disabled = lv[i] >= 3 || App.save.coins < cost;
       b.title = u.desc;
-      b.onclick = (ev) => { ev.stopPropagation(); if (lv[i] >= 3 || App.save.coins < cost) return; App.save.coins -= cost; lv[i]++; saveGame(); SFX.play("unlock"); toast(v.short + " " + u.name.toUpperCase() + " LV " + lv[i]); openVeh(); };
+      b.onclick = (ev) => { ev.stopPropagation(); if (lv[i] >= 3 || App.save.coins < cost) return; App.save.coins -= cost; lv[i]++; saveGame(); SFX.play("unlock"); toast(u.name.toUpperCase() + " LV " + lv[i] + " · ALL RIDES"); openVeh(); };
       row.appendChild(b);
       up.appendChild(row);
     });
@@ -4647,15 +4765,16 @@ function applySettings() {
 function openHelp(after) {
   modal(`<h3>HOW TO RIDE</h3>
     <div class="ctl-help">
-      <b>GO &amp; STEER</b><span>Put your left thumb anywhere on the left side. Push it UP to go (further up = faster), slide left or right to steer, pull DOWN to brake. Let go and you roll to a stop.</span>
+      <b>GO &amp; STEER</b><span>Your ride speeds downhill by itself. Put your left thumb anywhere on the left side and slide it left or right to steer.</span>
+      <b>PERFECT START</b><span>Tap BOOST just as the countdown shows 1 (not before) for a launch burst. Too early and you stall for a moment.</span>
+      <b>DRIFT</b><span>Hold DRIFT while steering through a corner. Sparks go blue, then orange, then pink the longer you hold. Let go for a speed burst: pink is the biggest.</span>
+      <b>BOOST</b><span>Hold BOOST to burn your meter. Fill it with tricks, drafting right behind a rival and takedowns.</span>
       <b>PUNCH</b><span>Tap PUNCH when a rival is beside you. Every 3rd hit in a row is a big KICK.</span>
-      <b>THROW</b><span>Holding an item with nobody beside you? PUNCH throws it ahead. Swipe DOWN on it to throw behind.</span>
-      <b>TRICKS</b><span>In the air the button becomes TRICK. Tap or swipe up / down / sideways for different tricks. Land before it finishes and you bail!</span>
-      <b>BOOST</b><span>Hold BOOST to burn your meter. Fill it with tricks, drifts, drafting and takedowns.</span>
-      <b>DRIFT</b><span>Hold DRIFT while steering through corners to slide and charge boost. Ease off before hairpins (the yellow arrow signs).</span>
+      <b>THROW</b><span>Grab ? crates for items. With nobody beside you, PUNCH throws ahead. Swipe DOWN on it to throw behind. Riding at the back? Empty crate spots still give you an item.</span>
+      <b>TRICKS</b><span>Off a ramp the button becomes TRICK. Tap or swipe up / down / sideways. Land before it finishes or you bail!</span>
       <b>HEALTH</b><span>Hits and crashes drain health, and less health means a lower top speed. Grab green repair kits. At zero you wipe out.</span>
     </div>
-    <p class="kbd-note" style="font-size:12px;color:var(--mute)">Keyboard: W / ↑ go, S / ↓ brake, A D / ← → steer, Space punch, Shift boost, E drift. Two players: P1 WASD + F punch, G boost, E drift · P2 arrows + L punch, K boost, J drift.</p>
+    <p class="kbd-note" style="font-size:12px;color:var(--mute)">Keyboard: A D / ← → steer, Space punch, Shift boost, E drift, S / ↓ brake. Two players: P1 A D + F punch, G boost, E drift · P2 ← → + L punch, K boost, J drift.</p>
     <div class="acts"><button class="btn" style="--c:#2bd96a" data-a="ok">LET'S RIDE</button></div>`, (box) => {
     box.querySelector('[data-a="ok"]').onclick = () => { SFX.play("click"); closeModal(); App.save.seenHelp = true; saveGame(); after && after(); };
   });
@@ -4691,7 +4810,7 @@ function openSaveCode() {
 /* ---------- race flow ---------- */
 async function startRace() {
   const tips = ["Tricks fill your boost meter — but land before they finish!", "Every 3rd punch in a row is a heavy KICK.", "Low health = lower top speed. Repair kits are green.",
-    "Forks hide boost pads on the riskier side.", "Your ride accelerates by itself — just steer left and right.", "Yellow arrow signs = hairpin. Ease off or drift!", "Draft right behind a rival to charge boost.", "Swipe down on PUNCH to throw an item backward.", "Quads shove lighter riders out of the way."];
+    "Forks hide boost pads on the riskier side.", "Your ride accelerates by itself — just steer left and right.", "Tap BOOST right as the countdown hits 1 for a PERFECT START.", "Hold a drift until the sparks turn pink for the biggest turbo.", "Yellow arrow signs = hairpin. Ease off or drift!", "Draft right behind a rival to charge boost.", "Swipe down on PUNCH to throw an item backward.", "Quads shove lighter riders out of the way."];
   $("#loading .tip").textContent = "TIP: " + pick(tips);
   $("#loading .lb i").style.width = "5%";
   $("#loading").classList.remove("hidden");
@@ -4699,8 +4818,8 @@ async function startRace() {
   stopDemo();
   SFX.stopMusic();
   await new Promise((r) => setTimeout(r, 30));
-  const humans = [{ riderId: App.pick.riders[0] || App.save.last.rider, vehId: App.pick.vehs[0] || App.save.last.veh, upg: App.save.upg[App.pick.vehs[0] || App.save.last.veh] }];
-  if (App.mode === "split") humans.push({ riderId: App.pick.riders[1] || App.save.last.rider2, vehId: App.pick.vehs[1] || App.save.last.veh2, upg: App.save.upg[App.pick.vehs[1] || App.save.last.veh2] });
+  const humans = [{ riderId: App.pick.riders[0] || App.save.last.rider, vehId: App.pick.vehs[0] || App.save.last.veh, upg: myUpg() }];
+  if (App.mode === "split") humans.push({ riderId: App.pick.riders[1] || App.save.last.rider2, vehId: App.pick.vehs[1] || App.save.last.veh2, upg: myUpg() });
   const cfg = { trackId: App.pick.track || App.save.last.track, humans, total: 8, difficulty: App.save.settings.diff };
   if (App.mode === "split" && cutieOn()) cfg.fav = 1;           // secret switch: Player 2 always wins
   App.lastCfg = cfg;
@@ -4747,6 +4866,9 @@ function resumeRace() {
   closeModal();
   App.pauseMenu = false;
   if (!App.race) return;
+  // solo / one screen: a 3-2-1 before the race moves again, so you don't come back mid-corner
+  // (online races never stopped, and a race that hasn't started yet still has its own countdown)
+  if (!App.race.net && App.race.countdown <= 0 && !App.race.over) App.race.resumeT = 3;
   App.race.humans.forEach((h, i) => SFX.engineStart(i, h.veh.id));
   App.paused = false;
   App.lastT = 0;
@@ -5073,16 +5195,19 @@ function startupPopups() {
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.12b";
+const APP_VERSION = "2026.10.13";
 const WHATS_NEW = [
-  "Update button: new versions now show an UPDATE banner. Tap it, no need to delete the app.",
-  "Backup reminder: every few races the game shows your save code so you can keep a copy.",
-  "Safety net: unreadable saves are kept, and older progress found on this device can be restored.",
-  "Daily Spin wheel, Arcade / Savage style, armored riders, new logo, new rider order (from the last update).",
+  "Drift mini-turbos: hold DRIFT through a corner until the sparks turn blue, orange, then pink. Let go for a speed burst.",
+  "Perfect start: tap BOOST just as the countdown shows 1 for a launch burst. Too early and you stall.",
+  "Speed streaks on the screen edges at top speed and on boost.",
+  "After RESUME, a 3-2-1 countdown before the race moves again.",
+  "? crates and repair kits come back after 4 seconds. Riding at the back? Empty crate spots still give you an item.",
+  "Upgrades now work on every ride (you keep the best level you bought on any ride).",
+  "Avalanche! no longer catches everyone right after GO. How to Ride is updated.",
 ];
 // ============================================
 
-const BUILD_ID = "wild-riders-05767335d0";            // stamped by tools/build.py; matches version.json of this build
+const BUILD_ID = "wild-riders-cbe8d338f6";            // stamped by tools/build.py; matches version.json of this build
 const VERSION_KEY = "wr-version", BACKUP_INFO_KEY = "wr-backup";
 const Upd = { reg: null, ready: false };
 
@@ -5260,7 +5385,14 @@ function frame(tms) {
   }
   const race = App.race || (App.screen === "scr-title" ? App.demo : null);
   if (!race) return;
-  if (!App.paused) {
+  if (!App.paused && race.resumeT > 0) {
+    // 3-2-1 after RESUME (solo / one screen): the race stays frozen until it reaches zero
+    const before = Math.ceil(race.resumeT);
+    race.resumeT -= dt;
+    const n = Math.ceil(race.resumeT);
+    if (n < before) SFX.play(n > 0 ? "beep" : "go");
+    App.acc = 0;
+  } else if (!App.paused) {
     App.acc = (App.acc || 0) + dt;
     let n = 0;
     while (App.acc >= STEP && n < 5) {

@@ -21,7 +21,7 @@ function renderView(ctx, vp, race, me, tnow) {
 
   const shake = me.shake > 0 ? me.shake : 0;
   const K0 = projK(w, h);
-  const K = K0 * RENDER.ZOOM * (1 - me.fovKick * 0.12);
+  const K = K0 * RENDER.ZOOM * (1 - me.fovKick * 0.16);   // camera pulls back a little while boosting
   // keep the rider at the same spot on screen as before the zoom-out
   const hz = h * 0.38 + K0 * 0.97 - (1 + RENDER.CAM_LIFT) * K;
   const camZ = me.z - PLAYER_DIST;
@@ -99,12 +99,17 @@ function renderView(ctx, vp, race, me, tnow) {
       if (S.glow && (biome.dark || tun > 0.05)) glows.push([s.sx1 + s.sc1 * sp.x * ROAD_W * K, s.sy1 - S.wh * s.sc1 * K * 0.7, S.ww * s.sc1 * K * 1.2, S.glow]);
     }
     for (const o of s.objs) {
-      if (o.taken > race.time) continue;
+      let oa = alpha;
+      if (o.taken > race.time) {
+        // empty crate spot: riders in the back half still get an item here, so they see a faint outline
+        if (o.kind !== "crate" || race.demo || !me.human || !inBackHalf(race, me) || (o.gotBy && o.gotBy.has(me))) continue;
+        oa = alpha * 0.32;
+      }
       const S = assets.sprites[o.kind];
       const bob = Math.sin(tnow * 4 + s.i) * 60;
       const sc = s.sc1 * K;
-      drawSprite(ctx, S, s.sx1 + s.sc1 * o.x * ROAD_W * K, s.sy1 - (180 + bob) * sc, sc, s.clip, alpha, false);
-      if (biome.dark || tun > 0.05) glows.push([s.sx1 + s.sc1 * o.x * ROAD_W * K, s.sy1 - 400 * sc, 700 * sc, S.glow]);
+      drawSprite(ctx, S, s.sx1 + s.sc1 * o.x * ROAD_W * K, s.sy1 - (180 + bob) * sc, sc, s.clip, oa, false);
+      if ((biome.dark || tun > 0.05) && oa === alpha) glows.push([s.sx1 + s.sc1 * o.x * ROAD_W * K, s.sy1 - 400 * sc, 700 * sc, S.glow]);
     }
     const list = buckets[s.i];
     if (list) {
@@ -481,22 +486,35 @@ function drawDarkness(ctx, w, h, hz, glows, me, k = 1) {
   ctx.globalCompositeOperation = "source-over";
 }
 
-function drawScreenFX(ctx, w, h, me, race, t) {
-  // speed lines when boosting
-  const sp = me.speed / 11000;
-  if (me.boosting || me.padT > 0 || sp > 1.12) {
-    ctx.strokeStyle = me.padT > 0 ? "rgba(140,255,240,.55)" : "rgba(255,255,255,.45)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let i = 0; i < 18; i++) {
-      const a = (i / 18) * TAU + t * 0.7;
-      const r0 = h * (0.55 + ((t * 3 + i * 0.37) % 1) * 0.4);
-      const cx = w / 2, cy = h * 0.5;
-      ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0 * 0.7);
-      ctx.lineTo(cx + Math.cos(a) * (r0 + h * 0.2), cy + Math.sin(a) * (r0 + h * 0.2) * 0.7);
+/* Speed streaks: thin white lines flowing outward along the far LEFT and RIGHT edges only (never over the road or the
+   rider), when you're near top speed, and thicker on boost / boost pads / drift turbos. Each streak fades in and out
+   smoothly, so nothing flashes. Strength eases in and out with me.streakK. */
+function drawSpeedStreaks(ctx, w, h, me, t) {
+  const pct = me.speed / (me.maxSpd || 1);
+  const tgt = me.boosting || me.padT > 0 ? 1 : clamp((pct - 0.88) / 0.12, 0, 1) * 0.55;
+  me.streakK = lerp(me.streakK || 0, me.wipeT > 0 || me.finished ? 0 : tgt, 0.08);
+  const k = me.streakK;
+  if (k < 0.03) return;
+  const band = w * 0.15, thick = me.padT > 0 ? 3.2 : me.boosting ? 2.6 : 1.8;
+  ctx.save();
+  ctx.lineCap = "round"; ctx.strokeStyle = me.padT > 0 ? "#c8fff6" : "#ffffff"; ctx.lineWidth = thick;
+  for (let side = -1; side <= 1; side += 2) {
+    for (let i = 0; i < 12; i++) {
+      const r1 = ((i * 97 + (side > 0 ? 31 : 0)) % 101) / 101, r2 = ((i * 53 + 17) % 89) / 89, r3 = ((i * 29 + 7) % 61) / 61;
+      const ph = (t * (1.5 + r2 * 0.9) * (0.7 + 0.5 * k) + r1) % 1;
+      const y = h * (0.3 + r3 * 0.62) + ph * h * 0.06;
+      const len = band * (0.35 + 0.45 * ph);
+      const xin = band * (1 - ph * 1.1);                       // inner end slides out toward the screen edge
+      const x0 = side < 0 ? xin : w - xin, x1 = side < 0 ? xin - len : w - xin + len;
+      ctx.globalAlpha = k * 0.42 * Math.sin(ph * Math.PI);
+      ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y + len * 0.12); ctx.stroke();
     }
-    ctx.stroke();
   }
+  ctx.restore();
+}
+
+function drawScreenFX(ctx, w, h, me, race, t) {
+  drawSpeedStreaks(ctx, w, h, me, t);
   // damage flash
   // (red glow on the screen edges only: the middle stays clear so you can still see the road)
   if (me.flash > 0) {
@@ -642,7 +660,10 @@ function drawHUD(ctx, w, h, me, race, t) {
     fy += u * 0.5;
   }
   // countdown
-  if (race.countdown > 0) {
+  if (race.resumeT > 0) {
+    const n = Math.ceil(race.resumeT), f = race.resumeT % 1;
+    hudText(ctx, String(n), w / 2, h * 0.5, u * (12 + f * 6), ["#2bd96a", "#2bd96a", "#ffd23f", "#ff8a1c"][n] || "#fff", "center");
+  } else if (race.countdown > 0) {
     const n = Math.ceil(race.countdown);
     const f = race.countdown % 1;
     hudText(ctx, String(n), w / 2, h * 0.5, u * (14 + f * 8), ["#2bd96a", "#ffd23f", "#ff8a1c", "#ff3b3b"][n] || "#fff", "center");

@@ -82,7 +82,14 @@ function frame(tms) {
   }
   const race = App.race || (App.screen === "scr-title" ? App.demo : null);
   if (!race) return;
-  if (!App.paused) {
+  if (!App.paused && race.resumeT > 0) {
+    // 3-2-1 after RESUME (solo / one screen): the race stays frozen until it reaches zero
+    const before = Math.ceil(race.resumeT);
+    race.resumeT -= dt;
+    const n = Math.ceil(race.resumeT);
+    if (n < before) SFX.play(n > 0 ? "beep" : "go");
+    App.acc = 0;
+  } else if (!App.paused) {
     App.acc = (App.acc || 0) + dt;
     let n = 0;
     while (App.acc >= STEP && n < 5) {

@@ -33,6 +33,7 @@ function makeRiderEntity(rdef, vdef, opts) {
     trick: null, chain: 0, trickPts: 0, takedowns: 0, wipes: 0,
     finished: false, finishTime: 0, place: 0, popups: [], lastSeg: 0, lastPad: -99,
     dmgT: 0, dmgAmt: 0, bloodT: 0, bloodSeed: 1, perk: null, shield: 0, coinMul: 1,
+    driftT: 0, driftOff: 0, driftTier: 0, stallT: 0, cdBoost: false, cdTap: 0, streakK: 0,
     ai: opts.human ? null : { skill: opts.skill || 0.85, aggr: 0.5 + Math.random() * 0.5, t: 0, tx: 0, inp: {} },
     sprites: null, face: null,
   };
@@ -114,7 +115,9 @@ async function createRace(cfg, onProgress) {
     cfg, track, assets, riders, humans: riders.filter((e) => e.human && e.local),
     projs: [], fx: [], buckets: {}, time: 0, countdown: 3.99, lastBeep: 4,
     split: cfg.humans.filter((h) => !h.remote).length > 1, over: false, overT: 0, finishOrder: [],
-    avalanche: def.avalanche ? { z: track.startZ - 7000, speed: BASE_SPEED * 0.8 } : null,
+    // Avalanche! starts well behind the grid and only gets up to full speed after ~12 s, so riders can get away at the
+    // start (it used to catch everyone ~1 s after GO, while they were still accelerating from a standstill).
+    avalanche: def.avalanche ? { z: track.startZ - 16000, speed: 0 } : null,
     storm: def.storm ? { t: 14, on: 0 } : null, stormFog: 0, stormWarn: 0,
     touch: IS_TOUCH, events: [],
   };
@@ -145,6 +148,8 @@ function stepRace(race, inputs, dt) {
     const n = Math.ceil(race.countdown);
     if (n < race.lastBeep) { race.lastBeep = n; race.events.push(n > 0 ? "beep" : "go"); }
     for (const e of race.riders) { e.hpShow = e.hp; updatePopups(e, dt); }
+    startTiming(race, inputs);
+    if (race.countdown <= 0) applyStarts(race);
     rebuildBuckets(race);
     return;
   }
@@ -153,9 +158,10 @@ function stepRace(race, inputs, dt) {
   // hazards: avalanche & sandstorm
   if (race.avalanche) {
     const lead = Math.min(...race.riders.filter((e) => !e.finished).map((e) => e.z).concat([tr.finishZ]));
-    race.avalanche.speed = BASE_SPEED * (0.7 + Math.min(0.12, race.time * 0.0012));
+    const ramp = clamp(race.time / 12, 0, 1);                       // 0 → full speed over the first 12 s
+    race.avalanche.speed = BASE_SPEED * (0.7 + Math.min(0.12, race.time * 0.0012)) * (0.25 + 0.75 * ramp * ramp);
     race.avalanche.z += race.avalanche.speed * dt;
-    race.avalanche.z = Math.max(race.avalanche.z, lead - 9000);
+    if (race.time > 12) race.avalanche.z = Math.max(race.avalanche.z, lead - 9000);   // never falls hopelessly far behind
   }
   if (race.storm) {
     const s = race.storm;
@@ -194,6 +200,36 @@ function stepRace(race, inputs, dt) {
   if (!race.over && localHumans.length && localHumans.every((e) => e.finished)) { race.over = true; race.overT = 3.2; }
   if (race.over) race.overT -= dt;
   rebuildBuckets(race);
+}
+
+/* ---------------- Perfect start ----------------
+   Tap BOOST in the last half-second of the countdown (the second half of "1") = PERFECT START: a launch burst at GO.
+   Tap it earlier = TOO EARLY: a short stall at GO. Only the FIRST tap counts, so mashing doesn't work.
+   Bots sometimes get a good start too. */
+const START_WINDOW = 0.5;
+function startTiming(race, inputs) {
+  if (race.demo) return;
+  for (const e of race.riders) {
+    if (!e.human || e.remote || e.cdTap) continue;
+    const down = !!(inputs[e.pIndex] && inputs[e.pIndex].boost);
+    if (down && !e.cdBoost) e.cdTap = race.countdown <= START_WINDOW ? 1 : -1;
+    e.cdBoost = down;
+  }
+}
+function applyStarts(race) {
+  for (const e of race.riders) {
+    if (e.remote) continue;
+    let r = e.cdTap;
+    if (!e.human) r = Math.random() < 0.18 + 0.2 * (e.ai ? e.ai.skill - 0.7 : 0) ? 1 : 0;
+    if (r === 1) {
+      e.speed = e.maxSpd * 0.45; e.padT = Math.max(e.padT, 1.3);
+      popup(e, "PERFECT START!", "#2bd9c5", true);
+      race.events.push({ snd: "pad", e });
+    } else if (r === -1) {
+      e.stallT = 0.7;
+      popup(e, "TOO EARLY!", "#ff8a1c");
+    }
+  }
 }
 
 function rebuildBuckets(race) {
@@ -265,6 +301,7 @@ function updateRider(race, e, inp, dt) {
   // throttle: everyone auto-accelerates (humans send throttle 1; undefined = full). Kept as a 0..1 knob for tuning.
   let thr = inp.throttle === undefined ? 1 : clamp(inp.throttle, 0, 1);
   if (e.boosting || e.padT > 0) thr = 1;
+  if (e.stallT > 0) { e.stallT -= dt; thr = 0; }                   // TOO EARLY at the start
   const target = max * thr;
   let accel = e.accel * (e.boosting || e.padT > 0 ? 2.4 : 1);
   const drifting = !!inp.brake && Math.abs(inp.steer || 0) > 0.35 && pct > 0.4 && e.h <= 0;
@@ -275,10 +312,7 @@ function updateRider(race, e, inp, dt) {
   else if (e.h <= 0) e.speed = Math.max(target, e.speed - BASE_SPEED * (0.3 + 0.25 * pct) * dt);   // off the throttle: roll to a stop
   if (e.speedCap !== undefined && e.speed > e.speedCap) e.speed = Math.max(e.speedCap, e.speed - BASE_SPEED * 0.6 * dt);
   if (e.speed < 0) e.speed = 0;
-  if (drifting) {
-    e.boost = Math.min(100, e.boost + 11 * dt);
-    if (Math.random() < 0.5) spawnFx(race, e.z - 30, e.x + rnd(-0.08, 0.08), 30, "#ffd36b", 30, 0.25, 200);
-  }
+  driftTurbo(race, e, drifting, dt);
   e.fovKick = lerp(e.fovKick, e.boosting || e.padT > 0 ? 1 : 0, dt * 4);
 
   // ----- steering -----
@@ -335,8 +369,9 @@ function updateRider(race, e, inp, dt) {
     if (e.h <= 0 && s.vent && Math.abs(e.x - s.vent.x) < 0.32) { launch(race, e, 3600); for (let k = 0; k < 14; k++) spawnFx(race, s.i * SEG, s.vent.x + rnd(-0.2, 0.2), 120 + Math.random() * 120, "#f0f0f0", 40 + k * 60, 1.2, 1400); }
     if (e.h < 380 && e.invuln <= 0) collideSprites(race, e, s);
     for (const o of s.objs) {
-      if (o.taken > race.time || Math.abs(e.x - o.x) > 0.34 || e.h > 1100) continue;
-      o.taken = race.time + 6;
+      if (Math.abs(e.x - o.x) > 0.34 || e.h > 1100) continue;
+      if (o.taken > race.time) { catchUpCrate(race, e, o); continue; }
+      o.taken = race.time + RESPAWN_T;
       if (race.net && !e.remote) race.net.send({ t: "ev", k: "take", s: s.i, o: s.objs.indexOf(o) });
       if (o.kind === "crate") {
         const lucky = e === cutieFav(race);
@@ -381,6 +416,57 @@ function updateRider(race, e, inp, dt) {
   if (e.z > tr.length - SEG * 160) e.speed = Math.min(e.speed, e.maxSpd * 0.4);
 
   camFollow(race, e, dt, { steer });
+}
+
+/* ---------------- Crates & repair kits ----------------
+   Taken crates and repair kits come back after RESPAWN_T seconds. Catch-up: a HUMAN rider in the back half of the pack who
+   rides through an EMPTY crate spot still gets an item (once per crate spot per rider). They see a faint outline of
+   the crate there (render.js). Leaders don't, so the help goes to whoever is behind. */
+const RESPAWN_T = 4;
+function inBackHalf(race, e) { return e.place > race.riders.length / 2; }
+function catchUpCrate(race, e, o) {
+  // humans only: when bots got it too, twice as many items were thrown at the player (simulated), so it stays a
+  // catch-up for people, not more ammo for the pack
+  if (!e.human || o.kind !== "crate" || !inBackHalf(race, e) || e.items.length >= 3 || e.finished) return;
+  const got = o.gotBy || (o.gotBy = new Set());
+  if (got.has(e)) return;
+  got.add(e);
+  e.items.push(Math.random() < 0.25 ? e.rider.item : race.track.biome.item);
+  popup(e, "+ " + ITEMS[e.items[e.items.length - 1]].name.toUpperCase(), "#ffd23f");
+  race.events.push({ snd: "pickup", e });
+}
+
+/* ---------------- Drift mini-turbos ----------------
+   Hold DRIFT through a corner: sparks under the wheels go BLUE → ORANGE → PINK the longer the drift lasts.
+   Let go (or straighten up) and you get a speed burst; bigger for each colour. A short grace period means a quick
+   wobble of the stick doesn't cancel the drift. Tune the times / burst lengths here. */
+const DRIFT_TIERS = [0.7, 1.5, 2.4];            // seconds of drifting for blue, orange, pink
+const DRIFT_BURST = [0.55, 0.95, 1.4];          // burst length (s) at each tier (uses the boost-pad speed bonus)
+const DRIFT_COLS = ["#4fb3ff", "#ff8a1c", "#ff4fd8"];
+const DRIFT_NAMES = ["MINI-TURBO", "SUPER TURBO", "ULTRA TURBO"];
+function driftTurbo(race, e, drifting, dt) {
+  if (drifting) {
+    e.driftT += dt; e.driftOff = 0;
+    const tier = DRIFT_TIERS.filter((x) => e.driftT >= x).length;
+    if (tier > e.driftTier) { e.driftTier = tier; if (e.human) race.events.push({ snd: "tier", e }); }
+    const col = tier ? DRIFT_COLS[tier - 1] : "#f4ecd8";
+    const n = tier ? 3 : Math.random() < 0.5 ? 1 : 0;              // sparks spray from both sides of the rear wheel
+    for (let k = 0; k < n; k++) {
+      const side = k % 2 ? -1 : 1;
+      spawnFx(race, e.z + 15 + rnd(-10, 10), e.x + side * (0.07 + Math.random() * 0.05), 10 + Math.random() * 30, col, tier ? 34 + tier * 8 : 22, 0.22, 250 + Math.random() * 350);
+      const f = race.fx[race.fx.length - 1]; if (f) f.vz = e.speed * 0.92;      // sparks travel with the bike (they'd fly back at the camera otherwise)
+    }
+    return;
+  }
+  if (e.driftT <= 0) return;
+  e.driftOff += dt;
+  if (e.driftOff < 0.15 && e.h <= 0) return;   // grace: a quick wobble keeps the drift alive
+  const tier = e.driftTier;
+  e.driftT = 0; e.driftOff = 0; e.driftTier = 0;
+  if (!tier) return;
+  e.padT = Math.max(e.padT, DRIFT_BURST[tier - 1]);
+  popup(e, DRIFT_NAMES[tier - 1] + "!", DRIFT_COLS[tier - 1]);
+  race.events.push({ snd: "pad", e });
 }
 
 function camFollow(race, e, dt, inp) {
@@ -629,7 +715,7 @@ function bloodBurst(race, e, power) {
   if (e.human) { e.bloodT = 0.9 + power * 0.35; e.bloodSeed = (Math.random() * 1e6) | 0; e.bloodPow = power; }
 }
 function updateFx(race, dt) {
-  for (const f of race.fx) { f.life -= dt; f.h += f.vh * dt; f.vh -= 1800 * dt; if (f.h < 0) { f.h = 0; f.vh = 0; } f.x += f.vx * dt; }
+  for (const f of race.fx) { f.life -= dt; if (f.vz) f.z += f.vz * dt; f.h += f.vh * dt; f.vh -= 1800 * dt; if (f.h < 0) { f.h = 0; f.vh = 0; } f.x += f.vx * dt; }
   race.fx = race.fx.filter((f) => f.life > 0);
 }
 

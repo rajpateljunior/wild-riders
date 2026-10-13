@@ -16,14 +16,14 @@ function loadSave() {
   // Never lose a save we couldn't read: park the raw text under its own key before starting fresh,
   // so it can be restored from Settings → Save Code → RESTORE.
   if (raw) { try { localStorage.setItem(RESCUE_KEY, raw); } catch (_) {} }
-  return defaultSave();
+  return migrateSave(defaultSave());
 }
 const RESCUE_KEY = "wild-riders-save-v1-rescue";
 // Progress score used to decide whether a stored copy is worth offering back (stars count most, then rides, upgrades, races).
 function progressScore(s) {
   if (!s || typeof s !== "object") return 0;
   const st = Object.values(s.stars || {}).reduce((a, b) => a + (+b || 0), 0);
-  const up = Object.values(s.upg || {}).reduce((a, l) => a + (Array.isArray(l) ? l.reduce((x, y) => x + (+y || 0), 0) : 0), 0);
+  const up = Array.isArray(s.upgAll) ? s.upgAll.reduce((x, y) => x + (+y || 0), 0) : Object.values(s.upg || {}).reduce((a, l) => a + (Array.isArray(l) ? l.reduce((x, y) => x + (+y || 0), 0) : 0), 0);
   return st * 1000 + (Array.isArray(s.vehs) ? s.vehs.length : 0) * 100 + up * 10 + (+s.races || 0);
 }
 // Any stored older copy (pre-lineup backup, or an unreadable save parked by loadSave) with MORE progress than now.
@@ -57,8 +57,18 @@ const BACKUP_KEY = "wild-riders-save-v1-backup-rl1";
 function migrateSave(s) {
   if ((s.tl || 1) < 2) { s.best = {}; s.tl = 2; }
   if ((s.rl || 1) < 2) migrateRiders(s);
+  if (!Array.isArray(s.upgAll)) s.upgAll = mergeUpgrades(s.upg);
   return s;
 }
+// Upgrades belong to the PLAYER (save field `upgAll` = [gearing, tires, armor]) and work on every ride.
+// They used to be bought per ride (`upg` = { vehId: [..] }). First time a save without `upgAll` loads, each upgrade
+// takes the HIGHEST level bought on any ride, so nobody loses anything. The old `upg` is left untouched.
+function mergeUpgrades(upg) {
+  const out = [0, 0, 0];
+  if (upg && typeof upg === "object") for (const l of Object.values(upg)) if (Array.isArray(l)) for (let i = 0; i < 3; i++) out[i] = Math.max(out[i], clamp(Math.floor(+l[i] || 0), 0, 3));
+  return out;
+}
+function myUpg() { return App.save.upgAll || (App.save.upgAll = [0, 0, 0]); }
 function migrateRiders(s) {
   try { if (!localStorage.getItem(BACKUP_KEY)) localStorage.setItem(BACKUP_KEY, JSON.stringify(s)); } catch (_) {}   // safety copy of the save as it was before this change
   const owned = Array.isArray(s.riders) ? s.riders : [];
@@ -234,7 +244,7 @@ function openVeh() {
   const nextV = nextToUnlock(VEHICLES, App.save.vehs);
   VEHICLES.forEach((v) => {
     const owned = App.save.vehs.includes(v.id);
-    const upg = App.save.upg[v.id] || [0, 0, 0];
+    const upg = myUpg();
     const c = document.createElement("div");
     c.className = "card" + (v.id === cur ? " sel" : "");
     c.style.setProperty("--c1", "#3a2d55"); c.style.setProperty("--c2", "#1a1230");
@@ -251,7 +261,7 @@ function openVeh() {
   const up = $("#veh-upg");
   up.innerHTML = "";
   if (owned) {
-    const lv = App.save.upg[v.id] || (App.save.upg[v.id] = [0, 0, 0]);
+    const lv = myUpg();             // upgrades are shared by every ride
     UPGRADES.forEach((u, i) => {
       const row = document.createElement("div");
       row.className = "u";
@@ -262,7 +272,7 @@ function openVeh() {
       b.textContent = lv[i] >= 3 ? "MAX" : "+ " + cost;
       b.disabled = lv[i] >= 3 || App.save.coins < cost;
       b.title = u.desc;
-      b.onclick = (ev) => { ev.stopPropagation(); if (lv[i] >= 3 || App.save.coins < cost) return; App.save.coins -= cost; lv[i]++; saveGame(); SFX.play("unlock"); toast(v.short + " " + u.name.toUpperCase() + " LV " + lv[i]); openVeh(); };
+      b.onclick = (ev) => { ev.stopPropagation(); if (lv[i] >= 3 || App.save.coins < cost) return; App.save.coins -= cost; lv[i]++; saveGame(); SFX.play("unlock"); toast(u.name.toUpperCase() + " LV " + lv[i] + " · ALL RIDES"); openVeh(); };
       row.appendChild(b);
       up.appendChild(row);
     });
@@ -383,15 +393,16 @@ function applySettings() {
 function openHelp(after) {
   modal(`<h3>HOW TO RIDE</h3>
     <div class="ctl-help">
-      <b>GO &amp; STEER</b><span>Put your left thumb anywhere on the left side. Push it UP to go (further up = faster), slide left or right to steer, pull DOWN to brake. Let go and you roll to a stop.</span>
+      <b>GO &amp; STEER</b><span>Your ride speeds downhill by itself. Put your left thumb anywhere on the left side and slide it left or right to steer.</span>
+      <b>PERFECT START</b><span>Tap BOOST just as the countdown shows 1 (not before) for a launch burst. Too early and you stall for a moment.</span>
+      <b>DRIFT</b><span>Hold DRIFT while steering through a corner. Sparks go blue, then orange, then pink the longer you hold. Let go for a speed burst: pink is the biggest.</span>
+      <b>BOOST</b><span>Hold BOOST to burn your meter. Fill it with tricks, drafting right behind a rival and takedowns.</span>
       <b>PUNCH</b><span>Tap PUNCH when a rival is beside you. Every 3rd hit in a row is a big KICK.</span>
-      <b>THROW</b><span>Holding an item with nobody beside you? PUNCH throws it ahead. Swipe DOWN on it to throw behind.</span>
-      <b>TRICKS</b><span>In the air the button becomes TRICK. Tap or swipe up / down / sideways for different tricks. Land before it finishes and you bail!</span>
-      <b>BOOST</b><span>Hold BOOST to burn your meter. Fill it with tricks, drifts, drafting and takedowns.</span>
-      <b>DRIFT</b><span>Hold DRIFT while steering through corners to slide and charge boost. Ease off before hairpins (the yellow arrow signs).</span>
+      <b>THROW</b><span>Grab ? crates for items. With nobody beside you, PUNCH throws ahead. Swipe DOWN on it to throw behind. Riding at the back? Empty crate spots still give you an item.</span>
+      <b>TRICKS</b><span>Off a ramp the button becomes TRICK. Tap or swipe up / down / sideways. Land before it finishes or you bail!</span>
       <b>HEALTH</b><span>Hits and crashes drain health, and less health means a lower top speed. Grab green repair kits. At zero you wipe out.</span>
     </div>
-    <p class="kbd-note" style="font-size:12px;color:var(--mute)">Keyboard: W / ↑ go, S / ↓ brake, A D / ← → steer, Space punch, Shift boost, E drift. Two players: P1 WASD + F punch, G boost, E drift · P2 arrows + L punch, K boost, J drift.</p>
+    <p class="kbd-note" style="font-size:12px;color:var(--mute)">Keyboard: A D / ← → steer, Space punch, Shift boost, E drift, S / ↓ brake. Two players: P1 A D + F punch, G boost, E drift · P2 ← → + L punch, K boost, J drift.</p>
     <div class="acts"><button class="btn" style="--c:#2bd96a" data-a="ok">LET'S RIDE</button></div>`, (box) => {
     box.querySelector('[data-a="ok"]').onclick = () => { SFX.play("click"); closeModal(); App.save.seenHelp = true; saveGame(); after && after(); };
   });
@@ -427,7 +438,7 @@ function openSaveCode() {
 /* ---------- race flow ---------- */
 async function startRace() {
   const tips = ["Tricks fill your boost meter — but land before they finish!", "Every 3rd punch in a row is a heavy KICK.", "Low health = lower top speed. Repair kits are green.",
-    "Forks hide boost pads on the riskier side.", "Your ride accelerates by itself — just steer left and right.", "Yellow arrow signs = hairpin. Ease off or drift!", "Draft right behind a rival to charge boost.", "Swipe down on PUNCH to throw an item backward.", "Quads shove lighter riders out of the way."];
+    "Forks hide boost pads on the riskier side.", "Your ride accelerates by itself — just steer left and right.", "Tap BOOST right as the countdown hits 1 for a PERFECT START.", "Hold a drift until the sparks turn pink for the biggest turbo.", "Yellow arrow signs = hairpin. Ease off or drift!", "Draft right behind a rival to charge boost.", "Swipe down on PUNCH to throw an item backward.", "Quads shove lighter riders out of the way."];
   $("#loading .tip").textContent = "TIP: " + pick(tips);
   $("#loading .lb i").style.width = "5%";
   $("#loading").classList.remove("hidden");
@@ -435,8 +446,8 @@ async function startRace() {
   stopDemo();
   SFX.stopMusic();
   await new Promise((r) => setTimeout(r, 30));
-  const humans = [{ riderId: App.pick.riders[0] || App.save.last.rider, vehId: App.pick.vehs[0] || App.save.last.veh, upg: App.save.upg[App.pick.vehs[0] || App.save.last.veh] }];
-  if (App.mode === "split") humans.push({ riderId: App.pick.riders[1] || App.save.last.rider2, vehId: App.pick.vehs[1] || App.save.last.veh2, upg: App.save.upg[App.pick.vehs[1] || App.save.last.veh2] });
+  const humans = [{ riderId: App.pick.riders[0] || App.save.last.rider, vehId: App.pick.vehs[0] || App.save.last.veh, upg: myUpg() }];
+  if (App.mode === "split") humans.push({ riderId: App.pick.riders[1] || App.save.last.rider2, vehId: App.pick.vehs[1] || App.save.last.veh2, upg: myUpg() });
   const cfg = { trackId: App.pick.track || App.save.last.track, humans, total: 8, difficulty: App.save.settings.diff };
   if (App.mode === "split" && cutieOn()) cfg.fav = 1;           // secret switch: Player 2 always wins
   App.lastCfg = cfg;
@@ -483,6 +494,9 @@ function resumeRace() {
   closeModal();
   App.pauseMenu = false;
   if (!App.race) return;
+  // solo / one screen: a 3-2-1 before the race moves again, so you don't come back mid-corner
+  // (online races never stopped, and a race that hasn't started yet still has its own countdown)
+  if (!App.race.net && App.race.countdown <= 0 && !App.race.over) App.race.resumeT = 3;
   App.race.humans.forEach((h, i) => SFX.engineStart(i, h.veh.id));
   App.paused = false;
   App.lastT = 0;

@@ -8,12 +8,15 @@
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.12b";
+const APP_VERSION = "2026.10.13";
 const WHATS_NEW = [
-  "Update button: new versions now show an UPDATE banner. Tap it, no need to delete the app.",
-  "Backup reminder: every few races the game shows your save code so you can keep a copy.",
-  "Safety net: unreadable saves are kept, and older progress found on this device can be restored.",
-  "Daily Spin wheel, Arcade / Savage style, armored riders, new logo, new rider order (from the last update).",
+  "Drift mini-turbos: hold DRIFT through a corner until the sparks turn blue, orange, then pink. Let go for a speed burst.",
+  "Perfect start: tap BOOST just as the countdown shows 1 for a launch burst. Too early and you stall.",
+  "Speed streaks on the screen edges at top speed and on boost.",
+  "After RESUME, a 3-2-1 countdown before the race moves again.",
+  "? crates and repair kits come back after 4 seconds. Riding at the back? Empty crate spots still give you an item.",
+  "Upgrades now work on every ride (you keep the best level you bought on any ride).",
+  "Avalanche! no longer catches everyone right after GO. How to Ride is updated.",
 ];
 // ============================================
 

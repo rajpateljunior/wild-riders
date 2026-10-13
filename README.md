@@ -56,6 +56,7 @@ Commit `src/`, `index.html`, `sw.js` and `version.json` together. Before a relea
 - `node tools/restore_test.js` — older stored progress is offered back and restores correctly; unreadable saves are kept.
 - `node tools/backup_test.js` — backup reminder timing and that its code restores the same progress.
 - `node tools/update_test.js` — UPDATE banner, What's New, progress kept, offline after update (see NOTES).
+- `node tools/feel_test.js` — perfect start, drift mini-turbo tiers, resume 3-2-1, crate respawn + catch-up, shared upgrades, Avalanche! start.
 - `node tools/spin_test.js` — Daily Spin: one per day, prize saved, clock-rollback guard, streaks, odds, perks.
 - `node tools/icons.js` — re-render the app icons from the emblem.
 
