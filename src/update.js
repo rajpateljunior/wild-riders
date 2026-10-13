@@ -8,15 +8,15 @@
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.13";
+const APP_VERSION = "2026.10.13b";
 const WHATS_NEW = [
-  "Drift mini-turbos: hold DRIFT through a corner until the sparks turn blue, orange, then pink. Let go for a speed burst.",
-  "Perfect start: tap BOOST just as the countdown shows 1 for a launch burst. Too early and you stall.",
-  "Speed streaks on the screen edges at top speed and on boost.",
-  "After RESUME, a 3-2-1 countdown before the race moves again.",
-  "? crates and repair kits come back after 4 seconds. Riding at the back? Empty crate spots still give you an item.",
-  "Upgrades now work on every ride (you keep the best level you bought on any ride).",
-  "Avalanche! no longer catches everyone right after GO. How to Ride is updated.",
+  "<b>Drift turbos:</b> hold DRIFT in a corner till sparks go blue, orange, pink. Let go to shoot ahead.",
+  "<b>Perfect start:</b> tap BOOST as the countdown shows 1. Too early and you stall.",
+  "<b>Speed streaks</b> on the screen edges at top speed and on boost.",
+  "<b>3-2-1</b> countdown after you resume from pause.",
+  "<b>? crates</b> come back after 4 s. At the back? Empty crate spots still give you an item.",
+  "<b>Upgrades</b> now work on every ride (you keep your best levels).",
+  "<b>Avalanche!</b> no longer catches you right after GO. How to Ride is updated.",
 ];
 // ============================================
 
@@ -70,9 +70,10 @@ function whatsNewDue() {
   return true;
 }
 function openWhatsNew(after) {
+  // compact layout (Raj: must fit on the iPhone screen without scrolling): wide box, two columns, small text
   modal(`<h3>WHAT'S NEW</h3><ul class="wn">${WHATS_NEW.map((l) => `<li>${l}</li>`).join("")}</ul>
-    <p style="font-size:12px;color:var(--mute)">Version ${APP_VERSION}. Your progress was kept.</p>
-    <div class="acts"><button class="btn" style="--c:#2bd96a" data-a="ok">LET'S RIDE</button></div>`, (box) => {
+    <div class="wnfoot"><span>Version ${APP_VERSION} · your progress was kept</span><button class="btn sm" style="--c:#2bd96a" data-a="ok">LET'S RIDE</button></div>`, (box) => {
+    box.classList.add("wnbox");
     box.querySelector('[data-a="ok"]').onclick = () => { SFX.play("click"); try { localStorage.setItem(VERSION_KEY, APP_VERSION); } catch (_) {} closeModal(); after && after(); };
   });
 }

@@ -37,6 +37,8 @@ Live: https://rajpateljunior.github.io/wild-riders/ · Repo: `rajpateljunior/wil
   - Upgrades belong to the player: save field `upgAll` [gearing, tires, armor]. `migrateSave` fills it once from the old per-ride `upg` (highest level of each stat on any ride); `upg` is left untouched.
   - Avalanche! starts 16000 behind the grid and ramps to full speed over 12 s; the "stay within 9000 of last place" floor only applies after 12 s. Bot runs: never closer than ~385 m in the first 8 s; a rider who stops is still caught.
 
+- What's New popup is compact (Raj: it must fit without scrolling): `.wnbox` in `style.css` = wide box, two columns, 12.5px text, version + button on one row; `modal()` resets the box class each time. Keep WHATS_NEW lines short (≤ ~100 characters, ≤ 8 lines). Checked to fit at 667x375, 844x390, 932x430, 1180x820 and 390x844.
+
 ## Updates (how a release reaches Raj's phone) — READ BEFORE EVERY RELEASE
 - **Never tell Raj to delete and re-add the Home Screen app.** On iPhone that erases the app's storage, including the save. It cost Raj his progress on 2026-10-12. For the same reason, keep the app icon unchanged unless he asks (iOS only refreshes it on re-add).
 - On every release: edit `APP_VERSION` and `WHATS_NEW` at the top of `src/update.js`, then `python3 tools/build.py` (it stamps `BUILD_ID` into the page and writes `version.json`; commit `version.json` too).

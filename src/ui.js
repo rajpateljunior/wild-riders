@@ -149,6 +149,7 @@ function toast(msg) {
 }
 function modal(html, onMount) {
   const m = $("#modal");
+  m.querySelector(".mbox").className = "mbox";          // drop any per-popup size class (e.g. the compact What's New)
   m.querySelector(".mbox").innerHTML = html;
   m.classList.remove("hidden");
   onMount && onMount(m.querySelector(".mbox"));
