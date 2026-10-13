@@ -201,7 +201,7 @@ function netMaybeGo() {
 
 function riderState(e) {
   return [Math.round(e.z), +e.x.toFixed(3), Math.round(e.h), Math.round(e.speed), +e.lean.toFixed(2), Math.round(e.hp * 10) / 10, Math.round(e.boost),
-    (e.boosting ? 1 : 0) | (e.padT > 0 ? 2 : 0) | (e.finished ? 4 : 0) | (e.atkKick ? 8 : 0), +Math.max(0, e.wipeT).toFixed(2), +Math.max(0, e.atkT).toFixed(2), e.atkSide,
+    (e.boosting ? 1 : 0) | (e.padT > 0 ? 2 : 0) | (e.finished ? 4 : 0) | (e.atkKick ? 8 : 0) | (e.pendThrow ? 16 : 0) | (e.hurlT > 0 ? 32 : 0) | (e.shield > 0 ? 64 : 0), +Math.max(0, e.wipeT).toFixed(2), +Math.max(0, e.atkT).toFixed(2), e.atkSide,
     e.trick ? TRICKS.indexOf(e.trick.def) : -1, e.trick ? +(e.trick.t / e.trick.dur).toFixed(2) : 0, +Math.max(0, e.hurtT).toFixed(2), +e.finishTime.toFixed(2)];
 }
 function netBeforeStep() {}
@@ -221,7 +221,7 @@ function netApplyState(race, m) {
     if (!e || !e.remote) continue;
     const a = m.r[k];
     const first = !e.net;
-    e.net = { z: a[0], x: a[1], h: a[2], speed: a[3], lean: a[4], hp: a[5], boost: a[6], boosting: !!(a[7] & 1), padT: a[7] & 2 ? 0.5 : 0, finished: !!(a[7] & 4), atkKick: !!(a[7] & 8),
+    e.net = { z: a[0], x: a[1], h: a[2], speed: a[3], lean: a[4], hp: a[5], boost: a[6], boosting: !!(a[7] & 1), padT: a[7] & 2 ? 0.5 : 0, finished: !!(a[7] & 4), atkKick: !!(a[7] & 8), windup: !!(a[7] & 16), hurl: !!(a[7] & 32), shield: !!(a[7] & 64),
       wipeT: a[8], atkT: a[9], atkSide: a[10], trick: a[11] >= 0 ? TRICKS[a[11]].id : null, trickT: a[12], hurtT: a[13], finishTime: a[14], age: 0 };
     if (first) { e.z = a[0]; e.x = a[1]; }
     if (e.net.finished && !e.finished) race.finishOrder.push(e);
@@ -230,7 +230,16 @@ function netApplyState(race, m) {
 function netApplyEvent(race, m) {
   if (m.k === "throw") {
     const e = race.riders[m.i];
-    if (e) spawnProjectiles(race, e, m.item, m.dir, m.z, m.x, m.sp, m.id);
+    if (e) spawnProjectiles(race, e, m.item, m.dir, m.z, m.x, m.sp, m.id, m.vx || 0);
+  } else if (m.k === "super") {
+    const e = race.riders[m.i];
+    if (e && e.remote) activateSuper(race, e, true);
+  } else if (m.k === "mine") {
+    const e = race.riders[m.i];
+    if (e) dropMine(race, e, m.z, m.x, m.id);
+  } else if (m.k === "boom") {
+    const mn = (race.mines || []).find((x) => x.id === m.id);
+    if (mn) { mineBoom(race, mn); race.mines = race.mines.filter((x) => x !== mn); }
   } else if (m.k === "pop") {
     race.projs = race.projs.filter((p) => p.id !== m.id);
     const v = race.riders[m.v];

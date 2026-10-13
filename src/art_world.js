@@ -381,6 +381,8 @@ function itemSVG(id) {
     case "boulder": s = SV.circ(32, 32, 24, "#a8683a", 3) + `<path d="M10 28 Q32 40 54 28 M32 8 L32 56" stroke="#5e3519" stroke-width="3" fill="none"/>`; break;
     case "sandbomb": s = SV.circ(32, 36, 20, "#e9c46a", 3) + SV.rect(26, 10, 12, 10, 3, "#8a6a3a", 2.5) + `<path d="M32 10 Q38 2 44 6" stroke="#ff8a1c" stroke-width="3" fill="none"/>`; break;
     case "paint": s = SV.circ(32, 36, 20, "#38e05a", 3) + SV.path("M18 30 Q32 20 46 30", "none", 3) + SV.circ(26, 30, 4, "#fff", 0); break;
+    case "bubble": s = SV.path("M32 6 L54 14 L52 34 Q48 50 32 58 Q16 50 12 34 L10 14Z", "#2bd9c5", 3) + SV.path("M32 14 L46 19 L45 33 Q42 44 32 50Z", "#8ff5e8", 0) + `<path d="M24 32 l6 6 l12 -14" stroke="#14101c" stroke-width="4" fill="none" stroke-linecap="round"/>`; break;
+    case "mine": s = SV.ell(32, 40, 24, 13, "#3a3540", 3) + SV.ell(32, 35, 16, 8, "#55505e", 2.5) + SV.circ(32, 31, 5, "#ff3b3b", 2) + `<path d="M12 40 h-6 M52 40 h6" stroke="#14101c" stroke-width="3"/>`; break;
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">${s}</svg>`;
 }

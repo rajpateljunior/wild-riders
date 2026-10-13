@@ -68,6 +68,9 @@ const ITEMS = {
   snowburst: { name: "Snow Burst",    dmg: 8,  spd: 6000, slow: 0.7, col: "#ffffff", spread: 3, sig: 1 },
   sandbomb:  { name: "Sand Bomb",     dmg: 13, spd: 5900, slow: 0.75, col: "#e9c46a", home: 1, blind: 1, sig: 1 },
   paint:     { name: "Paint Bomb",    dmg: 12, spd: 5500, slow: 0.78, col: "#38e05a", blind: 1, sig: 1 },
+  // utility items (from ? crates; PUNCH or swipe down uses them): shield blocks the next hit (15 s), mine is dropped behind you
+  bubble:    { name: "Shield",        dmg: 0,  spd: 0,    slow: 1,    col: "#2bd9c5", util: "shield" },
+  mine:      { name: "Mine",          dmg: 18, spd: 0,    slow: 0.5,  col: "#ff5a5a", util: "mine" },
 };
 
 /* Biomes. Colors drive the road, ground, fog and sky; `item` is the throwable found in crates. */

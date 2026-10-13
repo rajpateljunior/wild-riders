@@ -322,6 +322,9 @@ function riderBackSVG(r, v, pose, f) {
   switch (pose) {
     case "punchL": handL = [12, shY + 4]; elbowL = [52, shY + 10]; tilt = -6; break;
     case "punchR": handR = [228, shY + 4]; elbowR = [188, shY + 10]; tilt = 6; break;
+    // overhand throw: arm cocked back above the shoulder, then whipped forward over the head
+    case "windup": handR = [204, shY - 62]; elbowR = [206, shY - 16]; tilt = 9; break;
+    case "hurl": handR = [132, shY - 84]; elbowR = [158, shY - 44]; handL = [60, shY + 30]; elbowL = [70, shY + 20]; tilt = -10; break;
     case "kickL": footL = [10, hipY + 26]; kneeL = [54, hipY + 10]; tilt = 5; break;
     case "kickR": footR = [230, hipY + 26]; kneeR = [186, hipY + 10]; tilt = -5; break;
     case "cancan": footL = [196, hipY + 40]; kneeL = [150, hipY + 6]; tilt = 4; break;
@@ -667,7 +670,7 @@ function vehicleSideSVG(v, r) {
 }
 
 /* ---------------- Sprite cache ---------------- */
-const RIDER_POSES = ["ride0", "ride1", "punchL", "punchR", "kickL", "kickR", "hurt", "nohand", "super", "cancan"];
+const RIDER_POSES = ["ride0", "ride1", "punchL", "punchR", "kickL", "kickR", "hurt", "nohand", "super", "cancan", "windup", "hurl"];
 const SPRITE_W = 240, SPRITE_H = 300;
 const riderSpriteCache = {};
 async function buildRiderSprites(riderId, vehId) {

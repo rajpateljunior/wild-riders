@@ -56,7 +56,7 @@ function processEvents(race) {
   const near = (e) => e && (e.human || race.humans.some((h) => Math.abs(h.z - e.z) < 1800));
   for (const ev of race.events) {
     if (typeof ev === "string") { SFX.play(ev); continue; }
-    if (ev.e && (ev.e.human && ev.e.local || (ev.target && ev.target.human) || (ev.by && ev.by.human) || (near(ev.e) && ["punch", "kick", "crash", "wipe", "hit"].includes(ev.snd)))) SFX.play(ev.snd);
+    if (ev.e && (ev.e.human && ev.e.local || (ev.target && ev.target.human) || (ev.by && ev.by.human) || (near(ev.e) && ["punch", "kick", "crash", "wipe", "hit", "super", "throw"].includes(ev.snd)))) SFX.play(ev.snd);
   }
   race.events.length = 0;
 }

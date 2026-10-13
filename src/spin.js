@@ -49,7 +49,7 @@ function applyPerk(e) {
   const k = App.save.perk;
   if (!k) return;
   if (k === "boost") e.boost = 100;
-  if (k === "shield") e.shield = 1;
+  if (k === "shield") { e.shield = 1; e.shieldT = 1e9; }      // the perk shield waits all race for its one hit
   if (k === "double") e.coinMul = 2;
   if (k === "power") { e.items = [e.rider.item, e.rider.item, e.rider.item]; e.itemMul = 1.4; }
   App.save.perk = null;

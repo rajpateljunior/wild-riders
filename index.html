@@ -444,6 +444,9 @@ const ITEMS = {
   snowburst: { name: "Snow Burst",    dmg: 8,  spd: 6000, slow: 0.7, col: "#ffffff", spread: 3, sig: 1 },
   sandbomb:  { name: "Sand Bomb",     dmg: 13, spd: 5900, slow: 0.75, col: "#e9c46a", home: 1, blind: 1, sig: 1 },
   paint:     { name: "Paint Bomb",    dmg: 12, spd: 5500, slow: 0.78, col: "#38e05a", blind: 1, sig: 1 },
+  // utility items (from ? crates; PUNCH or swipe down uses them): shield blocks the next hit (15 s), mine is dropped behind you
+  bubble:    { name: "Shield",        dmg: 0,  spd: 0,    slow: 1,    col: "#2bd9c5", util: "shield" },
+  mine:      { name: "Mine",          dmg: 18, spd: 0,    slow: 0.5,  col: "#ff5a5a", util: "mine" },
 };
 
 /* Biomes. Colors drive the road, ground, fog and sky; `item` is the throwable found in crates. */
@@ -955,6 +958,9 @@ function riderBackSVG(r, v, pose, f) {
   switch (pose) {
     case "punchL": handL = [12, shY + 4]; elbowL = [52, shY + 10]; tilt = -6; break;
     case "punchR": handR = [228, shY + 4]; elbowR = [188, shY + 10]; tilt = 6; break;
+    // overhand throw: arm cocked back above the shoulder, then whipped forward over the head
+    case "windup": handR = [204, shY - 62]; elbowR = [206, shY - 16]; tilt = 9; break;
+    case "hurl": handR = [132, shY - 84]; elbowR = [158, shY - 44]; handL = [60, shY + 30]; elbowL = [70, shY + 20]; tilt = -10; break;
     case "kickL": footL = [10, hipY + 26]; kneeL = [54, hipY + 10]; tilt = 5; break;
     case "kickR": footR = [230, hipY + 26]; kneeR = [186, hipY + 10]; tilt = -5; break;
     case "cancan": footL = [196, hipY + 40]; kneeL = [150, hipY + 6]; tilt = 4; break;
@@ -1300,7 +1306,7 @@ function vehicleSideSVG(v, r) {
 }
 
 /* ---------------- Sprite cache ---------------- */
-const RIDER_POSES = ["ride0", "ride1", "punchL", "punchR", "kickL", "kickR", "hurt", "nohand", "super", "cancan"];
+const RIDER_POSES = ["ride0", "ride1", "punchL", "punchR", "kickL", "kickR", "hurt", "nohand", "super", "cancan", "windup", "hurl"];
 const SPRITE_W = 240, SPRITE_H = 300;
 const riderSpriteCache = {};
 async function buildRiderSprites(riderId, vehId) {
@@ -1739,6 +1745,8 @@ function itemSVG(id) {
     case "boulder": s = SV.circ(32, 32, 24, "#a8683a", 3) + `<path d="M10 28 Q32 40 54 28 M32 8 L32 56" stroke="#5e3519" stroke-width="3" fill="none"/>`; break;
     case "sandbomb": s = SV.circ(32, 36, 20, "#e9c46a", 3) + SV.rect(26, 10, 12, 10, 3, "#8a6a3a", 2.5) + `<path d="M32 10 Q38 2 44 6" stroke="#ff8a1c" stroke-width="3" fill="none"/>`; break;
     case "paint": s = SV.circ(32, 36, 20, "#38e05a", 3) + SV.path("M18 30 Q32 20 46 30", "none", 3) + SV.circ(26, 30, 4, "#fff", 0); break;
+    case "bubble": s = SV.path("M32 6 L54 14 L52 34 Q48 50 32 58 Q16 50 12 34 L10 14Z", "#2bd9c5", 3) + SV.path("M32 14 L46 19 L45 33 Q42 44 32 50Z", "#8ff5e8", 0) + `<path d="M24 32 l6 6 l12 -14" stroke="#14101c" stroke-width="4" fill="none" stroke-linecap="round"/>`; break;
+    case "mine": s = SV.ell(32, 40, 24, 13, "#3a3540", 3) + SV.ell(32, 35, 16, 8, "#55505e", 2.5) + SV.circ(32, 31, 5, "#ff3b3b", 2) + `<path d="M12 40 h-6 M52 40 h6" stroke="#14101c" stroke-width="3"/>`; break;
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">${s}</svg>`;
 }
@@ -1832,11 +1840,14 @@ const SFX = (() => {
     punch: () => { noise(0.08, 0.5, 900, 0.8); tone(140, 0.12, "sine", 0.5, sfxBus, 0, 0.5); },
     kick: () => { noise(0.14, 0.6, 600, 0.7); tone(100, 0.2, "sine", 0.7, sfxBus, 0, 0.4); tone(300, 0.06, "square", 0.08); },
     swing: () => noise(0.12, 0.18, 2200, 2, "bandpass", 0, sfxBus, 0.4),
-    throw: () => noise(0.22, 0.25, 600, 3, "bandpass", 0, sfxBus, 4),
+    throw: () => { noise(0.22, 0.35, 700, 3, "bandpass", 0, sfxBus, 4); tone(220, 0.12, "triangle", 0.1, sfxBus, 0, 2.2); },
     hit: () => { noise(0.18, 0.5, 400, 0.6); tone(220, 0.1, "square", 0.12, sfxBus, 0, 0.5); },
     pickup: () => { [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.09, "square", 0.08, sfxBus, i * 0.05)); },
     repair: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.14, "triangle", 0.12, sfxBus, i * 0.06)); },
     tier: () => { tone(900, 0.07, "triangle", 0.12); tone(1350, 0.09, "triangle", 0.1, sfxBus, 0.05); },
+    super: () => { noise(0.6, 0.45, 300, 0.8, "lowpass", 0, sfxBus, 6); [330, 440, 554, 660].forEach((f, i) => tone(f, 0.35, "sawtooth", 0.08, sfxBus, i * 0.05, 1.5)); },
+    ready: () => { tone(784, 0.1, "triangle", 0.12); tone(1175, 0.18, "triangle", 0.12, sfxBus, 0.08); },
+    windup: () => noise(0.12, 0.18, 900, 2, "bandpass", 0, sfxBus, 0.5),
     pad: () => { tone(300, 0.35, "sawtooth", 0.12, sfxBus, 0, 4); noise(0.35, 0.2, 800, 2, "bandpass", 0, sfxBus, 5); },
     boost: () => noise(0.5, 0.25, 500, 2, "bandpass", 0, sfxBus, 6),
     jump: () => tone(220, 0.25, "triangle", 0.12, sfxBus, 0, 2.2),
@@ -2610,12 +2621,25 @@ function drawEntity(ctx, e, s, K, me, race, glows, t) {
     const img = race.assets.items[e.item];
     const size = 380 * sc * (e.big ? 1.6 : 1);
     const yy = py - e.h * sc;
-    ctx.save(); ctx.translate(px, yy); ctx.rotate(t * 12);
+    if (e.dir > 0) {
+      // speed streak behind a hurled item (it flies away from the camera, so the trail points back toward us)
+      const g = ctx.createLinearGradient(px, yy, px - e.vx * size * 0.6, yy + size * 1.6);
+      g.addColorStop(0, rgba(ITEMS[e.item].col, 0.55)); g.addColorStop(1, rgba(ITEMS[e.item].col, 0));
+      ctx.strokeStyle = g; ctx.lineWidth = size * 0.55; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(px, yy); ctx.lineTo(px - e.vx * size * 0.6, yy + size * 1.6); ctx.stroke();
+    }
+    ctx.save(); ctx.translate(px, yy); ctx.rotate(t * 18);
     ctx.drawImage(img, -size / 2, -size / 2, size, size); ctx.restore();
     ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(px, py, size * 0.4, size * 0.12, 0, 0, TAU); ctx.fill();
     if (race.track.biome.dark) glows.push([px, yy, size * 1.4, ITEMS[e.item].col]);
     return;
   }
+  if (e.type === "mine") {
+    const img = race.assets.items.mine, size = 420 * sc;
+    ctx.drawImage(img, px - size / 2, py - size * 0.75, size, size);
+    return;
+  }
+  if (e.type === "zone") { drawZone(ctx, e, px, py, sc, rw, t); return; }
   if (e.type === "fx") {
     const r = Math.max(1, e.size * sc);
     ctx.globalAlpha = clamp(e.life / e.max, 0, 1);
@@ -2628,6 +2652,8 @@ function drawEntity(ctx, e, s, K, me, race, glows, t) {
 function riderPose(e, t) {
   if (e.wipeT > 0) return "hurt";
   if (e.trick) return e.trick.def.pose === "spin" ? "ride0" : e.trick.def.pose;
+  if (e.pendThrow) return "windup";
+  if (e.hurlT > 0) return "hurl";
   if (e.atkT > 0) return (e.atkKick ? "kick" : "punch") + (e.atkSide < 0 ? "L" : "R");
   if (e.hurtT > 0) return "hurt";
   return Math.floor(e.pedal) % 2 ? "ride1" : "ride0";
@@ -2645,17 +2671,39 @@ function drawRider(ctx, e, px, py, sc, clipY, me, race, glows, t) {
   ctx.beginPath(); ctx.ellipse(px, py, dw * 0.3 * shs * (e.veh.shove ? 1.4 : 1), dw * 0.07 * shs, 0, 0, TAU); ctx.fill();
   let rot = e.lean * 0.32 + (e.wobble > 0 ? Math.sin(t * 40) * 0.12 * e.wobble : 0);
   if (e.wipeT > 0) rot = e.wipeT * 9;
+  else if (e.pendThrow) rot += 0.12;                 // lean back into the wind-up…
+  else if (e.hurlT > 0) rot -= 0.16;                 // …and whip forward on the throw
   if (e.trick && e.trick.def.pose === "spin") rot = (e.trick.t / e.trick.dur) * TAU;
   const y = py - lift;
   if (y - dh > clipY) return;
+  drawSuperAura(ctx, e, px, y, dw, dh, t);
   ctx.save();
   ctx.translate(px, y - (e.wipeT > 0 ? dh * 0.3 : 0));
   ctx.rotate(rot);
   if (e.flash > 0 && Math.floor(t * 30) % 2) ctx.globalAlpha = 0.5;
   if (e.invuln > 0 && Math.floor(t * 16) % 2) ctx.globalAlpha = 0.55;
+  if (e.ghostT > 0) ctx.globalAlpha = 0.45;                        // Yuki's ghost: see-through (steady, no blinking)
+  if (e.mirT > 0) ctx.globalAlpha = 0.28;                          // Zara's mirage: almost gone
   ctx.drawImage(spr, -dw / 2, -dh * (e.wipeT > 0 ? 0.5 : 0.98), dw, dh);
+  if (e.pendThrow && e.items[0] && race.assets.items[e.items[0]] && e.wipeT <= 0) {   // the item cocked back in the throwing hand (sprite space)
+    const isz = dw * 0.2, hy = ((VGEO[e.veh.id] || VGEO.mtb).shY - 62) / SPRITE_H;   // same spot as the "windup" pose's hand
+    ctx.drawImage(race.assets.items[e.items[0]], dw * (204 / SPRITE_W - 0.5) - isz * 0.1, -dh * 0.98 + dh * hy - isz * 0.45, isz, isz);
+  }
   ctx.globalAlpha = 1;
   ctx.restore();
+  if (e.paintT > 0) {                                              // splattered by Rex's paint
+    const a = clamp(e.paintT, 0, 1) * 0.85; ctx.fillStyle = `rgba(56,224,90,${a})`;
+    for (const [ox, oy, r] of [[-0.12, 0.62, 0.09], [0.1, 0.45, 0.07], [0.02, 0.8, 0.06], [-0.05, 0.3, 0.05]]) { ctx.beginPath(); ctx.arc(px + ox * dw, y - dh * oy, r * dw, 0, TAU); ctx.fill(); }
+  }
+  if (e.riotT > 0) {                                               // Rex's RIOT: expanding paint shockwave
+    const k = 1 - e.riotT / 0.7;
+    ctx.strokeStyle = `rgba(56,224,90,${0.8 * (1 - k)})`; ctx.lineWidth = Math.max(3, dw * 0.06 * (1 - k));
+    ctx.beginPath(); ctx.ellipse(px, y - dh * 0.2, dw * (0.4 + k * 2.2), dw * (0.12 + k * 0.6), 0, 0, TAU); ctx.stroke();
+  }
+  if (e.shield > 0) {                                              // shield bubble (steady)
+    ctx.strokeStyle = "rgba(43,217,197,.75)"; ctx.lineWidth = Math.max(2, dw * 0.025); ctx.fillStyle = "rgba(43,217,197,.12)";
+    ctx.beginPath(); ctx.ellipse(px, y - dh * 0.5, dw * 0.42, dh * 0.56, 0, 0, TAU); ctx.fill(); ctx.stroke();
+  }
   // hit stars
   if (e.hurtT > 0 || e.wipeT > 0) {
     ctx.fillStyle = "#ffd23f";
@@ -2684,6 +2732,45 @@ function drawRider(ctx, e, px, py, sc, clipY, me, race, glows, t) {
     ctx.font = "16px Bangers, sans-serif"; ctx.textAlign = "center"; ctx.fillText("P" + (e.pIndex + 1), px, my - 20);
   }
   if ((race.track.biome.dark || (me.tunT || 0) > 0.05) && e !== me) glows.push([px, y - dh * 0.85, Math.min(dw * 0.7, 90), "#fff2c0"]);
+}
+
+/* glow around a rider while their super move runs (steady colour; it eases in, never blinks) */
+function drawSuperAura(ctx, e, px, y, dw, dh, t) {
+  const on = Math.max(e.windT || 0, e.jugT || 0, e.ghostT || 0, e.mirT || 0, e.fireT || 0);
+  if (on <= 0 && !(e.supT > 0)) return;
+  const col = e.supCol || "#fff";
+  const a = clamp(Math.max(on, e.supT || 0) * 2, 0, 1) * (e.jugT > 0 ? 0.6 : 0.42);
+  const r = dw * (e.jugT > 0 ? 0.62 : 0.5);
+  const g = ctx.createRadialGradient(px, y - dh * 0.45, r * 0.2, px, y - dh * 0.45, r);
+  g.addColorStop(0, rgba(col, a)); g.addColorStop(1, rgba(col, 0));
+  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(px, y - dh * 0.45, r, r * 1.15, 0, 0, TAU); ctx.fill();
+  if (e.windT > 0) {                                               // Kaito: wind rings swirling around
+    ctx.strokeStyle = "rgba(230,245,255,.6)"; ctx.lineWidth = Math.max(1.5, dw * 0.015);
+    for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.ellipse(px, y - dh * (0.3 + i * 0.3), dw * 0.48, dw * 0.12, 0, t * 9 + i, t * 9 + i + 4); ctx.stroke(); }
+  }
+}
+/* ground effects left by super moves */
+function drawZone(ctx, zn, px, py, sc, rw, t) {
+  const a = clamp(zn.life / Math.min(zn.max, 0.8), 0, 1);
+  const w = zn.w * rw, h = Math.max(1.5, w * 0.16);
+  if (w < 1) return;
+  if (zn.kind === "frost") {
+    ctx.fillStyle = `rgba(120,200,255,${0.6 * a})`; ctx.beginPath(); ctx.ellipse(px, py, w, h, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = `rgba(235,250,255,${0.7 * a})`; ctx.beginPath(); ctx.ellipse(px, py - h * 0.2, w * 0.55, h * 0.45, 0, 0, TAU); ctx.fill();
+  }
+  else if (zn.kind === "slick") {
+    ctx.fillStyle = `rgba(56,224,90,${0.7 * a})`; ctx.beginPath(); ctx.ellipse(px, py, w, h * 1.3, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = `rgba(190,255,200,${0.5 * a})`; ctx.beginPath(); ctx.ellipse(px - w * 0.3, py - h * 0.2, w * 0.25, h * 0.3, 0, 0, TAU); ctx.fill();
+  } else if (zn.kind === "fire") {
+    for (let i = 0; i < 3; i++) {
+      const fx = px + (i - 1) * w * 0.5, fh = w * (0.9 + 0.25 * Math.sin(t * 7 + zn.id + i));
+      ctx.fillStyle = `rgba(255,${120 + i * 40},30,${0.75 * a})`;
+      ctx.beginPath(); ctx.moveTo(fx - w * 0.3, py); ctx.quadraticCurveTo(fx - w * 0.2, py - fh * 0.6, fx, py - fh); ctx.quadraticCurveTo(fx + w * 0.2, py - fh * 0.6, fx + w * 0.3, py); ctx.fill();
+    }
+  } else if (zn.kind === "sand") {
+    ctx.fillStyle = `rgba(233,196,106,${0.3 * a})`;
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(px + (i - 1.5) * w * 0.4, py - w * (0.12 + 0.1 * (i % 2)), w * 0.24, 0, TAU); ctx.fill(); }
+  }
 }
 
 function star(ctx, x, y, r) {
@@ -2873,8 +2960,14 @@ function drawHUD(ctx, w, h, me, race, t) {
   const bg = ctx.createLinearGradient(hx, 0, hx + bw, 0); bg.addColorStop(0, "#2b9cff"); bg.addColorStop(1, me.boost >= 99 ? (Math.floor(t * 8) % 2 ? "#ffffff" : "#2bd9c5") : "#2bd9c5");
   ctx.fillStyle = bg; roundRect(ctx, hx + 2, my + 2, (bw - 4) * bm, bh * 0.75 - 4, (bh * 0.75 - 4) / 2); ctx.fill();
   hudText(ctx, "BOOST", hx + bw + u * 0.8, my + bh * 0.66, u * 1.8, "#bff6ff");
+  // super meter (gold; full = SUPER READY)
+  const sy2 = my + bh * 0.75 + u * 0.8, sh2 = bh * 0.6;
+  ctx.fillStyle = "rgba(10,8,20,.6)"; roundRect(ctx, hx, sy2, bw, sh2, sh2 / 2); ctx.fill();
+  const sm = clamp((me.sup || 0) / 100, 0, 1), scol = superDef(me).col;
+  ctx.fillStyle = sm >= 1 ? scol : "#ffd23f"; roundRect(ctx, hx + 2, sy2 + 2, Math.max(0, (bw - 4) * sm), sh2 - 4, (sh2 - 4) / 2); ctx.fill();
+  hudText(ctx, sm >= 1 ? "SUPER READY" : "SUPER", hx + bw + u * 0.8, sy2 + sh2 * 0.85, u * 1.7, sm >= 1 ? scol : "#ffe9a0");
   // items
-  const iy = my + bh + u * 1.0;
+  const iy = sy2 + sh2 + u * 1.0;
   for (let i = 0; i < 3; i++) {
     const ix = hx + i * u * 5.4;
     ctx.fillStyle = i < me.items.length ? "rgba(255,210,63,.25)" : "rgba(10,8,20,.45)";
@@ -3007,6 +3100,7 @@ function makeRiderEntity(rdef, vdef, opts) {
     finished: false, finishTime: 0, place: 0, popups: [], lastSeg: 0, lastPad: -99,
     dmgT: 0, dmgAmt: 0, bloodT: 0, bloodSeed: 1, perk: null, shield: 0, coinMul: 1,
     driftT: 0, driftOff: 0, driftTier: 0, stallT: 0, cdBoost: false, cdTap: 0, streakK: 0,
+    sup: 0, supT: 0, shieldT: 0, windT: 0, jugT: 0, ghostT: 0, mirT: 0, fireT: 0, pendThrow: null, hurlT: 0, slick: 0,
     ai: opts.human ? null : { skill: opts.skill || 0.85, aggr: 0.5 + Math.random() * 0.5, t: 0, tx: 0, inp: {} },
     sprites: null, face: null,
   };
@@ -3152,6 +3246,7 @@ function stepRace(race, inputs, dt) {
   cutieStep(race, fav, dt);
 
   for (const e of race.riders) {
+    superTick(race, e, dt);
     if (e.remote) { remoteFollow(race, e, dt); continue; }
     let inp;
     if (e.human) inp = inputs[e.pIndex] || {};
@@ -3161,6 +3256,8 @@ function stepRace(race, inputs, dt) {
   }
   riderCollisions(race);
   updateProjectiles(race, dt);
+  updateMines(race, dt);
+  updateZones(race, dt);
   updateFx(race, dt);
   // places
   const sorted = race.riders.slice().sort((a, b) => {
@@ -3211,6 +3308,8 @@ function rebuildBuckets(race) {
   race.riders.forEach(put);
   race.projs.forEach(put);
   race.fx.forEach(put);
+  if (race.mines) race.mines.forEach(put);
+  if (race.zones) race.zones.forEach(put);
 }
 
 function updatePopups(e, dt) {
@@ -3224,8 +3323,15 @@ function updateRider(race, e, inp, dt) {
   e.hurtT -= dt; e.atkT -= dt; e.atkCD -= dt; e.invuln -= dt; e.flash -= dt * 2; e.wobble -= dt;
   e.blindT -= dt; e.padT -= dt; e.meleeImm -= dt; e.shake = Math.max(0, e.shake - dt * 30); e.comboT -= dt;
   e.hpShow = lerp(e.hpShow, e.hp, Math.min(1, dt * 6));
-  e.dmgT -= dt; e.bloodT -= dt;
+  e.dmgT -= dt; e.bloodT -= dt; e.hurlT -= dt; e.slick -= dt;
   updatePopups(e, dt);
+  if (e.pendThrow) {                                    // wind-up done: let it fly
+    e.pendThrow.t -= dt;
+    if (e.pendThrow.t <= 0) {
+      const dir = e.pendThrow.dir; e.pendThrow = null;
+      if (e.items.length && e.wipeT <= 0) { throwItem(race, e, dir); e.hurlT = 0.26; if (e.human) e.shake = Math.max(e.shake, 2); }
+    }
+  }
   if (e.burnT > 0) { e.burnT -= dt; damage(race, e, 5 * dt, null, "burn", true); }
 
   if (e.wipeT > 0) {
@@ -3263,7 +3369,8 @@ function updateRider(race, e, inp, dt) {
   e.wrongWay = offroad && Math.abs(e.x) > seg.w + 1.2 && e.human;
 
   // ----- speed -----
-  let max = e.maxSpd * (0.72 + 0.28 * (e.hp / e.maxHp)) * surfMax * (1 + (e.assist || 0));
+  if (e.slick > 0 && e.h <= 0) slip = true;                       // Rex's paint puddle
+  let max = e.maxSpd * (0.72 + 0.28 * (e.hp / e.maxHp)) * surfMax * (1 + (e.assist || 0)) * superSpeedMul(e) * zoneEffects(race, e, dt);
   e.boosting = false;
   if (inp.boost && e.boost > 0.5 && !e.finished) { e.boosting = true; e.boost = Math.max(0, e.boost - 30 * dt); }
   const bonus = Math.max(e.boosting ? 0.28 : 0, e.padT > 0 ? 0.36 : 0) + (e.boosting && e.padT > 0 ? 0.06 : 0);
@@ -3322,6 +3429,7 @@ function updateRider(race, e, inp, dt) {
         const pts = Math.round(e.trick.def.pts * (1 + e.chain * 0.5));
         e.trickPts += pts; e.chain++;
         e.boost = Math.min(100, e.boost + pts / 9);
+        addSuper(race, e, pts / 100 * SUP_GAIN.trickPer100);
         popup(e, e.trick.def.name.toUpperCase() + (e.chain > 1 ? " x" + e.chain : ""), "#2bd9c5", false, "+" + pts);
         race.events.push({ snd: "trick", e });
         e.trick = null;
@@ -3340,7 +3448,7 @@ function updateRider(race, e, inp, dt) {
     if (!s) continue;
     if (e.h <= 0 && s.ramp) for (const r of s.ramp) if (Math.abs(e.x - r.x) < 0.3) { launch(race, e, 1700 + e.speed * 0.22); break; }
     if (e.h <= 0 && s.vent && Math.abs(e.x - s.vent.x) < 0.32) { launch(race, e, 3600); for (let k = 0; k < 14; k++) spawnFx(race, s.i * SEG, s.vent.x + rnd(-0.2, 0.2), 120 + Math.random() * 120, "#f0f0f0", 40 + k * 60, 1.2, 1400); }
-    if (e.h < 380 && e.invuln <= 0) collideSprites(race, e, s);
+    if (e.h < 380 && e.invuln <= 0 && !(e.ghostT > 0)) collideSprites(race, e, s);
     for (const o of s.objs) {
       if (Math.abs(e.x - o.x) > 0.34 || e.h > 1100) continue;
       if (o.taken > race.time) { catchUpCrate(race, e, o); continue; }
@@ -3348,7 +3456,7 @@ function updateRider(race, e, inp, dt) {
       if (race.net && !e.remote) race.net.send({ t: "ev", k: "take", s: s.i, o: s.objs.indexOf(o) });
       if (o.kind === "crate") {
         const lucky = e === cutieFav(race);
-        if (e.items.length < 3) e.items.push(Math.random() < (lucky ? 0.6 : 0.25) ? e.rider.item : tr.biome.item);
+        if (e.items.length < 3) e.items.push(crateItem(race, e, lucky));
         if (lucky) e.boost = Math.min(100, e.boost + 12);
         popup(e, "+ " + ITEMS[e.items[e.items.length - 1]].name.toUpperCase(), "#ffd23f");
         race.events.push({ snd: "pickup", e });
@@ -3368,8 +3476,13 @@ function updateRider(race, e, inp, dt) {
   e.lastSeg = curSeg;
 
   // ----- combat -----
+  if (inp.super) trySuper(race, e);
   if (inp.attack && e.atkCD <= 0 && e.h <= 0 && !e.finished) attack(race, e);
-  if (inp.throwBack && e.atkCD <= 0 && e.items.length && !e.finished) { throwItem(race, e, -1); e.atkCD = 0.4; }
+  if (inp.throwBack && e.atkCD <= 0 && e.items.length && !e.finished && !e.pendThrow) {
+    if (isUtil(e.items[0])) useUtil(race, e);
+    else { e.pendThrow = { dir: -1, t: 0.1 }; }
+    e.atkCD = 0.45;
+  }
 
   // ----- avalanche -----
   if (race.avalanche && e.z < race.avalanche.z + 250 && !e.finished) {
@@ -3404,7 +3517,7 @@ function catchUpCrate(race, e, o) {
   const got = o.gotBy || (o.gotBy = new Set());
   if (got.has(e)) return;
   got.add(e);
-  e.items.push(Math.random() < 0.25 ? e.rider.item : race.track.biome.item);
+  e.items.push(crateItem(race, e, false));
   popup(e, "+ " + ITEMS[e.items[e.items.length - 1]].name.toUpperCase(), "#ffd23f");
   race.events.push({ snd: "pickup", e });
 }
@@ -3496,6 +3609,12 @@ function collideSprites(race, e, s) {
     if (!S || (!S.solid && !S.obstacle)) continue;
     const half = (S.ww / ROAD_W) * 0.5 * (S.obstacle === "log" ? 0.92 : 0.5);
     if (Math.abs(e.x - sp.x) > half + rHalf) continue;
+    if (S.obstacle && e.jugT > 0) {                    // Bruno's TIMBERFALL smashes straight through logs and stumps
+      sp.dead = true;
+      for (let k = 0; k < 10; k++) spawnFx(race, e.z + 100, sp.x + rnd(-0.2, 0.2), 60 + Math.random() * 200, "#a0783c", 70, 0.7, 900);
+      race.events.push({ snd: "kick", e });
+      continue;
+    }
     if (S.obstacle === "small") {
       sp.dead = true;
       damage(race, e, 5, null, "crash");
@@ -3524,9 +3643,10 @@ function damage(race, e, amt, by, kind, silent) {
     if (race.net && (kind === "melee" || kind === "bump")) race.net.queueHit(e, amt, by, kind);
     return;
   }
-  if (e.invuln > 0 && (kind === "melee" || kind === "item" || kind === "crash")) return;
-  if (e.shield > 0 && (kind === "melee" || kind === "item" || kind === "crash" || kind === "bump")) {      // Daily Spin perk: blocks the first hit
-    e.shield = 0; e.invuln = 0.7; e.flash = 0;
+  if (ghosted(e) && kind !== "avalanche" && kind !== "lava") return;          // Yuki's ghost / Zara's mirage: untouchable
+  if (e.invuln > 0 && (kind === "melee" || kind === "item" || kind === "crash" || kind === "super")) return;
+  if (e.shield > 0 && (kind === "melee" || kind === "item" || kind === "crash" || kind === "bump" || kind === "super")) {      // shield item / Daily Spin perk: blocks one hit
+    e.shield = 0; e.shieldT = 0; e.invuln = 0.7; e.flash = 0;
     popup(e, "SHIELD BLOCKED IT!", "#2bd9c5", true);
     race.events.push({ snd: "unlock", e });
     return;
@@ -3535,7 +3655,9 @@ function damage(race, e, amt, by, kind, silent) {
   // bots hit humans a bit softer (scaled by difficulty) so a good rider isn't ganged into constant wipeouts
   if (by && !by.human && e.human) amt *= [0.6, 0.78, 0.95][race.cfg.difficulty ?? 1];
   if (e === cutieFav(race)) amt *= 0.55;
+  if (e.jugT > 0) amt *= 0.4;                                    // Bruno's juggernaut shrugs most of it off
   e.hp -= amt * (1 - e.armor);
+  if (!silent && amt >= 5) addSuper(race, e, SUP_GAIN.hurt);
   if (!silent) {
     e.flash = 1; e.hurtT = Math.max(e.hurtT, 0.35); e.wobble = Math.max(e.wobble, 0.5);
     if (e.human) { e.dmgAmt = (e.dmgT > 0 ? e.dmgAmt : 0) + amt * (1 - e.armor); e.dmgT = 1.1; }   // number shown on the HP bar
@@ -3549,6 +3671,7 @@ function damage(race, e, amt, by, kind, silent) {
     if (by) {
       by.takedowns++;
       by.boost = Math.min(100, by.boost + 35);
+      addSuper(race, by, SUP_GAIN.takedown);
       popup(by, "TAKEDOWN!", "#ff3d7f", true, "+40 coins");
     }
   }
@@ -3565,7 +3688,7 @@ function respawn(race, e) {
 function attack(race, e) {
   let best = null, bd = 1e9;
   for (const o of race.riders) {
-    if (o === e || o.wipeT > 0 || o.finished || o.h > 500) continue;
+    if (o === e || o.wipeT > 0 || o.finished || o.h > 500 || ghosted(o)) continue;
     const dz = Math.abs(o.z - e.z), dx = Math.abs(o.x - e.x);
     if (dz < 320 && dx < 0.58) { const d = dz + dx * 500; if (d < bd) { bd = d; best = o; } }
   }
@@ -3577,16 +3700,22 @@ function attack(race, e) {
     e.atkSide = side; e.atkKick = kick; e.atkT = 0.3; e.atkCD = kick ? 0.6 : 0.42;
     if (race.net && best.remote) race.net.hitInfo = { slow: kick ? 0.72 : 0.9, push: side * (kick ? 3.2 : 1.4) * Math.min(2, e.mass / best.mass) };
     damage(race, best, (kick ? 17 : 9) * e.pow, e, "melee");
-    best.speed *= kick ? 0.72 : 0.9;
-    best.vx += side * (kick ? 3.2 : 1.4) * Math.min(2, e.mass / best.mass);
+    addSuper(race, e, kick ? SUP_GAIN.kick : SUP_GAIN.punch);
+    if (!(best.jugT > 0)) {
+      best.speed *= kick ? 0.72 : 0.9;
+      best.vx += side * (kick ? 3.2 : 1.4) * Math.min(2, e.mass / best.mass);
+    }
     best.hurtT = Math.max(best.hurtT, 0.45);
     if (best.human) best.shake = kick ? 10 : 5;
     for (let k = 0; k < 6; k++) spawnFx(race, best.z, best.x - side * 0.1 + rnd(-0.05, 0.05), 500 + Math.random() * 200, "#fff6a8", 40, 0.3, 300);
     race.events.push({ snd: kick ? "kick" : "punch", e, target: best });
     if (e.human) popup(e, kick ? "KICK!" : "POW!", kick ? "#ff8a1c" : "#fff");
   } else if (e.items.length) {
-    throwItem(race, e, 1);
-    e.atkT = 0.22; e.atkKick = false; e.atkSide = 1; e.atkCD = 0.4;
+    if (isUtil(e.items[0])) { useUtil(race, e); e.atkCD = 0.4; return; }
+    if (e.pendThrow) return;
+    e.pendThrow = { dir: 1, t: 0.12 };               // overhand wind-up, then the throw (see updateRider)
+    e.atkCD = 0.45;
+    race.events.push({ snd: "windup", e });
   } else {
     e.atkSide = -e.atkSide; e.atkKick = false; e.atkT = 0.25; e.atkCD = 0.35;
     race.events.push({ snd: "swing", e });
@@ -3596,18 +3725,23 @@ function attack(race, e) {
 let projSeq = 0;
 function throwItem(race, e, dir) {
   const id = e.items.shift();
-  spawnProjectiles(race, e, id, dir, e.z, e.x, e.speed, null);
-  if (race.net) race.net.send({ t: "ev", k: "throw", i: race.riders.indexOf(e), item: id, dir, z: e.z, x: e.x, sp: e.speed, id: race.lastProjId });
+  if (!id) return;
+  const vx = dir > 0 ? aimVx(race, e, e.z, e.x, ITEMS[id].spd) : 0;
+  spawnProjectiles(race, e, id, dir, e.z, e.x, e.speed, null, vx);
+  if (race.net) race.net.send({ t: "ev", k: "throw", i: race.riders.indexOf(e), item: id, dir, z: e.z, x: e.x, sp: e.speed, id: race.lastProjId, vx });
 }
-function spawnProjectiles(race, e, id, dir, z, x, sp, netId) {
+// aim = sideways speed toward the target (aimVx); forward throws are hurled 15% harder than before and start from hand height
+function spawnProjectiles(race, e, id, dir, z, x, sp, netId, aim) {
   const it = ITEMS[id];
   const n = it.spread || 1;
   const base = netId || (race.net ? race.net.role + ":" : "") + (++projSeq);
   race.lastProjId = base;
+  const tgt = dir > 0 ? throwTarget(race, e, z, x) : null;
   for (let k = 0; k < n; k++) {
     race.projs.push({
-      type: "proj", item: id, owner: e, z: z + dir * 160, x: x + (n > 1 ? (k - 1) * 0.3 : 0), h: 320, id: base + "/" + k,
-      vz: dir > 0 ? sp + it.spd : sp * 0.35, vx: n > 1 ? (k - 1) * 0.5 : 0, life: dir > 0 ? 2.6 : 6, dir, big: id === "boulder",
+      type: "proj", item: id, owner: e, z: z + dir * 160, x: x + (n > 1 ? (k - 1) * 0.3 : 0), h: 470, id: base + "/" + k,
+      vz: dir > 0 ? sp + it.spd * 1.15 : sp * 0.35, vx: (n > 1 ? (k - 1) * 0.5 : 0) + (aim || 0), life: dir > 0 ? 2.6 : 6, dir, big: id === "boulder",
+      age: 0, tgt,
     });
   }
   race.events.push({ snd: "throw", e });
@@ -3618,20 +3752,28 @@ function updateProjectiles(race, dt) {
   for (const p of race.projs) {
     p.life -= dt;
     const it = ITEMS[p.item];
+    p.age = (p.age || 0) + dt;
     if (it.home && p.dir > 0) {
       let tgt = null, bd = 4000;
-      for (const o of race.riders) if (o !== p.owner && o.wipeT <= 0 && o.z > p.z && o.z - p.z < bd) { bd = o.z - p.z; tgt = o; }
+      for (const o of race.riders) if (o !== p.owner && o.wipeT <= 0 && !ghosted(o) && o.z > p.z && o.z - p.z < bd) { bd = o.z - p.z; tgt = o; }
       if (tgt) p.vx = lerp(p.vx, (tgt.x - p.x) * 2.5, dt * 4);
+    } else if (p.dir > 0 && p.tgt && p.tgt.wipeT <= 0 && !ghosted(p.tgt) && p.tgt.z > p.z) {
+      // gentle curve toward the target (a quick dodge still makes it miss)
+      const tl = (p.tgt.z - p.z) / Math.max(1500, p.vz - p.tgt.speed);
+      p.vx = lerp(p.vx, clamp((p.tgt.x - p.x) / Math.max(0.15, tl), -2, 2), Math.min(1, dt * 1.6));
     }
     p.z += p.vz * dt; p.x += p.vx * dt;
-    p.h = p.dir > 0 ? 300 + Math.sin(p.life * 6) * 40 : Math.max(120, p.h - 400 * dt);
+    // forward throws leave the hand high and drop toward rider height; back throws fall to the ground
+    p.h = p.dir > 0 ? 300 + 170 * Math.max(0, 1 - p.age * 2.5) + Math.sin(p.age * 9) * 25 : Math.max(120, p.h - 500 * dt);
     let hit = false;
     for (const o of race.riders) {
-      if (o === p.owner || o.wipeT > 0 || o.finished || o.h > 700 || o.remote) continue;
+      if (o === p.owner || o.wipeT > 0 || o.finished || o.h > 700 || o.remote || ghosted(o)) continue;
       if (Math.abs(o.z - p.z) < 200 && Math.abs(o.x - p.x) < 0.3) {
         if (o.invuln > 0) { hit = true; break; }
         damage(race, o, it.dmg * (p.owner.itemMul || 1), p.owner, "item");
-        o.speed *= it.slow; o.hurtT = Math.max(o.hurtT, 0.5);
+        addSuper(race, p.owner, SUP_GAIN.itemHit);
+        if (!(o.jugT > 0)) o.speed *= it.slow;
+        o.hurtT = Math.max(o.hurtT, 0.5);
         if (it.burn) o.burnT = 2.4;
         if (it.blind) { o.blindT = 1.6; o.blindCol = it.col; }
         if (o.human) o.shake = 7;
@@ -3653,15 +3795,18 @@ function riderCollisions(race) {
     const a = rs[i];
     if (a.wipeT > 0) { a.drafting = false; continue; }
     a.drafting = false;
+    if (a.ghostT > 0) continue;                         // Yuki's BLIZZARD STEP rides straight through everyone
     for (let j = 0; j < rs.length; j++) {
       if (i === j) continue;
       const b = rs[j];
-      if (b.wipeT > 0) continue;
+      if (b.wipeT > 0 || b.ghostT > 0) continue;
       const dz = b.z - a.z, dx = b.x - a.x;
       if (dz > 150 && dz < 1100 && Math.abs(dx) < 0.25 && a.h <= 0) a.drafting = true;
       if (j < i) continue;
       const minDx = ((a.veh.w + b.veh.w) / 2 / ROAD_W) * 0.38;
       if (Math.abs(dz) < 140 && Math.abs(dx) < minDx && Math.abs(a.h - b.h) < 300) {
+        if (a.jugT > 0) juggernautHit(race, a, b);
+        if (b.jugT > 0) juggernautHit(race, b, a);
         const ov = minDx - Math.abs(dx);
         const tot = a.mass + b.mass;
         const s = dx === 0 ? 1 : sign(dx);
@@ -3742,7 +3887,7 @@ function cutieStep(race, fav, dt) {
 function aiThink(race, e, dt, humanZ) {
   const ai = e.ai || (e.ai = { skill: 0.9, aggr: 0.5, t: 0, tx: 0, inp: {} });
   const inp = ai.inp;
-  inp.attack = false; inp.trick = 0; inp.throwBack = false; inp.boost = false; inp.brake = false;
+  inp.attack = false; inp.trick = 0; inp.throwBack = false; inp.boost = false; inp.brake = false; inp.super = false;
   const tr = race.track;
   const segI = Math.floor(e.z / SEG);
   const seg = tr.segs[segI] || tr.segs[tr.N - 1];
@@ -3786,9 +3931,18 @@ function aiThink(race, e, dt, humanZ) {
       else if (dz < -200 && dz > -1200 && dx < 0.3 && -dz < bd) { bd = -dz; behind = o; }
     }
     const rival = fav && mel && mel.human && mel !== fav ? 1 + 0.5 * late : 1;
+    const it0 = e.items[0];
     if (mel && e.atkCD <= 0 && mel.meleeImm <= 0 && Math.random() < ai.aggr * dt * 2.4 * rival) inp.attack = true;
-    else if (!mel && ahead && e.items.length && Math.random() < ai.skill * dt * 1.0) inp.attack = true;
-    else if (behind && e.items.length && Math.random() < ai.skill * dt * 0.6) inp.throwBack = true;
+    else if (it0 === "bubble" && (e.hurtT > 0 || mel || behind) && Math.random() < dt * 1.5) inp.throwBack = true;
+    else if (it0 === "mine" && behind && Math.random() < ai.skill * dt * 0.8) inp.throwBack = true;
+    else if (!mel && ahead && it0 && !isUtil(it0) && Math.random() < ai.skill * dt * 1.0) inp.attack = true;
+    else if (behind && it0 && !isUtil(it0) && Math.random() < ai.skill * dt * 0.6) inp.throwBack = true;
+    // super moves: only sometimes, and only when the moment suits the move
+    if (e.sup >= 100 && Math.random() < dt * 0.35) {
+      const id = e.rider.id;
+      const near = race.riders.some((o) => o !== e && Math.abs(o.z - e.z) < 1400 && Math.abs(o.x - e.x) < 1.1 && o.wipeT <= 0);
+      if (id === "kaito" ? !!ahead : id === "rex" || id === "bruno" ? near : id === "priya" ? !!behind || near : e.hurtT > 0 || near || Math.random() < 0.3) inp.super = true;
+    }
   }
   // tricks in the air
   if (e.h > 150 && !e.trick && e.vh > 600 && Math.random() < ai.skill * 0.12) inp.trick = 1 + ((Math.random() * 4) | 0);
@@ -3825,6 +3979,8 @@ function chooseLine(race, e, segI) {
       for (const o of s.objs) if (!(o.taken > race.time) && Math.abs(cx - o.x) < 0.3) cost -= (o.kind === "crate" ? (e.items.length < 3 ? 1 : 0) : (1 - e.hp / e.maxHp) * 3) * near * skill;
       if (Math.abs(cx) > s.w) cost += 3 * near;
     }
+    if (race.mines) for (const m of race.mines) { const dz = m.z - e.z; if (m.owner !== e && dz > 0 && dz < 34 * SEG && Math.abs(cx - m.x) < 0.35) cost += 5 * skill; }
+    if (race.zones) for (const zn of race.zones) { const dz = zn.z - e.z; if (zn.owner !== e && dz > 0 && dz < 30 * SEG && Math.abs(cx - zn.x) < zn.w + 0.1) cost += 1.5 * skill; }
     // avoid riding right behind someone when holding no item (they might throw back) — light spacing
     cost += (Math.random() - 0.5) * (1.1 - skill) * 1.2;
     if (cost < bestC) { bestC = cost; bestX = cx; }
@@ -3844,8 +4000,241 @@ function remoteFollow(race, e, dt) {
   e.boosting = n.boosting; e.padT = n.padT; e.wipeT = n.wipeT; e.atkT = n.atkT; e.atkSide = n.atkSide; e.atkKick = n.atkKick;
   e.trick = n.trick ? { def: TRICKS.find((t) => t.id === n.trick), t: n.trickT, dur: 1 } : null;
   e.hurtT = n.hurtT; e.finished = n.finished; e.finishTime = n.finishTime;
+  e.pendThrow = n.windup ? { dir: 1, t: 1 } : null; e.hurlT = n.hurl ? 0.1 : 0; e.shield = n.shield ? 1 : 0; e.shieldT = n.shield ? 1 : 0;
   e.pedal += dt * (2 + (e.speed / e.maxSpd) * 7);
   e.lastSeg = Math.floor(e.z / SEG);
+}
+
+// ===== super.js =====
+/* Super moves, utility items (shield + mine), aimed throws and ground effect zones (release 2026.10.14).
+
+   SUPER METER  e.sup 0..100. Fills from punches / kicks landed, item hits, takedowns, tricks and (a little) from being hit.
+   When full, a SUPER button appears next to BOOST (keyboard: R for player 1, I for player 2). Bots fill slower and use
+   theirs only sometimes. One unique move per rider (SUPERS below). Online: the owner sends {k:"super"}; the other phone
+   plays the same move on its copy of that rider (visuals + zones), and every phone only ever damages riders it owns.
+
+   ZONES  race.zones = ground patches left by supers: frost (Yuki), sand cloud (Zara), fire (Priya), paint slick (Rex).
+   They hurt / slow riders who are not their owner. MINES  race.mines = dropped behind by the mine item.
+
+   Every number here is a tuning knob. */
+
+const SUP_GAIN = { punch: 6, kick: 9, itemHit: 8, takedown: 18, trickPer100: 1.5, hurt: 2, botMul: 0.55 };
+
+const SUPERS = {
+  kaito: { name: "TEMPEST", col: "#9fd4ff", desc: "Wind dash: a big burst of speed, and a fan of 5 shurikens ahead." },
+  bruno: { name: "TIMBERFALL", col: "#ffb347", desc: "3.5 s juggernaut: can't be slowed, and smashes everyone he touches." },
+  yuki: { name: "BLIZZARD STEP", col: "#bfefff", desc: "2.5 s ghost: rides through riders and hazards, leaving a frost trail that slows anyone behind." },
+  zara: { name: "MIRAGE", col: "#e9c46a", desc: "Vanishes in a sand swirl for 3 s: can't be hit, rides faster, and the sand cloud blinds rivals." },
+  priya: { name: "INFERNO TADKA", col: "#ff7a1f", desc: "4 s flaming trail: anyone who rides through it catches fire." },
+  rex: { name: "RIOT", col: "#38e05a", desc: "Paint blast: blinds and slows everyone near him and leaves a slippery green puddle." },
+};
+function superDef(e) { return SUPERS[e.rider.id] || SUPERS.kaito; }
+
+function addSuper(race, e, amt) {
+  if (!e || e.remote || e.finished || race.demo) return;
+  if (!e.human) amt *= SUP_GAIN.botMul;
+  const was = e.sup || 0;
+  e.sup = Math.min(100, was + amt);
+  if (was < 100 && e.sup >= 100 && e.human) { popup(e, "SUPER READY!", superDef(e).col, true); race.events.push({ snd: "ready", e }); }
+}
+
+/* untargetable right now (Yuki's ghost, Zara's mirage) */
+function ghosted(e) { return (e.ghostT || 0) > 0 || (e.mirT || 0) > 0; }
+
+/* ---------- activation ---------- */
+function trySuper(race, e) {
+  if ((e.sup || 0) < 100 || e.finished || e.wipeT > 0 || race.countdown > 0) return;
+  e.sup = 0;
+  activateSuper(race, e, false);
+  if (race.net && !e.remote) race.net.send({ t: "ev", k: "super", i: race.riders.indexOf(e) });
+}
+
+// remote = true: replaying a move that another phone's rider started (visuals, zones, local victims only)
+function activateSuper(race, e, remote) {
+  const d = superDef(e), id = e.rider.id;
+  e.supT = 0.9; e.supCol = d.col;                    // name banner + aura flash-in
+  popup(e, d.name + "!", d.col, true);
+  race.events.push({ snd: "super", e });
+  for (let k = 0; k < 18; k++) spawnFx(race, e.z + rnd(-60, 60), e.x + rnd(-0.25, 0.25), 200 + Math.random() * 500, d.col, 50 + Math.random() * 40, 0.6, 600 + Math.random() * 900);
+  if (id === "kaito") {
+    e.windT = 1.6;
+    if (!remote) {
+      e.padT = Math.max(e.padT, 1.6); e.speed = Math.max(e.speed, e.maxSpd * 0.95);
+      for (let k = 0; k < 5; k++) {
+        const vx = aimVx(race, e, e.z, e.x, ITEMS.shuriken.spd) + (k - 2) * 0.45;
+        spawnProjectiles(race, e, "shuriken", 1, e.z, e.x, e.speed, null, vx);
+        if (race.net) race.net.send({ t: "ev", k: "throw", i: race.riders.indexOf(e), item: "shuriken", dir: 1, z: e.z, x: e.x, sp: e.speed, id: race.lastProjId, vx });
+      }
+    }
+  } else if (id === "bruno") e.jugT = 3.5;
+  else if (id === "yuki") e.ghostT = 2.5;
+  else if (id === "zara") { e.mirT = 3; addZone(race, e, "sand", e.z - 200, e.x, 0.6, 3.5); }
+  else if (id === "priya") e.fireT = 4;
+  else if (id === "rex") {
+    e.riotT = 0.7;                                    // the expanding paint shockwave (render.js)
+    for (let k = 0; k < 34; k++) fxMove(race, e.z + rnd(-100, 900), e.x + rnd(-1, 1), 100 + Math.random() * 600, k % 3 ? "#38e05a" : "#a8ff7a", 60 + Math.random() * 60, 0.8, 300 + Math.random() * 900, e.speed * 0.85);
+    for (const o of race.riders) {
+      if (o === e || o.remote || o.wipeT > 0 || o.finished || ghosted(o)) continue;
+      const dz = o.z - e.z, dx = Math.abs(o.x - e.x);
+      if (dz > -900 && dz < 1600 && dx < 1.3) {
+        damage(race, o, 10, e, "super");
+        o.speed *= 0.7; o.blindT = Math.max(o.blindT, 2); o.blindCol = "#38e05a"; o.hurtT = Math.max(o.hurtT, 0.5); o.paintT = 3;
+        if (o.human) o.shake = 8;
+      }
+    }
+    for (let k = 0; k < 4; k++) addZone(race, e, "slick", e.z - 150 - k * 260, e.x + rnd(-0.3, 0.3), 0.55, 7);
+  }
+}
+
+/* ---------- every frame, for every rider (also remote copies, so their trails appear on this phone) ---------- */
+function superTick(race, e, dt) {
+  e.supT = Math.max(0, (e.supT || 0) - dt);
+  for (const k of ["windT", "jugT", "ghostT", "mirT", "fireT", "riotT"]) if (e[k] > 0) e[k] -= dt;
+  if (e.shieldT !== undefined && e.shield > 0) { e.shieldT -= dt; if (e.shieldT <= 0) e.shield = 0; }
+  e.zoneCD = (e.zoneCD || 0) - dt;
+  if (e.ghostT > 0 && e.zoneCD <= 0) { e.zoneCD = 0.035; addZone(race, e, "frost", e.z - 120, e.x, 0.32, 4); }
+  if (e.mirT > 0 && e.zoneCD <= 0 && e.mirT > 1.5) { e.zoneCD = 0.25; addZone(race, e, "sand", e.z - 180, e.x, 0.45, 2.5); }
+  if (e.fireT > 0 && e.zoneCD <= 0) { e.zoneCD = 0.05; addZone(race, e, "fire", e.z - 60, e.x, 0.24, 3); }
+  // looks (these particles travel with the rider, so you can see them from your own seat too)
+  const vz = e.speed * 0.9;
+  if (e.windT > 0 && Math.random() < 0.8) fxMove(race, e.z + rnd(-40, 120), e.x + rnd(-0.25, 0.25), 150 + Math.random() * 450, "#e8f4ff", 26, 0.35, 200, vz);
+  if (e.jugT > 0) { fxMove(race, e.z + 10, e.x + rnd(-0.2, 0.2), 20 + Math.random() * 60, "#c9a27a", 55, 0.45, 300, vz * 0.9); if (Math.random() < 0.3) fxMove(race, e.z + 40, e.x + rnd(-0.15, 0.15), 300 + Math.random() * 300, "#ffb347", 30, 0.3, 300, vz); }
+  if (e.mirT > 0 && Math.random() < 0.8) fxMove(race, e.z + rnd(-40, 80), e.x + rnd(-0.28, 0.28), 100 + Math.random() * 450, "#e9c46a", 44, 0.45, 300, vz);
+  if (e.ghostT > 0 && Math.random() < 0.8) fxMove(race, e.z + 10, e.x + rnd(-0.12, 0.12), 20 + Math.random() * 120, "#d8f4ff", 34, 0.4, 250, vz * 0.85);
+  if (e.fireT > 0) for (let k = 0; k < 2; k++) fxMove(race, e.z + 10, e.x + rnd(-0.09, 0.09), 30 + Math.random() * 140, Math.random() < 0.5 ? "#ff7a1f" : "#ffd23f", 46, 0.38, 600, vz * 0.82);
+  // marks on riders hit by a move
+  if (e.paintT > 0) e.paintT -= dt;
+  if (e.frostVis > 0) { e.frostVis -= dt; if (Math.random() < 0.5) fxMove(race, e.z + 10, e.x + rnd(-0.12, 0.12), 60 + Math.random() * 300, "#d8f4ff", 26, 0.3, 200, e.speed * 0.9); }
+  if (e.blindT > 0 && e.blindCol === "#e9c46a" && !e.human && Math.random() < 0.4) fxMove(race, e.z + 20, e.x + rnd(-0.15, 0.15), 450 + Math.random() * 150, "#e9c46a", 40, 0.35, 100, e.speed * 0.9);
+}
+function fxMove(race, z, x, h, col, size, life, vh, vz) {
+  spawnFx(race, z, x, h, col, size, life, vh);
+  const f = race.fx[race.fx.length - 1]; if (f && f.z === z) f.vz = vz;
+}
+
+/* speed bonus while a move runs (multiplies the top speed) */
+function superSpeedMul(e) {
+  return 1 + ((e.jugT || 0) > 0 ? 0.12 : 0) + ((e.ghostT || 0) > 0 ? 0.18 : 0) + ((e.mirT || 0) > 0 ? 0.18 : 0) + ((e.fireT || 0) > 0 ? 0.1 : 0);
+}
+
+/* Bruno's juggernaut: called from riderCollisions when he touches someone */
+function juggernautHit(race, a, b) {
+  if (b.remote || b.wipeT > 0 || b.finished || ghosted(b)) return;
+  b.jugHitT = b.jugHitT || 0;
+  if (b.jugHitT > race.time) return;
+  b.jugHitT = race.time + 0.8;
+  damage(race, b, 14, a, "super");
+  b.speed *= 0.6; b.vx += sign(b.x - a.x || 1) * 3; b.hurtT = Math.max(b.hurtT, 0.6);
+  if (b.human) b.shake = 10;
+  for (let k = 0; k < 8; k++) spawnFx(race, b.z, b.x + rnd(-0.15, 0.15), 300 + Math.random() * 200, "#ffb347", 50, 0.4, 500);
+  race.events.push({ snd: "kick", e: a, target: b });
+}
+
+/* ---------- zones ---------- */
+let zoneSeq = 0;
+function addZone(race, owner, type, z, x, w, life) {
+  if (!race.zones) race.zones = [];
+  if (race.zones.length > 160) race.zones.shift();
+  race.zones.push({ type: "zone", kind: type, z, x, w, life, max: life, owner, id: ++zoneSeq, hit: new Set() });
+}
+function updateZones(race, dt) {
+  if (!race.zones || !race.zones.length) return;
+  for (const zn of race.zones) zn.life -= dt;
+  race.zones = race.zones.filter((zn) => zn.life > 0);
+}
+/* effects of the ground zones on one rider this frame (only riders this phone owns) */
+function zoneEffects(race, e, dt) {
+  if (!race.zones || !race.zones.length || e.remote || e.h > 200 || e.wipeT > 0 || e.finished || ghosted(e)) return 1;
+  let slow = 1;
+  for (const zn of race.zones) {
+    if (zn.owner === e || Math.abs(zn.z - e.z) > 220 || Math.abs(zn.x - e.x) > zn.w) continue;
+    if (zn.kind === "frost") { slow = Math.min(slow, 0.72); e.frostVis = 0.6; if (!e.frostT || e.frostT < race.time) { e.frostT = race.time + 0.02; e.speed *= 1 - 1.4 * dt; } e.slick = 0.25; }
+    else if (zn.kind === "slick") { slow = Math.min(slow, 0.8); e.slick = 0.4; e.speed *= 1 - 0.8 * dt; e.paintT = Math.max(e.paintT || 0, 1); if (!zn.hit.has(e)) { zn.hit.add(e); e.wobble = Math.max(e.wobble, 0.8); } }
+    else if (zn.kind === "fire" && !zn.hit.has(e) && !(e.fireHitT > race.time)) {
+      zn.hit.add(e); e.fireHitT = race.time + 1.2;
+      damage(race, e, 5, zn.owner, "super"); e.burnT = Math.max(e.burnT, 1.8); e.speed *= 0.9;
+    } else if (zn.kind === "sand" && !zn.hit.has(e)) {
+      zn.hit.add(e); e.blindT = Math.max(e.blindT, 1.4); e.blindCol = "#e9c46a"; e.speed *= 0.85;
+    }
+  }
+  return slow;
+}
+
+/* ---------- utility items ---------- */
+function isUtil(id) { return !!(id && ITEMS[id] && ITEMS[id].util); }
+/* random item from a ? crate: shield 12%, mine 12%, the rider's own throwable 22%, the biome's throwable 54% */
+function crateItem(race, e, lucky) {
+  const r = Math.random();
+  if (lucky) return r < 0.6 ? e.rider.item : r < 0.8 ? "bubble" : race.track.biome.item;
+  return r < 0.12 ? "bubble" : r < 0.24 ? "mine" : r < 0.46 ? e.rider.item : race.track.biome.item;
+}
+function useUtil(race, e) {
+  const id = e.items.shift();
+  if (id === "bubble") {
+    e.shield = 1; e.shieldT = 15;
+    popup(e, "SHIELD UP!", "#2bd9c5");
+    race.events.push({ snd: "unlock", e });
+  } else if (id === "mine") {
+    const m = dropMine(race, e, e.z - 260, e.x, null);
+    if (race.net) race.net.send({ t: "ev", k: "mine", i: race.riders.indexOf(e), z: m.z, x: m.x, id: m.id });
+    popup(e, "MINE DROPPED", "#ff5a5a");
+    race.events.push({ snd: "throw", e });
+  }
+}
+let mineSeq = 0;
+function dropMine(race, e, z, x, netId) {
+  if (!race.mines) race.mines = [];
+  const m = { type: "mine", z, x: clamp(x, -1.3, 1.3), owner: e, life: 25, id: netId || (race.net ? race.net.role + ":m" : "m") + (++mineSeq) };
+  race.mines.push(m);
+  return m;
+}
+function updateMines(race, dt) {
+  if (!race.mines || !race.mines.length) return;
+  const keep = [];
+  for (const m of race.mines) {
+    m.life -= dt;
+    let boom = false;
+    for (const o of race.riders) {
+      if (o === m.owner || o.remote || o.wipeT > 0 || o.finished || o.h > 250 || ghosted(o)) continue;
+      if (Math.abs(o.z - m.z) < 170 && Math.abs(o.x - m.x) < 0.26) {
+        damage(race, o, 18, m.owner, "item");
+        o.speed *= 0.5; o.vh = 900; o.h = Math.max(o.h, 1); o.hurtT = Math.max(o.hurtT, 0.8); o.wobble = 1;
+        if (o.human) o.shake = 12;
+        mineBoom(race, m);
+        race.events.push({ snd: "crash", e: o, by: m.owner });
+        if (m.owner && m.owner.human) popup(m.owner, "MINE HIT!", "#ff5a5a");
+        addSuper(race, m.owner, SUP_GAIN.itemHit);
+        if (race.net) race.net.send({ t: "ev", k: "boom", id: m.id });
+        boom = true; break;
+      }
+    }
+    if (!boom && m.life > 0) keep.push(m);
+  }
+  race.mines = keep;
+}
+function mineBoom(race, m) {
+  for (let k = 0; k < 16; k++) spawnFx(race, m.z + rnd(-60, 60), m.x + rnd(-0.2, 0.2), 60 + Math.random() * 400, k % 2 ? "#ff7a1f" : "#ffd23f", 60 + Math.random() * 40, 0.6, 800 + Math.random() * 600);
+}
+
+/* ---------- aimed throws ----------
+   A thrown item flies at the nearest rival ahead: it starts with the sideways speed needed to reach where they are,
+   then curves gently toward them in flight. Not a lock-on: a quick dodge still makes it miss. */
+function throwTarget(race, owner, z, x) {
+  let best = null, bd = 1e9;
+  for (const o of race.riders) {
+    if (o === owner || o.wipeT > 0 || o.finished || ghosted(o)) continue;
+    const dz = o.z - z, dx = Math.abs(o.x - x);
+    if (dz < 250 || dz > 6500 || dx > 1.1) continue;
+    const d = dz + dx * 3000;
+    if (d < bd) { bd = d; best = o; }
+  }
+  return best;
+}
+function aimVx(race, owner, z, x, spd) {
+  const t = throwTarget(race, owner, z, x);
+  if (!t) return 0;
+  const tl = (t.z - z) / Math.max(1500, owner.speed + spd * 1.15 - t.speed);
+  return clamp((t.x - x) / Math.max(0.2, tl), -1.8, 1.8);
 }
 
 // ===== input.js =====
@@ -3862,7 +4251,7 @@ const Input = {
 };
 
 function mkPlayerInput() {
-  return { steer: 0, touchSteer: 0, brake: false, boost: false, attackQ: 0, backQ: 0, trickQ: 0, steerTouch: null, anchor: null, knob: null, btn: {} };
+  return { steer: 0, touchSteer: 0, brake: false, boost: false, attackQ: 0, backQ: 0, trickQ: 0, superQ: 0, supReady: false, steerTouch: null, anchor: null, knob: null, btn: {} };
 }
 
 function computeLayout(W, H, split, safe) {
@@ -3876,8 +4265,9 @@ function computeLayout(W, H, split, safe) {
     const atk = { x: x0 + w - pad - R * 1.15 - sr, y: H - pad - R * 1.15 - safe.b, r: R * 1.15 };
     const bst = { x: atk.x - R * 0.35, y: atk.y - R * 2.55, r: R * 0.92 };
     const brk = { x: atk.x - R * 2.45, y: atk.y + R * 0.2, r: R * 0.85 };
+    const sup = { x: bst.x - R * 2.2, y: bst.y + R * 0.15, r: R * 0.9 };   // SUPER: next to BOOST, above DRIFT (only shown when the meter is full)
     L.players.push({
-      x0, w, R, atk, bst, brk,
+      x0, w, R, atk, bst, brk, sup,
       steerZone: { x: x0 + sl, y: H * 0.22, w: w * 0.48, h: H * 0.78 },
       ghost: { x: x0 + sl + pad + R * 1.5, y: H - pad - R * 1.95 - safe.b },
       steerRange: R * 1.15,
@@ -3899,6 +4289,7 @@ function touchRole(x, y) {
     if (hitBtn(P.atk, x, y)) return { role: "atk", p };
     if (hitBtn(P.bst, x, y)) return { role: "bst", p };
     if (hitBtn(P.brk, x, y)) return { role: "brk", p };
+    if (Input.players[p].supReady && hitBtn(P.sup, x, y, 1.2)) return { role: "sup", p };
     const z = P.steerZone;
     if (x >= z.x && x <= z.x + z.w && y >= z.y) return { role: "steer", p };
     if (x > z.x + z.w) return { role: "swipe", p };
@@ -3923,6 +4314,7 @@ function initInput(canvas) {
       if (role.role === "bst") P.boost = true;
       if (role.role === "brk") P.brake = true;
       if (role.role === "atk") P.btn.atk = true;
+      if (role.role === "sup") { P.superQ = 1; P.btn.sup = true; }
     }
   };
   const move = (e) => {
@@ -3953,6 +4345,7 @@ function initInput(canvas) {
       if (T.role === "steer") { P.touchSteer = 0; P.anchor = null; P.knob = null; P.steerTouch = null; }
       if (T.role === "bst") P.boost = Object.values(Input.touches).some((o) => o.role === "bst" && o.p === T.p);
       if (T.role === "brk") P.brake = Object.values(Input.touches).some((o) => o.role === "brk" && o.p === T.p);
+      if (T.role === "sup") P.btn.sup = false;
       if (T.role === "atk" || T.role === "swipe") {
         P.btn.atk = false;
         const dx = T.x - T.sx, dy = T.y - T.sy, dist = Math.hypot(dx, dy);
@@ -3977,9 +4370,9 @@ function initInput(canvas) {
   // keyboard (desktop / iPad keyboard)
   const KEYMAP = {
     // P1
-    KeyA: [0, "left"], KeyD: [0, "right"], KeyW: [0, "up"], KeyS: [0, "stop"], KeyF: [0, "atk"], KeyG: [0, "boost"], KeyE: [0, "drift"], Space: [0, "atk"], ShiftLeft: [0, "boost"],
+    KeyA: [0, "left"], KeyD: [0, "right"], KeyW: [0, "up"], KeyS: [0, "stop"], KeyF: [0, "atk"], KeyG: [0, "boost"], KeyE: [0, "drift"], Space: [0, "atk"], ShiftLeft: [0, "boost"], KeyR: [0, "super"], KeyQ: [0, "super"],
     // P2 (or P1 in single player)
-    ArrowLeft: [1, "left"], ArrowRight: [1, "right"], ArrowUp: [1, "up"], ArrowDown: [1, "stop"], KeyL: [1, "atk"], KeyK: [1, "boost"], KeyJ: [1, "drift"], Enter: [1, "atk"], ShiftRight: [1, "boost"],
+    ArrowLeft: [1, "left"], ArrowRight: [1, "right"], ArrowUp: [1, "up"], ArrowDown: [1, "stop"], KeyL: [1, "atk"], KeyK: [1, "boost"], KeyJ: [1, "drift"], Enter: [1, "atk"], ShiftRight: [1, "boost"], KeyI: [1, "super"],
   };
   window.addEventListener("keydown", (e) => {
     if (e.code === "Escape" || e.code === "KeyP") { Input.onPause && Input.enabled && Input.onPause(); return; }
@@ -3991,6 +4384,7 @@ function initInput(canvas) {
     if (Input.keys[e.code]) return;
     Input.keys[e.code] = true;
     const P = Input.players[p];
+    if (m[1] === "super") P.superQ = 1;
     if (m[1] === "atk") {
       const air = Input.airborne && Input.airborne[p];
       const k = Input.keys;
@@ -4019,11 +4413,11 @@ function readPlayer(p) {
     boost: P.boost || any(sets[3]),
     throttle: 1,                       // auto-accelerate
     stop: any(sets[5]),                // desktop only: S / Down arrow brakes
-    attack: P.attackQ > 0, throwBack: P.backQ > 0, trick: P.trickQ || 0,
+    attack: P.attackQ > 0, throwBack: P.backQ > 0, trick: P.trickQ || 0, super: P.superQ > 0,
   };
   return out;
 }
-function consumeEdges(p) { const P = Input.players[p]; P.attackQ = Math.max(0, P.attackQ - 1); P.backQ = Math.max(0, P.backQ - 1); P.trickQ = 0; }
+function consumeEdges(p) { const P = Input.players[p]; P.attackQ = Math.max(0, P.attackQ - 1); P.backQ = Math.max(0, P.backQ - 1); P.trickQ = 0; P.superQ = 0; }
 function resetInput() {
   Input.players = [mkPlayerInput(), mkPlayerInput()];
   Input.touches = {};
@@ -4053,10 +4447,18 @@ function drawControls(ctx, race) {
     ctx.globalAlpha = 1;
     // buttons
     const air = me.h > 120;
-    const label = air ? "TRICK" : (hasTarget(race, me) ? (me.comboN % 3 === 2 && me.comboT > 0 ? "KICK" : "PUNCH") : me.items.length ? "THROW" : "PUNCH");
+    const it0 = me.items[0];
+    const label = air ? "TRICK" : (hasTarget(race, me) ? (me.comboN % 3 === 2 && me.comboT > 0 ? "KICK" : "PUNCH") : it0 === "bubble" ? "SHIELD" : it0 === "mine" ? "DROP" : it0 ? "THROW" : "PUNCH");
     btn(ctx, P.atk, label, air ? "#2bd9c5" : "#ff3d7f", I.btn.atk, me.items.length && !air ? race.assets.items[me.items[0]] : null, me.atkCD > 0 ? clamp(me.atkCD / 0.45, 0, 1) : 0);
     btn(ctx, P.bst, "BOOST", "#2b9cff", I.boost, null, 0, me.boost / 100);
     btn(ctx, P.brk, "DRIFT", "#ffcf3a", I.brake);
+    I.supReady = (me.sup || 0) >= 100 && !me.finished;
+    if (I.supReady) {
+      const sd = superDef(me);
+      btn(ctx, P.sup, "SUPER", sd.col, I.btn.sup, null, 0, 1);
+      ctx.save(); ctx.font = `${P.R * 0.26}px Bangers, sans-serif`; ctx.textAlign = "center"; ctx.lineWidth = 3; ctx.strokeStyle = "#14101c";
+      ctx.strokeText(sd.name, P.sup.x, P.sup.y - P.sup.r - 6); ctx.fillStyle = sd.col; ctx.fillText(sd.name, P.sup.x, P.sup.y - P.sup.r - 6); ctx.restore();
+    }
   }
   // pause
   const pz = L.pause;
@@ -4065,7 +4467,7 @@ function drawControls(ctx, race) {
 }
 
 function hasTarget(race, e) {
-  return race.riders.some((o) => o !== e && o.wipeT <= 0 && Math.abs(o.z - e.z) < 320 && Math.abs(o.x - e.x) < 0.58);
+  return race.riders.some((o) => o !== e && o.wipeT <= 0 && !ghosted(o) && Math.abs(o.z - e.z) < 320 && Math.abs(o.x - e.x) < 0.58);
 }
 
 function btn(ctx, b, label, col, down, icon, cd = 0, fill) {
@@ -4293,7 +4695,7 @@ function netMaybeGo() {
 
 function riderState(e) {
   return [Math.round(e.z), +e.x.toFixed(3), Math.round(e.h), Math.round(e.speed), +e.lean.toFixed(2), Math.round(e.hp * 10) / 10, Math.round(e.boost),
-    (e.boosting ? 1 : 0) | (e.padT > 0 ? 2 : 0) | (e.finished ? 4 : 0) | (e.atkKick ? 8 : 0), +Math.max(0, e.wipeT).toFixed(2), +Math.max(0, e.atkT).toFixed(2), e.atkSide,
+    (e.boosting ? 1 : 0) | (e.padT > 0 ? 2 : 0) | (e.finished ? 4 : 0) | (e.atkKick ? 8 : 0) | (e.pendThrow ? 16 : 0) | (e.hurlT > 0 ? 32 : 0) | (e.shield > 0 ? 64 : 0), +Math.max(0, e.wipeT).toFixed(2), +Math.max(0, e.atkT).toFixed(2), e.atkSide,
     e.trick ? TRICKS.indexOf(e.trick.def) : -1, e.trick ? +(e.trick.t / e.trick.dur).toFixed(2) : 0, +Math.max(0, e.hurtT).toFixed(2), +e.finishTime.toFixed(2)];
 }
 function netBeforeStep() {}
@@ -4313,7 +4715,7 @@ function netApplyState(race, m) {
     if (!e || !e.remote) continue;
     const a = m.r[k];
     const first = !e.net;
-    e.net = { z: a[0], x: a[1], h: a[2], speed: a[3], lean: a[4], hp: a[5], boost: a[6], boosting: !!(a[7] & 1), padT: a[7] & 2 ? 0.5 : 0, finished: !!(a[7] & 4), atkKick: !!(a[7] & 8),
+    e.net = { z: a[0], x: a[1], h: a[2], speed: a[3], lean: a[4], hp: a[5], boost: a[6], boosting: !!(a[7] & 1), padT: a[7] & 2 ? 0.5 : 0, finished: !!(a[7] & 4), atkKick: !!(a[7] & 8), windup: !!(a[7] & 16), hurl: !!(a[7] & 32), shield: !!(a[7] & 64),
       wipeT: a[8], atkT: a[9], atkSide: a[10], trick: a[11] >= 0 ? TRICKS[a[11]].id : null, trickT: a[12], hurtT: a[13], finishTime: a[14], age: 0 };
     if (first) { e.z = a[0]; e.x = a[1]; }
     if (e.net.finished && !e.finished) race.finishOrder.push(e);
@@ -4322,7 +4724,16 @@ function netApplyState(race, m) {
 function netApplyEvent(race, m) {
   if (m.k === "throw") {
     const e = race.riders[m.i];
-    if (e) spawnProjectiles(race, e, m.item, m.dir, m.z, m.x, m.sp, m.id);
+    if (e) spawnProjectiles(race, e, m.item, m.dir, m.z, m.x, m.sp, m.id, m.vx || 0);
+  } else if (m.k === "super") {
+    const e = race.riders[m.i];
+    if (e && e.remote) activateSuper(race, e, true);
+  } else if (m.k === "mine") {
+    const e = race.riders[m.i];
+    if (e) dropMine(race, e, m.z, m.x, m.id);
+  } else if (m.k === "boom") {
+    const mn = (race.mines || []).find((x) => x.id === m.id);
+    if (mn) { mineBoom(race, mn); race.mines = race.mines.filter((x) => x !== mn); }
   } else if (m.k === "pop") {
     race.projs = race.projs.filter((p) => p.id !== m.id);
     const v = race.riders[m.v];
@@ -4582,7 +4993,7 @@ function openRider() {
   });
   const r = RIDERS.find((x) => x.id === cur);
   const owned = App.save.riders.includes(cur);
-  $("#rider-desc").innerHTML = `<b>${r.full}</b> — ${r.blurb} Signature throw: <b>${ITEMS[r.item].name}</b>.`;
+  $("#rider-desc").innerHTML = `<b>${r.full}</b> — ${r.blurb} Throw: <b>${ITEMS[r.item].name}</b>. Super: <b style="color:${SUPERS[r.id].col}">${SUPERS[r.id].name}</b> — ${SUPERS[r.id].desc}`;
   const go = $("#rider-go");
   if (owned) { go.textContent = "NEXT ›"; go.disabled = false; go.style.setProperty("--c", "#ff3d7f"); }
   else if (r !== nextR) { go.textContent = "UNLOCK " + nextR.name.toUpperCase() + " FIRST"; go.disabled = true; go.style.setProperty("--c", "#6b6280"); }
@@ -4782,11 +5193,13 @@ function openHelp(after) {
       <b>DRIFT</b><span>Hold DRIFT while steering through a corner. Sparks go blue, then orange, then pink the longer you hold. Let go for a speed burst: pink is the biggest.</span>
       <b>BOOST</b><span>Hold BOOST to burn your meter. Fill it with tricks, drafting right behind a rival and takedowns.</span>
       <b>PUNCH</b><span>Tap PUNCH when a rival is beside you. Every 3rd hit in a row is a big KICK.</span>
-      <b>THROW</b><span>Grab ? crates for items. With nobody beside you, PUNCH throws ahead. Swipe DOWN on it to throw behind. Riding at the back? Empty crate spots still give you an item.</span>
+      <b>THROW</b><span>Grab ? crates for items. With nobody beside you, PUNCH hurls it at the rider ahead. Swipe DOWN on it to throw behind. Riding at the back? Empty crate spots still give you an item.</span>
+      <b>SHIELD &amp; MINE</b><span>Crates can also give a SHIELD (tap to put it up: it blocks the next hit) or a MINE (tap to drop it behind you).</span>
+      <b>SUPER</b><span>Punches, hits, tricks and takedowns fill the gold SUPER bar. When it's full, tap SUPER for your rider's special move.</span>
       <b>TRICKS</b><span>Off a ramp the button becomes TRICK. Tap or swipe up / down / sideways. Land before it finishes or you bail!</span>
       <b>HEALTH</b><span>Hits and crashes drain health, and less health means a lower top speed. Grab green repair kits. At zero you wipe out.</span>
     </div>
-    <p class="kbd-note" style="font-size:12px;color:var(--mute)">Keyboard: A D / ← → steer, Space punch, Shift boost, E drift, S / ↓ brake. Two players: P1 A D + F punch, G boost, E drift · P2 ← → + L punch, K boost, J drift.</p>
+    <p class="kbd-note" style="font-size:12px;color:var(--mute)">Keyboard: A D / ← → steer, Space punch, Shift boost, E drift, R super, S / ↓ brake. Two players: P1 A D + F punch, G boost, E drift, R super · P2 ← → + L punch, K boost, J drift, I super.</p>
     <div class="acts"><button class="btn" style="--c:#2bd96a" data-a="ok">LET'S RIDE</button></div>`, (box) => {
     box.querySelector('[data-a="ok"]').onclick = () => { SFX.play("click"); closeModal(); App.save.seenHelp = true; saveGame(); after && after(); };
   });
@@ -4822,7 +5235,7 @@ function openSaveCode() {
 /* ---------- race flow ---------- */
 async function startRace() {
   const tips = ["Tricks fill your boost meter — but land before they finish!", "Every 3rd punch in a row is a heavy KICK.", "Low health = lower top speed. Repair kits are green.",
-    "Forks hide boost pads on the riskier side.", "Your ride accelerates by itself — just steer left and right.", "Tap BOOST right as the countdown hits 1 for a PERFECT START.", "Hold a drift until the sparks turn pink for the biggest turbo.", "Yellow arrow signs = hairpin. Ease off or drift!", "Draft right behind a rival to charge boost.", "Swipe down on PUNCH to throw an item backward.", "Quads shove lighter riders out of the way."];
+    "Forks hide boost pads on the riskier side.", "Your ride accelerates by itself — just steer left and right.", "Tap BOOST right as the countdown hits 1 for a PERFECT START.", "Fill the gold SUPER bar with punches, hits and tricks, then tap SUPER.", "Shields block one hit. Mines go behind you.", "Hold a drift until the sparks turn pink for the biggest turbo.", "Yellow arrow signs = hairpin. Ease off or drift!", "Draft right behind a rival to charge boost.", "Swipe down on PUNCH to throw an item backward.", "Quads shove lighter riders out of the way."];
   $("#loading .tip").textContent = "TIP: " + pick(tips);
   $("#loading .lb i").style.width = "5%";
   $("#loading").classList.remove("hidden");
@@ -5057,7 +5470,7 @@ function applyPerk(e) {
   const k = App.save.perk;
   if (!k) return;
   if (k === "boost") e.boost = 100;
-  if (k === "shield") e.shield = 1;
+  if (k === "shield") { e.shield = 1; e.shieldT = 1e9; }      // the perk shield waits all race for its one hit
   if (k === "double") e.coinMul = 2;
   if (k === "power") { e.items = [e.rider.item, e.rider.item, e.rider.item]; e.itemMul = 1.4; }
   App.save.perk = null;
@@ -5207,19 +5620,18 @@ function startupPopups() {
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.13c";
+const APP_VERSION = "2026.10.14";
 const WHATS_NEW = [
-  "<b>Drift turbos:</b> hold DRIFT in a corner till sparks go blue, orange, pink. Let go to shoot ahead.",
-  "<b>Perfect start:</b> tap BOOST as the countdown shows 1. Too early and you stall.",
-  "<b>Speed streaks</b> on the screen edges at top speed and on boost.",
-  "<b>3-2-1</b> countdown after you resume from pause.",
-  "<b>? crates</b> come back after 4 s. At the back? Empty crate spots still give you an item.",
-  "<b>Upgrades</b> now work on every ride (you keep your best levels).",
-  "<b>Avalanche!</b> no longer catches you right after GO. How to Ride is updated.",
+  "<b>Super moves:</b> punches, hits, tricks and takedowns fill the gold SUPER bar. When full, tap SUPER.",
+  "<b>Kaito</b> TEMPEST wind dash + 5 shurikens · <b>Bruno</b> TIMBERFALL smashes everyone he touches.",
+  "<b>Yuki</b> BLIZZARD STEP rides through everything, frost trail · <b>Zara</b> MIRAGE vanishes, sand blinds.",
+  "<b>Priya</b> INFERNO TADKA flaming trail · <b>Rex</b> RIOT paint blast + slippery puddle.",
+  "<b>New items:</b> SHIELD blocks your next hit. MINE drops behind you.",
+  "<b>Harder throws:</b> riders wind up and hurl items straight at the rider ahead.",
 ];
 // ============================================
 
-const BUILD_ID = "wild-riders-bd9f32b281";            // stamped by tools/build.py; matches version.json of this build
+const BUILD_ID = "wild-riders-7a94b6869b";            // stamped by tools/build.py; matches version.json of this build
 const VERSION_KEY = "wr-version", BACKUP_INFO_KEY = "wr-backup";
 const Upd = { reg: null, ready: false };
 
@@ -5372,7 +5784,7 @@ function processEvents(race) {
   const near = (e) => e && (e.human || race.humans.some((h) => Math.abs(h.z - e.z) < 1800));
   for (const ev of race.events) {
     if (typeof ev === "string") { SFX.play(ev); continue; }
-    if (ev.e && (ev.e.human && ev.e.local || (ev.target && ev.target.human) || (ev.by && ev.by.human) || (near(ev.e) && ["punch", "kick", "crash", "wipe", "hit"].includes(ev.snd)))) SFX.play(ev.snd);
+    if (ev.e && (ev.e.human && ev.e.local || (ev.target && ev.target.human) || (ev.by && ev.by.human) || (near(ev.e) && ["punch", "kick", "crash", "wipe", "hit", "super", "throw"].includes(ev.snd)))) SFX.play(ev.snd);
   }
   race.events.length = 0;
 }

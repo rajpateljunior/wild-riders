@@ -199,7 +199,7 @@ function openRider() {
   });
   const r = RIDERS.find((x) => x.id === cur);
   const owned = App.save.riders.includes(cur);
-  $("#rider-desc").innerHTML = `<b>${r.full}</b> — ${r.blurb} Signature throw: <b>${ITEMS[r.item].name}</b>.`;
+  $("#rider-desc").innerHTML = `<b>${r.full}</b> — ${r.blurb} Throw: <b>${ITEMS[r.item].name}</b>. Super: <b style="color:${SUPERS[r.id].col}">${SUPERS[r.id].name}</b> — ${SUPERS[r.id].desc}`;
   const go = $("#rider-go");
   if (owned) { go.textContent = "NEXT ›"; go.disabled = false; go.style.setProperty("--c", "#ff3d7f"); }
   else if (r !== nextR) { go.textContent = "UNLOCK " + nextR.name.toUpperCase() + " FIRST"; go.disabled = true; go.style.setProperty("--c", "#6b6280"); }
@@ -399,11 +399,13 @@ function openHelp(after) {
       <b>DRIFT</b><span>Hold DRIFT while steering through a corner. Sparks go blue, then orange, then pink the longer you hold. Let go for a speed burst: pink is the biggest.</span>
       <b>BOOST</b><span>Hold BOOST to burn your meter. Fill it with tricks, drafting right behind a rival and takedowns.</span>
       <b>PUNCH</b><span>Tap PUNCH when a rival is beside you. Every 3rd hit in a row is a big KICK.</span>
-      <b>THROW</b><span>Grab ? crates for items. With nobody beside you, PUNCH throws ahead. Swipe DOWN on it to throw behind. Riding at the back? Empty crate spots still give you an item.</span>
+      <b>THROW</b><span>Grab ? crates for items. With nobody beside you, PUNCH hurls it at the rider ahead. Swipe DOWN on it to throw behind. Riding at the back? Empty crate spots still give you an item.</span>
+      <b>SHIELD &amp; MINE</b><span>Crates can also give a SHIELD (tap to put it up: it blocks the next hit) or a MINE (tap to drop it behind you).</span>
+      <b>SUPER</b><span>Punches, hits, tricks and takedowns fill the gold SUPER bar. When it's full, tap SUPER for your rider's special move.</span>
       <b>TRICKS</b><span>Off a ramp the button becomes TRICK. Tap or swipe up / down / sideways. Land before it finishes or you bail!</span>
       <b>HEALTH</b><span>Hits and crashes drain health, and less health means a lower top speed. Grab green repair kits. At zero you wipe out.</span>
     </div>
-    <p class="kbd-note" style="font-size:12px;color:var(--mute)">Keyboard: A D / ← → steer, Space punch, Shift boost, E drift, S / ↓ brake. Two players: P1 A D + F punch, G boost, E drift · P2 ← → + L punch, K boost, J drift.</p>
+    <p class="kbd-note" style="font-size:12px;color:var(--mute)">Keyboard: A D / ← → steer, Space punch, Shift boost, E drift, R super, S / ↓ brake. Two players: P1 A D + F punch, G boost, E drift, R super · P2 ← → + L punch, K boost, J drift, I super.</p>
     <div class="acts"><button class="btn" style="--c:#2bd96a" data-a="ok">LET'S RIDE</button></div>`, (box) => {
     box.querySelector('[data-a="ok"]').onclick = () => { SFX.play("click"); closeModal(); App.save.seenHelp = true; saveGame(); after && after(); };
   });
@@ -439,7 +441,7 @@ function openSaveCode() {
 /* ---------- race flow ---------- */
 async function startRace() {
   const tips = ["Tricks fill your boost meter — but land before they finish!", "Every 3rd punch in a row is a heavy KICK.", "Low health = lower top speed. Repair kits are green.",
-    "Forks hide boost pads on the riskier side.", "Your ride accelerates by itself — just steer left and right.", "Tap BOOST right as the countdown hits 1 for a PERFECT START.", "Hold a drift until the sparks turn pink for the biggest turbo.", "Yellow arrow signs = hairpin. Ease off or drift!", "Draft right behind a rival to charge boost.", "Swipe down on PUNCH to throw an item backward.", "Quads shove lighter riders out of the way."];
+    "Forks hide boost pads on the riskier side.", "Your ride accelerates by itself — just steer left and right.", "Tap BOOST right as the countdown hits 1 for a PERFECT START.", "Fill the gold SUPER bar with punches, hits and tricks, then tap SUPER.", "Shields block one hit. Mines go behind you.", "Hold a drift until the sparks turn pink for the biggest turbo.", "Yellow arrow signs = hairpin. Ease off or drift!", "Draft right behind a rival to charge boost.", "Swipe down on PUNCH to throw an item backward.", "Quads shove lighter riders out of the way."];
   $("#loading .tip").textContent = "TIP: " + pick(tips);
   $("#loading .lb i").style.width = "5%";
   $("#loading").classList.remove("hidden");

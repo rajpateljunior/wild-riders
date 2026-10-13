@@ -8,15 +8,14 @@
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.13c";
+const APP_VERSION = "2026.10.14";
 const WHATS_NEW = [
-  "<b>Drift turbos:</b> hold DRIFT in a corner till sparks go blue, orange, pink. Let go to shoot ahead.",
-  "<b>Perfect start:</b> tap BOOST as the countdown shows 1. Too early and you stall.",
-  "<b>Speed streaks</b> on the screen edges at top speed and on boost.",
-  "<b>3-2-1</b> countdown after you resume from pause.",
-  "<b>? crates</b> come back after 4 s. At the back? Empty crate spots still give you an item.",
-  "<b>Upgrades</b> now work on every ride (you keep your best levels).",
-  "<b>Avalanche!</b> no longer catches you right after GO. How to Ride is updated.",
+  "<b>Super moves:</b> punches, hits, tricks and takedowns fill the gold SUPER bar. When full, tap SUPER.",
+  "<b>Kaito</b> TEMPEST wind dash + 5 shurikens · <b>Bruno</b> TIMBERFALL smashes everyone he touches.",
+  "<b>Yuki</b> BLIZZARD STEP rides through everything, frost trail · <b>Zara</b> MIRAGE vanishes, sand blinds.",
+  "<b>Priya</b> INFERNO TADKA flaming trail · <b>Rex</b> RIOT paint blast + slippery puddle.",
+  "<b>New items:</b> SHIELD blocks your next hit. MINE drops behind you.",
+  "<b>Harder throws:</b> riders wind up and hurl items straight at the rider ahead.",
 ];
 // ============================================
 

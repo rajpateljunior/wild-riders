@@ -11,7 +11,7 @@ const Input = {
 };
 
 function mkPlayerInput() {
-  return { steer: 0, touchSteer: 0, brake: false, boost: false, attackQ: 0, backQ: 0, trickQ: 0, steerTouch: null, anchor: null, knob: null, btn: {} };
+  return { steer: 0, touchSteer: 0, brake: false, boost: false, attackQ: 0, backQ: 0, trickQ: 0, superQ: 0, supReady: false, steerTouch: null, anchor: null, knob: null, btn: {} };
 }
 
 function computeLayout(W, H, split, safe) {
@@ -25,8 +25,9 @@ function computeLayout(W, H, split, safe) {
     const atk = { x: x0 + w - pad - R * 1.15 - sr, y: H - pad - R * 1.15 - safe.b, r: R * 1.15 };
     const bst = { x: atk.x - R * 0.35, y: atk.y - R * 2.55, r: R * 0.92 };
     const brk = { x: atk.x - R * 2.45, y: atk.y + R * 0.2, r: R * 0.85 };
+    const sup = { x: bst.x - R * 2.2, y: bst.y + R * 0.15, r: R * 0.9 };   // SUPER: next to BOOST, above DRIFT (only shown when the meter is full)
     L.players.push({
-      x0, w, R, atk, bst, brk,
+      x0, w, R, atk, bst, brk, sup,
       steerZone: { x: x0 + sl, y: H * 0.22, w: w * 0.48, h: H * 0.78 },
       ghost: { x: x0 + sl + pad + R * 1.5, y: H - pad - R * 1.95 - safe.b },
       steerRange: R * 1.15,
@@ -48,6 +49,7 @@ function touchRole(x, y) {
     if (hitBtn(P.atk, x, y)) return { role: "atk", p };
     if (hitBtn(P.bst, x, y)) return { role: "bst", p };
     if (hitBtn(P.brk, x, y)) return { role: "brk", p };
+    if (Input.players[p].supReady && hitBtn(P.sup, x, y, 1.2)) return { role: "sup", p };
     const z = P.steerZone;
     if (x >= z.x && x <= z.x + z.w && y >= z.y) return { role: "steer", p };
     if (x > z.x + z.w) return { role: "swipe", p };
@@ -72,6 +74,7 @@ function initInput(canvas) {
       if (role.role === "bst") P.boost = true;
       if (role.role === "brk") P.brake = true;
       if (role.role === "atk") P.btn.atk = true;
+      if (role.role === "sup") { P.superQ = 1; P.btn.sup = true; }
     }
   };
   const move = (e) => {
@@ -102,6 +105,7 @@ function initInput(canvas) {
       if (T.role === "steer") { P.touchSteer = 0; P.anchor = null; P.knob = null; P.steerTouch = null; }
       if (T.role === "bst") P.boost = Object.values(Input.touches).some((o) => o.role === "bst" && o.p === T.p);
       if (T.role === "brk") P.brake = Object.values(Input.touches).some((o) => o.role === "brk" && o.p === T.p);
+      if (T.role === "sup") P.btn.sup = false;
       if (T.role === "atk" || T.role === "swipe") {
         P.btn.atk = false;
         const dx = T.x - T.sx, dy = T.y - T.sy, dist = Math.hypot(dx, dy);
@@ -126,9 +130,9 @@ function initInput(canvas) {
   // keyboard (desktop / iPad keyboard)
   const KEYMAP = {
     // P1
-    KeyA: [0, "left"], KeyD: [0, "right"], KeyW: [0, "up"], KeyS: [0, "stop"], KeyF: [0, "atk"], KeyG: [0, "boost"], KeyE: [0, "drift"], Space: [0, "atk"], ShiftLeft: [0, "boost"],
+    KeyA: [0, "left"], KeyD: [0, "right"], KeyW: [0, "up"], KeyS: [0, "stop"], KeyF: [0, "atk"], KeyG: [0, "boost"], KeyE: [0, "drift"], Space: [0, "atk"], ShiftLeft: [0, "boost"], KeyR: [0, "super"], KeyQ: [0, "super"],
     // P2 (or P1 in single player)
-    ArrowLeft: [1, "left"], ArrowRight: [1, "right"], ArrowUp: [1, "up"], ArrowDown: [1, "stop"], KeyL: [1, "atk"], KeyK: [1, "boost"], KeyJ: [1, "drift"], Enter: [1, "atk"], ShiftRight: [1, "boost"],
+    ArrowLeft: [1, "left"], ArrowRight: [1, "right"], ArrowUp: [1, "up"], ArrowDown: [1, "stop"], KeyL: [1, "atk"], KeyK: [1, "boost"], KeyJ: [1, "drift"], Enter: [1, "atk"], ShiftRight: [1, "boost"], KeyI: [1, "super"],
   };
   window.addEventListener("keydown", (e) => {
     if (e.code === "Escape" || e.code === "KeyP") { Input.onPause && Input.enabled && Input.onPause(); return; }
@@ -140,6 +144,7 @@ function initInput(canvas) {
     if (Input.keys[e.code]) return;
     Input.keys[e.code] = true;
     const P = Input.players[p];
+    if (m[1] === "super") P.superQ = 1;
     if (m[1] === "atk") {
       const air = Input.airborne && Input.airborne[p];
       const k = Input.keys;
@@ -168,11 +173,11 @@ function readPlayer(p) {
     boost: P.boost || any(sets[3]),
     throttle: 1,                       // auto-accelerate
     stop: any(sets[5]),                // desktop only: S / Down arrow brakes
-    attack: P.attackQ > 0, throwBack: P.backQ > 0, trick: P.trickQ || 0,
+    attack: P.attackQ > 0, throwBack: P.backQ > 0, trick: P.trickQ || 0, super: P.superQ > 0,
   };
   return out;
 }
-function consumeEdges(p) { const P = Input.players[p]; P.attackQ = Math.max(0, P.attackQ - 1); P.backQ = Math.max(0, P.backQ - 1); P.trickQ = 0; }
+function consumeEdges(p) { const P = Input.players[p]; P.attackQ = Math.max(0, P.attackQ - 1); P.backQ = Math.max(0, P.backQ - 1); P.trickQ = 0; P.superQ = 0; }
 function resetInput() {
   Input.players = [mkPlayerInput(), mkPlayerInput()];
   Input.touches = {};
@@ -202,10 +207,18 @@ function drawControls(ctx, race) {
     ctx.globalAlpha = 1;
     // buttons
     const air = me.h > 120;
-    const label = air ? "TRICK" : (hasTarget(race, me) ? (me.comboN % 3 === 2 && me.comboT > 0 ? "KICK" : "PUNCH") : me.items.length ? "THROW" : "PUNCH");
+    const it0 = me.items[0];
+    const label = air ? "TRICK" : (hasTarget(race, me) ? (me.comboN % 3 === 2 && me.comboT > 0 ? "KICK" : "PUNCH") : it0 === "bubble" ? "SHIELD" : it0 === "mine" ? "DROP" : it0 ? "THROW" : "PUNCH");
     btn(ctx, P.atk, label, air ? "#2bd9c5" : "#ff3d7f", I.btn.atk, me.items.length && !air ? race.assets.items[me.items[0]] : null, me.atkCD > 0 ? clamp(me.atkCD / 0.45, 0, 1) : 0);
     btn(ctx, P.bst, "BOOST", "#2b9cff", I.boost, null, 0, me.boost / 100);
     btn(ctx, P.brk, "DRIFT", "#ffcf3a", I.brake);
+    I.supReady = (me.sup || 0) >= 100 && !me.finished;
+    if (I.supReady) {
+      const sd = superDef(me);
+      btn(ctx, P.sup, "SUPER", sd.col, I.btn.sup, null, 0, 1);
+      ctx.save(); ctx.font = `${P.R * 0.26}px Bangers, sans-serif`; ctx.textAlign = "center"; ctx.lineWidth = 3; ctx.strokeStyle = "#14101c";
+      ctx.strokeText(sd.name, P.sup.x, P.sup.y - P.sup.r - 6); ctx.fillStyle = sd.col; ctx.fillText(sd.name, P.sup.x, P.sup.y - P.sup.r - 6); ctx.restore();
+    }
   }
   // pause
   const pz = L.pause;
@@ -214,7 +227,7 @@ function drawControls(ctx, race) {
 }
 
 function hasTarget(race, e) {
-  return race.riders.some((o) => o !== e && o.wipeT <= 0 && Math.abs(o.z - e.z) < 320 && Math.abs(o.x - e.x) < 0.58);
+  return race.riders.some((o) => o !== e && o.wipeT <= 0 && !ghosted(o) && Math.abs(o.z - e.z) < 320 && Math.abs(o.x - e.x) < 0.58);
 }
 
 function btn(ctx, b, label, col, down, icon, cd = 0, fill) {

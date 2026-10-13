@@ -327,12 +327,25 @@ function drawEntity(ctx, e, s, K, me, race, glows, t) {
     const img = race.assets.items[e.item];
     const size = 380 * sc * (e.big ? 1.6 : 1);
     const yy = py - e.h * sc;
-    ctx.save(); ctx.translate(px, yy); ctx.rotate(t * 12);
+    if (e.dir > 0) {
+      // speed streak behind a hurled item (it flies away from the camera, so the trail points back toward us)
+      const g = ctx.createLinearGradient(px, yy, px - e.vx * size * 0.6, yy + size * 1.6);
+      g.addColorStop(0, rgba(ITEMS[e.item].col, 0.55)); g.addColorStop(1, rgba(ITEMS[e.item].col, 0));
+      ctx.strokeStyle = g; ctx.lineWidth = size * 0.55; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(px, yy); ctx.lineTo(px - e.vx * size * 0.6, yy + size * 1.6); ctx.stroke();
+    }
+    ctx.save(); ctx.translate(px, yy); ctx.rotate(t * 18);
     ctx.drawImage(img, -size / 2, -size / 2, size, size); ctx.restore();
     ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(px, py, size * 0.4, size * 0.12, 0, 0, TAU); ctx.fill();
     if (race.track.biome.dark) glows.push([px, yy, size * 1.4, ITEMS[e.item].col]);
     return;
   }
+  if (e.type === "mine") {
+    const img = race.assets.items.mine, size = 420 * sc;
+    ctx.drawImage(img, px - size / 2, py - size * 0.75, size, size);
+    return;
+  }
+  if (e.type === "zone") { drawZone(ctx, e, px, py, sc, rw, t); return; }
   if (e.type === "fx") {
     const r = Math.max(1, e.size * sc);
     ctx.globalAlpha = clamp(e.life / e.max, 0, 1);
@@ -345,6 +358,8 @@ function drawEntity(ctx, e, s, K, me, race, glows, t) {
 function riderPose(e, t) {
   if (e.wipeT > 0) return "hurt";
   if (e.trick) return e.trick.def.pose === "spin" ? "ride0" : e.trick.def.pose;
+  if (e.pendThrow) return "windup";
+  if (e.hurlT > 0) return "hurl";
   if (e.atkT > 0) return (e.atkKick ? "kick" : "punch") + (e.atkSide < 0 ? "L" : "R");
   if (e.hurtT > 0) return "hurt";
   return Math.floor(e.pedal) % 2 ? "ride1" : "ride0";
@@ -362,17 +377,39 @@ function drawRider(ctx, e, px, py, sc, clipY, me, race, glows, t) {
   ctx.beginPath(); ctx.ellipse(px, py, dw * 0.3 * shs * (e.veh.shove ? 1.4 : 1), dw * 0.07 * shs, 0, 0, TAU); ctx.fill();
   let rot = e.lean * 0.32 + (e.wobble > 0 ? Math.sin(t * 40) * 0.12 * e.wobble : 0);
   if (e.wipeT > 0) rot = e.wipeT * 9;
+  else if (e.pendThrow) rot += 0.12;                 // lean back into the wind-up…
+  else if (e.hurlT > 0) rot -= 0.16;                 // …and whip forward on the throw
   if (e.trick && e.trick.def.pose === "spin") rot = (e.trick.t / e.trick.dur) * TAU;
   const y = py - lift;
   if (y - dh > clipY) return;
+  drawSuperAura(ctx, e, px, y, dw, dh, t);
   ctx.save();
   ctx.translate(px, y - (e.wipeT > 0 ? dh * 0.3 : 0));
   ctx.rotate(rot);
   if (e.flash > 0 && Math.floor(t * 30) % 2) ctx.globalAlpha = 0.5;
   if (e.invuln > 0 && Math.floor(t * 16) % 2) ctx.globalAlpha = 0.55;
+  if (e.ghostT > 0) ctx.globalAlpha = 0.45;                        // Yuki's ghost: see-through (steady, no blinking)
+  if (e.mirT > 0) ctx.globalAlpha = 0.28;                          // Zara's mirage: almost gone
   ctx.drawImage(spr, -dw / 2, -dh * (e.wipeT > 0 ? 0.5 : 0.98), dw, dh);
+  if (e.pendThrow && e.items[0] && race.assets.items[e.items[0]] && e.wipeT <= 0) {   // the item cocked back in the throwing hand (sprite space)
+    const isz = dw * 0.2, hy = ((VGEO[e.veh.id] || VGEO.mtb).shY - 62) / SPRITE_H;   // same spot as the "windup" pose's hand
+    ctx.drawImage(race.assets.items[e.items[0]], dw * (204 / SPRITE_W - 0.5) - isz * 0.1, -dh * 0.98 + dh * hy - isz * 0.45, isz, isz);
+  }
   ctx.globalAlpha = 1;
   ctx.restore();
+  if (e.paintT > 0) {                                              // splattered by Rex's paint
+    const a = clamp(e.paintT, 0, 1) * 0.85; ctx.fillStyle = `rgba(56,224,90,${a})`;
+    for (const [ox, oy, r] of [[-0.12, 0.62, 0.09], [0.1, 0.45, 0.07], [0.02, 0.8, 0.06], [-0.05, 0.3, 0.05]]) { ctx.beginPath(); ctx.arc(px + ox * dw, y - dh * oy, r * dw, 0, TAU); ctx.fill(); }
+  }
+  if (e.riotT > 0) {                                               // Rex's RIOT: expanding paint shockwave
+    const k = 1 - e.riotT / 0.7;
+    ctx.strokeStyle = `rgba(56,224,90,${0.8 * (1 - k)})`; ctx.lineWidth = Math.max(3, dw * 0.06 * (1 - k));
+    ctx.beginPath(); ctx.ellipse(px, y - dh * 0.2, dw * (0.4 + k * 2.2), dw * (0.12 + k * 0.6), 0, 0, TAU); ctx.stroke();
+  }
+  if (e.shield > 0) {                                              // shield bubble (steady)
+    ctx.strokeStyle = "rgba(43,217,197,.75)"; ctx.lineWidth = Math.max(2, dw * 0.025); ctx.fillStyle = "rgba(43,217,197,.12)";
+    ctx.beginPath(); ctx.ellipse(px, y - dh * 0.5, dw * 0.42, dh * 0.56, 0, 0, TAU); ctx.fill(); ctx.stroke();
+  }
   // hit stars
   if (e.hurtT > 0 || e.wipeT > 0) {
     ctx.fillStyle = "#ffd23f";
@@ -401,6 +438,45 @@ function drawRider(ctx, e, px, py, sc, clipY, me, race, glows, t) {
     ctx.font = "16px Bangers, sans-serif"; ctx.textAlign = "center"; ctx.fillText("P" + (e.pIndex + 1), px, my - 20);
   }
   if ((race.track.biome.dark || (me.tunT || 0) > 0.05) && e !== me) glows.push([px, y - dh * 0.85, Math.min(dw * 0.7, 90), "#fff2c0"]);
+}
+
+/* glow around a rider while their super move runs (steady colour; it eases in, never blinks) */
+function drawSuperAura(ctx, e, px, y, dw, dh, t) {
+  const on = Math.max(e.windT || 0, e.jugT || 0, e.ghostT || 0, e.mirT || 0, e.fireT || 0);
+  if (on <= 0 && !(e.supT > 0)) return;
+  const col = e.supCol || "#fff";
+  const a = clamp(Math.max(on, e.supT || 0) * 2, 0, 1) * (e.jugT > 0 ? 0.6 : 0.42);
+  const r = dw * (e.jugT > 0 ? 0.62 : 0.5);
+  const g = ctx.createRadialGradient(px, y - dh * 0.45, r * 0.2, px, y - dh * 0.45, r);
+  g.addColorStop(0, rgba(col, a)); g.addColorStop(1, rgba(col, 0));
+  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(px, y - dh * 0.45, r, r * 1.15, 0, 0, TAU); ctx.fill();
+  if (e.windT > 0) {                                               // Kaito: wind rings swirling around
+    ctx.strokeStyle = "rgba(230,245,255,.6)"; ctx.lineWidth = Math.max(1.5, dw * 0.015);
+    for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.ellipse(px, y - dh * (0.3 + i * 0.3), dw * 0.48, dw * 0.12, 0, t * 9 + i, t * 9 + i + 4); ctx.stroke(); }
+  }
+}
+/* ground effects left by super moves */
+function drawZone(ctx, zn, px, py, sc, rw, t) {
+  const a = clamp(zn.life / Math.min(zn.max, 0.8), 0, 1);
+  const w = zn.w * rw, h = Math.max(1.5, w * 0.16);
+  if (w < 1) return;
+  if (zn.kind === "frost") {
+    ctx.fillStyle = `rgba(120,200,255,${0.6 * a})`; ctx.beginPath(); ctx.ellipse(px, py, w, h, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = `rgba(235,250,255,${0.7 * a})`; ctx.beginPath(); ctx.ellipse(px, py - h * 0.2, w * 0.55, h * 0.45, 0, 0, TAU); ctx.fill();
+  }
+  else if (zn.kind === "slick") {
+    ctx.fillStyle = `rgba(56,224,90,${0.7 * a})`; ctx.beginPath(); ctx.ellipse(px, py, w, h * 1.3, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = `rgba(190,255,200,${0.5 * a})`; ctx.beginPath(); ctx.ellipse(px - w * 0.3, py - h * 0.2, w * 0.25, h * 0.3, 0, 0, TAU); ctx.fill();
+  } else if (zn.kind === "fire") {
+    for (let i = 0; i < 3; i++) {
+      const fx = px + (i - 1) * w * 0.5, fh = w * (0.9 + 0.25 * Math.sin(t * 7 + zn.id + i));
+      ctx.fillStyle = `rgba(255,${120 + i * 40},30,${0.75 * a})`;
+      ctx.beginPath(); ctx.moveTo(fx - w * 0.3, py); ctx.quadraticCurveTo(fx - w * 0.2, py - fh * 0.6, fx, py - fh); ctx.quadraticCurveTo(fx + w * 0.2, py - fh * 0.6, fx + w * 0.3, py); ctx.fill();
+    }
+  } else if (zn.kind === "sand") {
+    ctx.fillStyle = `rgba(233,196,106,${0.3 * a})`;
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(px + (i - 1.5) * w * 0.4, py - w * (0.12 + 0.1 * (i % 2)), w * 0.24, 0, TAU); ctx.fill(); }
+  }
 }
 
 function star(ctx, x, y, r) {
@@ -590,8 +666,14 @@ function drawHUD(ctx, w, h, me, race, t) {
   const bg = ctx.createLinearGradient(hx, 0, hx + bw, 0); bg.addColorStop(0, "#2b9cff"); bg.addColorStop(1, me.boost >= 99 ? (Math.floor(t * 8) % 2 ? "#ffffff" : "#2bd9c5") : "#2bd9c5");
   ctx.fillStyle = bg; roundRect(ctx, hx + 2, my + 2, (bw - 4) * bm, bh * 0.75 - 4, (bh * 0.75 - 4) / 2); ctx.fill();
   hudText(ctx, "BOOST", hx + bw + u * 0.8, my + bh * 0.66, u * 1.8, "#bff6ff");
+  // super meter (gold; full = SUPER READY)
+  const sy2 = my + bh * 0.75 + u * 0.8, sh2 = bh * 0.6;
+  ctx.fillStyle = "rgba(10,8,20,.6)"; roundRect(ctx, hx, sy2, bw, sh2, sh2 / 2); ctx.fill();
+  const sm = clamp((me.sup || 0) / 100, 0, 1), scol = superDef(me).col;
+  ctx.fillStyle = sm >= 1 ? scol : "#ffd23f"; roundRect(ctx, hx + 2, sy2 + 2, Math.max(0, (bw - 4) * sm), sh2 - 4, (sh2 - 4) / 2); ctx.fill();
+  hudText(ctx, sm >= 1 ? "SUPER READY" : "SUPER", hx + bw + u * 0.8, sy2 + sh2 * 0.85, u * 1.7, sm >= 1 ? scol : "#ffe9a0");
   // items
-  const iy = my + bh + u * 1.0;
+  const iy = sy2 + sh2 + u * 1.0;
   for (let i = 0; i < 3; i++) {
     const ix = hx + i * u * 5.4;
     ctx.fillStyle = i < me.items.length ? "rgba(255,210,63,.25)" : "rgba(10,8,20,.45)";

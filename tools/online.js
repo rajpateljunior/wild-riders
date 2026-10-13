@@ -12,7 +12,7 @@ const out = process.argv[2];
   await H.waitForFunction(() => App.net && App.net.peer && App.net.peer.open, null, { timeout: 15000 });
   const code = await H.evaluate(() => App.net.code);
   console.log('room', code);
-  await G.evaluate((code) => { App.save.seenHelp = true; App.mode = 'online'; App.netRole = 'guest'; App.pick = { riders: ['priya'], vehs: ['bmx'] }; netJoin(code); }, code);
+  await G.evaluate((code) => { App.save.seenHelp = true; App.mode = 'online'; App.netRole = 'guest'; App.save.riders = RIDERS.map(r => r.id); App.pick = { riders: ['priya'], vehs: ['bmx'] }; netJoin(code); }, code);
   await H.waitForFunction(() => App.race && !App.race.hold, null, { timeout: 30000 });
   await G.waitForFunction(() => App.race && !App.race.hold, null, { timeout: 30000 });
   console.log('both racing');
@@ -25,6 +25,21 @@ const out = process.argv[2];
   await G.waitForTimeout(500);
   const ghp = await G.evaluate(() => ({ hp: App.race.humans[0].hp, max: App.race.humans[0].maxHp }));
   console.log('guest hp after punch', JSON.stringify(ghp));
+  // super moves + items over the network (release 2026.10.14)
+  await H.evaluate(() => { const r = App.race, me = r.humans[0], g = r.riders.find(e => e.human && e.remote); g.z = me.z + 300; g.x = me.x; me.sup = 100; trySuper(r, me); });   // host = Kaito: TEMPEST
+  await G.waitForTimeout(400);
+  const gk = await G.evaluate(() => { const r = App.race, host = r.riders.find(e => e.human && e.remote); return { hostWind: host.windT > 0, shurikens: r.projs.filter(p => p.item === 'shuriken' && p.owner === host).length }; });
+  console.log('guest sees host TEMPEST', JSON.stringify(gk));
+  await G.evaluate(() => { const r = App.race, me = r.humans[0]; me.items = ['mine']; useUtil(r, me); });                        // guest drops a mine
+  await H.waitForTimeout(400);
+  const hm = await H.evaluate(() => ({ mines: (App.race.mines || []).length }));
+  console.log('host sees guest mine', JSON.stringify(hm));
+  await G.evaluate(() => { const r = App.race, me = r.humans[0], h = r.riders.find(e => e.human && e.remote); h.z = me.z + 200; h.x = me.x; me.sup = 100; trySuper(r, me); });   // guest = Priya: INFERNO TADKA
+  await H.waitForTimeout(400);
+  const hp2 = await H.evaluate(() => { const r = App.race, g = r.riders.find(e => e.human && e.remote); return { guestFire: g.fireT > 0, fireZones: (r.zones || []).filter(z => z.kind === 'fire').length }; });
+  console.log('host sees guest INFERNO', JSON.stringify(hp2));
+  const okNet = gk.hostWind && gk.shurikens >= 1 && hm.mines >= 1 && hp2.guestFire && hp2.fireZones > 0;
+  console.log(okNet ? 'ONLINE SUPER/ITEM SYNC OK' : 'ONLINE SUPER/ITEM SYNC FAIL');
   await H.screenshot({ path: out + '/online-host.png' }); await G.screenshot({ path: out + '/online-guest.png' });
   // guest leaves → host continues with AI
   await G.evaluate(() => quitRace(false));
