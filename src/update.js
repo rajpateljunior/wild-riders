@@ -8,7 +8,7 @@
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.13b";
+const APP_VERSION = "2026.10.13c";
 const WHATS_NEW = [
   "<b>Drift turbos:</b> hold DRIFT in a corner till sparks go blue, orange, pink. Let go to shoot ahead.",
   "<b>Perfect start:</b> tap BOOST as the countdown shows 1. Too early and you stall.",

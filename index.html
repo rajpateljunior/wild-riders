@@ -238,7 +238,8 @@ body.savage .title-cast .dust i { background: rgba(120,90,80,.5); }
 .wn li { margin: 3px 0; }
 
 /* What's New: compact so it fits on a phone in landscape without scrolling */
-.mbox.wnbox { width: min(860px, 96vw); padding: 10px 16px 10px; }
+.mbox.wnbox { width: min(640px, 78vw); padding: 12px 18px 12px; }   /* narrower than the screen so the side camera / notch never covers it */
+#modal { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
 .mbox.wnbox h3 { font-size: 24px; margin: 0 0 4px; }
 .wnbox .wn { columns: 2; column-gap: 22px; font-size: 12.5px; line-height: 1.32; margin: 2px 0 4px; padding-left: 16px; }
 .wnbox .wn li { margin: 0 0 5px; break-inside: avoid; }
@@ -5206,7 +5207,7 @@ function startupPopups() {
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.13b";
+const APP_VERSION = "2026.10.13c";
 const WHATS_NEW = [
   "<b>Drift turbos:</b> hold DRIFT in a corner till sparks go blue, orange, pink. Let go to shoot ahead.",
   "<b>Perfect start:</b> tap BOOST as the countdown shows 1. Too early and you stall.",
@@ -5218,7 +5219,7 @@ const WHATS_NEW = [
 ];
 // ============================================
 
-const BUILD_ID = "wild-riders-7fc84d600a";            // stamped by tools/build.py; matches version.json of this build
+const BUILD_ID = "wild-riders-bd9f32b281";            // stamped by tools/build.py; matches version.json of this build
 const VERSION_KEY = "wr-version", BACKUP_INFO_KEY = "wr-backup";
 const Upd = { reg: null, ready: false };
 
