@@ -258,6 +258,15 @@ body.savage .title-cast .dust i { background: rgba(120,90,80,.5); }
 #scr-rider .stats { font-size: 8.5px; gap: 1px 6px; margin-top: 3px; }
 #scr-rider .stats .bar { height: 6px; }
 #scr-rider .card .art svg { height: 114%; max-height: none; max-width: none; margin-bottom: -1%; }
+/* the description box always holds exactly 3 lines, so picking a rider with a longer description never resizes the cards */
+#scr-rider .footer { height: 46px; min-height: 0; flex: none; }
+#scr-rider .footer .desc { height: 3.75em; overflow: hidden; display: flex; align-items: center; }
+#scr-rider .footer .desc > span { display: block; }
+@media (max-width: 720px) {
+  #scr-rider .footer { height: 50px; }
+  #scr-rider .footer .desc { font-size: 9.5px; height: 5em; }   /* 4 short lines on small phones */
+  #scr-rider .footer .desc b { font-size: 10.5px; }
+}
 
 </style>
 </head>
@@ -5004,7 +5013,7 @@ function openRider() {
   });
   const r = RIDERS.find((x) => x.id === cur);
   const owned = App.save.riders.includes(cur);
-  $("#rider-desc").innerHTML = `<b>${r.full}</b> — ${r.blurb} Throw: <b>${ITEMS[r.item].name}</b>. Super: <b style="color:${SUPERS[r.id].col}">${SUPERS[r.id].name}</b> — ${SUPERS[r.id].desc}`;
+  $("#rider-desc").innerHTML = `<span><b>${r.full}</b> — ${r.blurb} Throw: <b>${ITEMS[r.item].name}</b>. Super: <b style="color:${SUPERS[r.id].col}">${SUPERS[r.id].name}</b> — ${SUPERS[r.id].desc}</span>`;
   const go = $("#rider-go");
   if (owned) { go.textContent = "NEXT ›"; go.disabled = false; go.style.setProperty("--c", "#ff3d7f"); }
   else if (r !== nextR) { go.textContent = "UNLOCK " + nextR.name.toUpperCase() + " FIRST"; go.disabled = true; go.style.setProperty("--c", "#6b6280"); }
@@ -5631,7 +5640,7 @@ function startupPopups() {
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.14b";
+const APP_VERSION = "2026.10.14c";
 const WHATS_NEW = [
   "<b>Super moves:</b> punches, hits, tricks and takedowns fill the gold SUPER bar. When full, tap SUPER.",
   "<b>Kaito</b> TEMPEST wind dash + 5 shurikens · <b>Bruno</b> TIMBERFALL smashes everyone he touches.",
@@ -5642,7 +5651,7 @@ const WHATS_NEW = [
 ];
 // ============================================
 
-const BUILD_ID = "wild-riders-8eb41e0367";            // stamped by tools/build.py; matches version.json of this build
+const BUILD_ID = "wild-riders-9eace17e8f";            // stamped by tools/build.py; matches version.json of this build
 const VERSION_KEY = "wr-version", BACKUP_INFO_KEY = "wr-backup";
 const Upd = { reg: null, ready: false };
 

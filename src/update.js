@@ -8,7 +8,7 @@
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.14b";
+const APP_VERSION = "2026.10.14c";
 const WHATS_NEW = [
   "<b>Super moves:</b> punches, hits, tricks and takedowns fill the gold SUPER bar. When full, tap SUPER.",
   "<b>Kaito</b> TEMPEST wind dash + 5 shurikens · <b>Bruno</b> TIMBERFALL smashes everyone he touches.",

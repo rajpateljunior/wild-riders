@@ -199,7 +199,7 @@ function openRider() {
   });
   const r = RIDERS.find((x) => x.id === cur);
   const owned = App.save.riders.includes(cur);
-  $("#rider-desc").innerHTML = `<b>${r.full}</b> — ${r.blurb} Throw: <b>${ITEMS[r.item].name}</b>. Super: <b style="color:${SUPERS[r.id].col}">${SUPERS[r.id].name}</b> — ${SUPERS[r.id].desc}`;
+  $("#rider-desc").innerHTML = `<span><b>${r.full}</b> — ${r.blurb} Throw: <b>${ITEMS[r.item].name}</b>. Super: <b style="color:${SUPERS[r.id].col}">${SUPERS[r.id].name}</b> — ${SUPERS[r.id].desc}</span>`;
   const go = $("#rider-go");
   if (owned) { go.textContent = "NEXT ›"; go.disabled = false; go.style.setProperty("--c", "#ff3d7f"); }
   else if (r !== nextR) { go.textContent = "UNLOCK " + nextR.name.toUpperCase() + " FIRST"; go.disabled = true; go.style.setProperty("--c", "#6b6280"); }

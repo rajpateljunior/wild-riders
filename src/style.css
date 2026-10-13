@@ -241,3 +241,12 @@ body.savage .title-cast .dust i { background: rgba(120,90,80,.5); }
 #scr-rider .stats { font-size: 8.5px; gap: 1px 6px; margin-top: 3px; }
 #scr-rider .stats .bar { height: 6px; }
 #scr-rider .card .art svg { height: 114%; max-height: none; max-width: none; margin-bottom: -1%; }
+/* the description box always holds exactly 3 lines, so picking a rider with a longer description never resizes the cards */
+#scr-rider .footer { height: 46px; min-height: 0; flex: none; }
+#scr-rider .footer .desc { height: 3.75em; overflow: hidden; display: flex; align-items: center; }
+#scr-rider .footer .desc > span { display: block; }
+@media (max-width: 720px) {
+  #scr-rider .footer { height: 50px; }
+  #scr-rider .footer .desc { font-size: 9.5px; height: 5em; }   /* 4 short lines on small phones */
+  #scr-rider .footer .desc b { font-size: 10.5px; }
+}
