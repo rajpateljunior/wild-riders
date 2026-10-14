@@ -765,3 +765,187 @@ BG_EXTRA.northpole = (layer, Wd, H, R) => {
 BIOME_SCENERY.xmas = { near: [["xmastree", 3], ["snowpine", 3], ["candycane", 1.5], ["snowman", 1], ["presents", 0.6]], far: ["snowpine", "xmastree"], obstacles: ["presents", "snowrock"], special: ["banner"],
   zones: { village: { near: [["gingerhouse", 3], ["xmastree", 2], ["snowman", 1.5], ["candycane", 1]], dens: 0.75 }, canes: { near: [["candycane", 5], ["xmastree", 2]], dens: 0.8 },
     forest: { near: [["snowpine", 5], ["xmastree", 2]], dens: 0.8 }, lake: { near: [["snowman", 2], ["candycane", 1]], dens: 0.3 } } };
+
+/* ======================= SEASONAL: JANUARY – SEPTEMBER ======================= */
+const RAINBOW = ["#ff3d7f", "#ffd23f", "#2bd9c5", "#8a4dff", "#38e05a", "#ff8a1c", "#2b9cff"];
+THEME_ITEMS.popper = () => SV.path("M14 54 L30 16 L48 34Z", "#ffd23f", 3) + `<path d="M30 16 L26 6 M40 22 L50 12 M44 30 L56 26" stroke="#ff3d7f" stroke-width="4" stroke-linecap="round"/>` + SV.circ(20, 10, 3, "#2bd9c5", 0) + SV.circ(56, 18, 3, "#8a4dff", 0);
+THEME_ITEMS.firecracker = () => SV.rect(20, 18, 24, 38, 4, "#e2433b", 3) + SV.rect(20, 30, 24, 6, 0, "#ffd23f", 0) + `<path d="M32 18 Q38 8 44 6" stroke="#ff8a1c" stroke-width="3" fill="none"/>` + SV.circ(45, 6, 3, "#ffd23f", 0);
+THEME_ITEMS.colorballoon = () => SV.ell(32, 30, 20, 24, "#ff3d7f", 3) + SV.ell(26, 22, 5, 7, "#ffc2d9", 0) + `<path d="M32 54 L30 62" stroke="${OL}" stroke-width="3"/>`;
+THEME_ITEMS.egg = () => SV.ell(32, 34, 18, 24, "#ffd23f", 3) + `<path d="M15 30 Q32 22 49 30 M15 42 Q32 34 49 42" stroke="#ff79b0" stroke-width="4" fill="none"/>`;
+THEME_ITEMS.tulipbulb = () => SV.path("M32 58 Q16 54 18 36 Q22 22 32 20 Q42 22 46 36 Q48 54 32 58Z", "#c98a55", 3) + SV.path("M26 22 L32 6 L38 22Z", "#4f9b3c", 2.5);
+THEME_ITEMS.beachball = () => SV.circ(32, 32, 24, "#ffffff", 3) + `<path d="M32 8 Q14 32 32 56" fill="#e2433b"/><path d="M32 8 Q50 32 32 56" fill="#2b9cff"/>` + SV.circ(32, 32, 24, "none", 3);
+THEME_ITEMS.sparkler = () => SV.rect(28, 22, 8, 36, 2, "#8a8a92", 2.5) + `<path d="M32 22 L22 8 M32 22 L42 8 M32 22 L32 4 M32 22 L18 18 M32 22 L46 18" stroke="#ffd23f" stroke-width="3" stroke-linecap="round"/>`;
+THEME_ITEMS.cottoncandy = () => SV.circ(32, 24, 18, "#ff9ec8", 3) + SV.circ(22, 28, 10, "#ffc2d9", 0) + SV.rect(29, 38, 6, 22, 2, "#f4ecdc", 2.5);
+THEME_ITEMS.acorn = () => SV.ell(32, 38, 14, 18, "#a8662a", 3) + SV.path("M14 30 Q32 12 50 30Z", "#6b4423", 3) + SV.rect(30, 8, 4, 10, 2, "#6b4423", 2);
+
+// ---- January: New Year ----
+def("townhouse", 240, 300, 2000, () => {
+  let s = SV.rect(20, 80, 200, 216, 3, "#5a6a8a", 3) + SV.path("M6 90 L120 20 L234 90Z", "#3a3a48", 3) + SV.path("M6 90 L120 20 L234 90 Q120 74 6 90Z", "#f4f8ff", 2.5);
+  for (const [x, y] of [[40, 120], [100, 120], [160, 120], [40, 200], [160, 200]]) s += SV.rect(x, y, 40, 50, 3, "#ffd36b", 2.5);
+  s += SV.rect(98, 210, 44, 86, 3, "#8a2a2a", 3);
+  for (let i = 0; i < 14; i++) s += SV.circ(24 + i * 14.5, 86 + Math.sin(i) * 4, 4, RAINBOW[i % 7], 1.5);
+  return s;
+}, { solid: 1 });
+def("clocktower", 220, 600, 2600, () => {
+  let s = SV.rect(50, 180, 120, 416, 3, "#8a7a6a", 3) + SV.path("M40 190 L110 40 L180 190Z", "#3a3a48", 3) + SV.rect(104, 6, 12, 40, 2, "#c9a227", 2);
+  s += SV.circ(110, 250, 46, "#fff6e0", 4) + `<path d="M110 250 L110 214 M110 250 L112 212" stroke="${OL}" stroke-width="7" stroke-linecap="round"/>`;      // midnight: both hands up
+  for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; s += SV.circ(110 + Math.cos(a) * 38, 250 + Math.sin(a) * 38, 3, OL, 0); }
+  s += SV.rect(80, 380, 60, 80, 20, "#ffd36b", 3) + SV.rect(80, 500, 60, 96, 4, "#5a3a2a", 3) + `<path d="M50 180 L170 180 L170 196 L50 196Z" fill="#f4f8ff"/>`;
+  return s;
+}, { solid: 1, glow: "#ffd36b" });
+def("nygate", 1100, 900, 6200, () => SV.rect(30, 60, 24, 840, 4, "#c9ced8", 3) + SV.rect(1046, 60, 24, 840, 4, "#c9ced8", 3) + SV.rect(30, 40, 1040, 150, 16, "#1b1426", 4) +
+  `<text x="550" y="140" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="92" fill="#ffd23f">HAPPY NEW YEAR!</text>` + RAINBOW.map((c, i) => SV.circ(80 + i * 156, 30, 18, c, 3)).join(""));
+BG_EXTRA.skyline = (layer, Wd, H, R) => {
+  if (layer !== "far") return "";
+  let s = "";
+  for (let x = 0; x < Wd; x += 50 + R() * 40) { const h = 70 + R() * 150, w = 40 + R() * 30; s += `<rect x="${x}" y="${H - h}" width="${w}" height="${h}" fill="#141c38"/>`; for (let k = 0; k < 5; k++) s += `<rect x="${x + 6 + R() * (w - 14)}" y="${H - h + 8 + R() * (h - 20)}" width="6" height="8" fill="#ffd36b"/>`; }
+  return s;
+};
+BIOME_SCENERY.newyear = { near: [["townhouse", 3], ["snowpine", 2], ["lantern", 1.5], ["snowman", 0.6]], far: ["townhouse", "snowpine"], obstacles: ["snowrock", "presents"], special: ["banner"],
+  zones: { town: { near: [["townhouse", 5], ["lantern", 2]], dens: 0.8 }, park: { near: [["snowpine", 4], ["snowman", 1], ["lantern", 1]], dens: 0.7 },
+    river: { near: [["reeds", 1], ["lantern", 1]], dens: 0.3 }, square: { near: [["clocktower", 1], ["townhouse", 3], ["crowd", 2], ["lantern", 2]], dens: 0.85 } } };
+
+// ---- February: Lunar New Year ----
+def("shophouse", 240, 300, 2000, () => {
+  let s = SV.rect(20, 90, 200, 206, 3, "#e8d9b0", 3) + SV.path("M0 100 Q120 60 240 100 L230 80 Q120 40 10 80Z", "#2a6a4a", 3) + SV.path("M0 100 Q-6 86 6 80 M240 100 Q246 86 234 80", "none", 4);
+  s += SV.rect(30, 190, 180, 106, 3, "#c4362b", 3) + SV.rect(60, 120, 50, 54, 3, "#ffd36b", 2.5) + SV.rect(130, 120, 50, 54, 3, "#ffd36b", 2.5);
+  s += SV.rect(76, 200, 88, 30, 3, "#1b1426", 2.5) + `<text x="120" y="224" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="22" fill="#ffd23f">福</text>`;
+  for (const x of [40, 200]) s += SV.ell(x, 140, 16, 20, "#e2332b", 2.5) + SV.rect(x - 8, 118, 16, 6, 1, "#ffd23f", 1.5);
+  return s;
+}, { solid: 1 });
+def("lanterns", 1100, 900, 6200, () => {
+  let s = SV.rect(30, 60, 22, 840, 4, "#7b4a2a", 3) + SV.rect(1048, 60, 22, 840, 4, "#7b4a2a", 3) + `<path d="M41 70 Q550 150 1059 70" stroke="${OL}" stroke-width="5" fill="none"/>`;
+  for (let i = 1; i < 12; i++) { const t = i / 12, x = 41 + t * 1018, y = 70 + Math.sin(t * Math.PI) * 78; s += `<path d="M${x} ${y} L${x} ${y + 16}" stroke="${OL}" stroke-width="3"/>` + SV.ell(x, y + 44, 26, 30, "#e2332b", 3) + SV.rect(x - 14, y + 12, 28, 8, 2, "#ffd23f", 2) + SV.rect(x - 14, y + 70, 28, 8, 2, "#ffd23f", 2); }
+  return s;
+});
+def("paifang", 1200, 900, 6600, () => {
+  let s = SV.rect(80, 200, 70, 700, 4, "#c4362b", 4) + SV.rect(1050, 200, 70, 700, 4, "#c4362b", 4) + SV.rect(60, 190, 1080, 70, 6, "#c4362b", 4);
+  s += SV.path("M20 200 Q600 110 1180 200 L1150 150 Q600 60 50 150Z", "#2a6a4a", 4) + SV.rect(440, 210, 320, 60, 6, "#1b1426", 3) + `<text x="600" y="256" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="44" fill="#ffd23f">新年快乐</text>`;
+  s += SV.ell(170, 330, 34, 40, "#e2332b", 3) + SV.ell(1030, 330, 34, 40, "#e2332b", 3);
+  return s;
+});
+def("dragon", 520, 260, 2600, () => {
+  let s = "";
+  for (let i = 0; i < 6; i++) { const x = 80 + i * 70, y = 150 + Math.sin(i * 1.2) * 34; s += `<path d="M${x} ${y + 40} L${x - 6} 250 M${x + 20} ${y + 40} L${x + 26} 250" stroke="#3a3540" stroke-width="7"/>` + SV.ell(x + 10, y, 44, 40, i % 2 ? "#ffd23f" : "#e2332b", 3); }
+  s += SV.ell(470, 130, 50, 46, "#e2332b", 3) + SV.circ(486, 116, 9, "#fff", 2) + SV.circ(488, 116, 4, OL, 0) + SV.path("M500 150 L520 140 L506 162Z", "#fff", 2) + `<path d="M440 92 Q430 60 450 50 M480 88 Q490 56 510 54" stroke="#ffd23f" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+  s += `<path d="M36 150 Q10 120 20 96" stroke="#ffd23f" stroke-width="12" fill="none" stroke-linecap="round"/>`;
+  return s;
+}, { obstacle: "whack" });
+BG_EXTRA.pagodas = (layer, Wd, H, R) => {
+  if (layer !== "far") return "";
+  let s = "";
+  for (let x = 100; x < Wd; x += 300 + R() * 200) { for (let k = 0; k < 3; k++) { const y = H - 40 - k * 50, hw = 60 - k * 12; s += `<rect x="${x - hw * 0.6}" y="${y - 40}" width="${hw * 1.2}" height="40" fill="#5a1a26"/><path d="M${x - hw} ${y - 36} Q${x} ${y - 60} ${x + hw} ${y - 36}Z" fill="#3a0f18"/>`; } }
+  for (let i = 0; i < 10; i++) s += `<ellipse cx="${R() * Wd}" cy="${H - 180 - R() * 140}" rx="6" ry="8" fill="#ff8a5a"/>`;      // sky lanterns
+  return s;
+};
+BIOME_SCENERY.lunar = { near: [["shophouse", 4], ["sakura", 1], ["stall", 1]], far: ["shophouse", "sakura"], obstacles: ["presents", "boulder"], special: ["banner"],
+  zones: { street: { near: [["shophouse", 6]], dens: 0.85 }, market: { near: [["stall", 4], ["shophouse", 2]], dens: 0.8 }, garden: { near: [["sakura", 4], ["toro", 1], ["reeds", 1]], dens: 0.65 } } };
+
+// ---- March: Holi ----
+def("colorstall", 280, 200, 1900, () => {
+  let s = SV.rect(20, 110, 240, 86, 4, "#c98a55", 3) + SV.path("M6 112 L30 40 L250 40 L274 112Z", "#ff3d7f", 3) + `<path d="M60 40 L52 112 M120 40 L118 112 M180 40 L184 112 M230 40 L238 112" stroke="#fff6e0" stroke-width="10"/>`;
+  for (let i = 0; i < 6; i++) s += SV.path(`M${36 + i * 38} 110 Q${52 + i * 38} 78 ${68 + i * 38} 110Z`, RAINBOW[i], 2.5);
+  return s;
+}, { solid: 1 });
+def("powderheap", 220, 100, 1100, () => [0, 1, 2].map((i) => SV.path(`M${10 + i * 66} 96 Q${44 + i * 66} ${30 + (i % 2) * 14} ${78 + i * 66} 96Z`, RAINBOW[(i * 2) % 7], 3)).join(""));
+BIOME_SCENERY.holi = { near: [["lithouse", 3], ["colorstall", 2], ["powderheap", 2], ["bush", 1]], far: ["lithouse", "mandir"], obstacles: ["powderheap", "pots"], special: ["banner"],
+  zones: { street: { near: [["lithouse", 5], ["powderheap", 1]], dens: 0.8 }, bazaar: { near: [["colorstall", 4], ["mithai", 2]], dens: 0.85 },
+    square: { near: [["rangoli", 3], ["powderheap", 3], ["colorstall", 1]], dens: 0.7 }, park: { near: [["sakura", 2], ["bush", 2], ["flowers", 2]], dens: 0.65 }, ghat: { near: [["reeds", 2], ["mandir", 1]], dens: 0.5 } } };
+
+// ---- April: Spring egg hunt ----
+function eggSVG(cx, cy, rx, ry, c1, c2) { return SV.ell(cx, cy, rx, ry, c1, 3) + `<path d="M${cx - rx * 0.95} ${cy - ry * 0.1} Q${cx - rx * 0.5} ${cy - ry * 0.35} ${cx} ${cy - ry * 0.1} T${cx + rx * 0.95} ${cy - ry * 0.1}" stroke="${c2}" stroke-width="${rx * 0.14}" fill="none"/>` + SV.circ(cx - rx * 0.4, cy + ry * 0.35, rx * 0.12, c2, 0) + SV.circ(cx + rx * 0.35, cy + ry * 0.3, rx * 0.12, c2, 0); }
+def("bigegg", 200, 260, 1300, () => eggSVG(100, 140, 84, 116, "#ffc2d9", "#8a4dff"), { solid: 1 });
+def("bigegg2", 200, 260, 1300, () => eggSVG(100, 140, 84, 116, "#bfe9ff", "#ffd23f"), { solid: 1 });
+def("eggramp", 640, 150, 4400, () => bigRampSVG(640, "#ffd23f", "#ffc2d9", "#2bd9c5") + eggSVG(80, 110, 40, 34, "#bfe9ff", "#ff79b0") + eggSVG(560, 110, 40, 34, "#fff6c2", "#38e05a"));
+def("bunny", 160, 170, 700, () => SV.ell(80, 120, 50, 40, "#f4f2ec", 3) + SV.circ(110, 80, 30, "#f4f2ec", 3) + SV.ell(100, 30, 10, 30, "#f4f2ec", 3) + SV.ell(122, 32, 10, 30, "#f4f2ec", 3) + SV.ell(100, 32, 4, 20, "#ffc2d9", 0) + SV.ell(122, 34, 4, 20, "#ffc2d9", 0) +
+  SV.circ(118, 76, 4, OL, 0) + SV.circ(136, 86, 5, "#ff9ec8", 0) + SV.circ(34, 116, 14, "#ffffff", 3), { obstacle: "whack" });
+BIOME_SCENERY.easter = { near: [["flowers", 4], ["bush", 2], ["bigegg", 1], ["sakura", 1]], far: ["sakura", "bush"], obstacles: ["bigegg2", "mossrock"], special: ["banner"],
+  zones: { meadow: { near: [["flowers", 6], ["bush", 1], ["bigegg", 0.6]], dens: 0.7 }, garden: { near: [["sakura", 3], ["flowers", 3], ["bush", 1]], dens: 0.75 },
+    pond: { near: [["reeds", 3], ["flowers", 2]], dens: 0.5 }, eggs: { near: [["bigegg", 3], ["bigegg2", 3], ["flowers", 2]], dens: 0.75 } } };
+
+// ---- May: Tulip festival ----
+def("tulips", 400, 120, 3200, () => { let s = SV.rect(0, 80, 400, 40, 2, "#4f9b3c", 2.5); const c = ["#e2332b", "#ffd23f", "#ff79b0", "#8a4dff"]; for (let r = 0; r < 4; r++) for (let x = 8; x < 400; x += 22) s += SV.path(`M${x + r * 5} ${84 - r * 18} q-8 -14 0 -22 q8 8 16 0 q4 14 -8 22Z`, c[r], 1.5); return s; });
+def("windmill", 300, 520, 2600, () => {
+  let s = SV.path("M100 516 L120 200 L180 200 L200 516Z", "#8a5a3a", 3) + SV.path("M110 210 L150 150 L190 210Z", "#3a3540", 3) + SV.rect(130, 400, 40, 116, 18, "#3a2a24", 3);
+  for (let i = 0; i < 4; i++) { const a = (i / 4) * TAU + 0.4, x = 150 + Math.cos(a) * 140, y = 190 + Math.sin(a) * 140; s += `<path d="M150 190 L${x} ${y}" stroke="#f2ead8" stroke-width="12"/>` + SV.path(`M${150 + Math.cos(a) * 40} ${190 + Math.sin(a) * 40} L${x} ${y} L${x + Math.cos(a + 1.57) * 30} ${y + Math.sin(a + 1.57) * 30} L${150 + Math.cos(a) * 40 + Math.cos(a + 1.57) * 30} ${190 + Math.sin(a) * 40 + Math.sin(a + 1.57) * 30}Z`, "#f2ead8", 2); }
+  return s + SV.circ(150, 190, 14, "#3a3540", 3);
+}, { solid: 1 });
+def("dutchhouse", 200, 320, 1500, () => SV.path("M20 316 L20 120 L40 120 L40 90 L60 90 L60 60 L80 60 L80 30 L120 30 L120 60 L140 60 L140 90 L160 90 L160 120 L180 120 L180 316Z", "#a8452c", 3) +
+  [[50, 150], [110, 150], [50, 220], [110, 220], [80, 80]].map(([x, y]) => SV.rect(x, y, 36, 44, 2, "#f2ead8", 2.5)).join("") + SV.rect(76, 260, 48, 56, 3, "#2a6a4a", 3), { solid: 1 });
+def("cheese", 200, 200, 1100, () => SV.circ(100, 104, 90, "#ffcf3a", 3) + SV.circ(100, 104, 56, "#ffe27a", 2) + SV.circ(70, 80, 10, "#e8b030", 0) + SV.circ(130, 120, 12, "#e8b030", 0) + SV.circ(110, 70, 7, "#e8b030", 0) + SV.rect(60, 90, 80, 30, 4, "#e2433b", 2.5), { obstacle: "log" });
+BG_EXTRA.windmills = (layer, Wd, H, R) => {
+  if (layer !== "far") return "";
+  let s = "";
+  for (let i = 0; i < 6; i++) { const x = 160 + i * 340 + R() * 60; s += `<path d="M${x - 14} ${H - 40} L${x - 8} ${H - 120} L${x + 8} ${H - 120} L${x + 14} ${H - 40}Z" fill="#6a4a3a"/><path d="M${x - 60} ${H - 170} L${x + 60} ${H - 70} M${x + 60} ${H - 170} L${x - 60} ${H - 70}" stroke="#f2ead8" stroke-width="7"/>`; }
+  for (let x = 0; x < Wd; x += 60) s += `<rect x="${x}" y="${H - 40}" width="60" height="40" fill="${["#e2332b", "#ffd23f", "#ff79b0", "#8a4dff"][(x / 60) % 4]}" opacity=".8"/>`;
+  return s;
+};
+BIOME_SCENERY.tulips = { near: [["tulips", 5], ["windmill", 0.6], ["dutchhouse", 1]], far: ["windmill", "dutchhouse"], obstacles: ["cheese", "mossrock"], special: ["banner"],
+  zones: { tulips: { near: [["tulips", 7]], dens: 0.9 }, canal: { near: [["reeds", 3]], dens: 0.4 }, town: { near: [["dutchhouse", 5], ["tulips", 1]], dens: 0.8 }, mills: { near: [["windmill", 2], ["tulips", 3]], dens: 0.6 } } };
+
+// ---- June: Beach ----
+def("sandcastle", 200, 160, 900, () => SV.rect(30, 80, 140, 76, 2, "#e8c47a", 3) + SV.rect(20, 40, 40, 116, 2, "#e8c47a", 3) + SV.rect(140, 40, 40, 116, 2, "#e8c47a", 3) + SV.rect(80, 30, 40, 50, 2, "#e8c47a", 3) +
+  `<path d="M20 40 L20 30 L30 30 L30 40 M40 40 L40 30 L50 30 L50 40 M140 40 L140 30 L150 30 L150 40 M160 40 L160 30 L170 30 L170 40" stroke="${OL}" stroke-width="3" fill="#e8c47a"/>` + SV.rect(98, 8, 4, 24, 1, "#6b4423", 1.5) + SV.path("M102 8 L122 14 L102 20Z", "#e2433b", 2) + SV.path("M86 156 L86 120 Q100 106 114 120 L114 156Z", "#8a6a3a", 2.5), { obstacle: "small" });
+def("umbrella", 220, 260, 1300, () => `<path d="M110 256 L110 70" stroke="#f4ecdc" stroke-width="8"/>` + SV.path("M10 90 Q110 -10 210 90Z", "#e2433b", 3) + `<path d="M110 40 L60 90 M110 40 L160 90" stroke="#fff" stroke-width="16"/>` + SV.rect(40, 230, 140, 20, 4, "#2b9cff", 2.5));
+def("lifeguard", 240, 380, 1700, () => SV.rect(40, 200, 12, 176, 2, "#f4ecdc", 3) + SV.rect(190, 200, 12, 176, 2, "#f4ecdc", 3) + SV.rect(30, 120, 180, 90, 4, "#e2433b", 3) + SV.path("M14 130 L120 60 L226 130Z", "#f4ecdc", 3) +
+  `<text x="120" y="180" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="26" fill="#fff">LIFEGUARD</text>`, { solid: 1 });
+def("beachball", 130, 130, 620, () => SV.circ(65, 65, 56, "#ffffff", 3) + `<path d="M65 9 Q30 65 65 121Z" fill="#e2433b"/><path d="M65 9 Q100 65 65 121Z" fill="#2b9cff"/><path d="M9 65 Q65 50 121 65" stroke="#ffd23f" stroke-width="10" fill="none"/>` + SV.circ(65, 65, 56, "none", 3), { obstacle: "small" });
+def("surfboard", 120, 240, 600, () => SV.path("M60 8 Q100 60 96 160 Q90 230 60 236 Q30 230 24 160 Q20 60 60 8Z", "#2bd9c5", 3) + `<path d="M60 20 L60 224" stroke="#ff3d7f" stroke-width="10"/>`, { solid: 1, obstacle: "rock" });
+BG_EXTRA.ocean = (layer, Wd, H, R) => {
+  if (layer !== "far") return "";
+  let s = `<rect x="0" y="${H - 120}" width="${Wd}" height="120" fill="#1f8ae6"/>`;
+  for (let i = 0; i < 30; i++) { const x = R() * Wd, y = H - 110 + R() * 100; s += `<path d="M${x} ${y} q12 -8 24 0" stroke="#bfe9ff" stroke-width="4" fill="none"/>`; }
+  for (let i = 0; i < 3; i++) { const x = 300 + i * 700; s += `<path d="M${x} ${H - 120} L${x + 20} ${H - 200} L${x + 40} ${H - 120}Z" fill="#ffffff"/><path d="M${x - 20} ${H - 120} L${x + 60} ${H - 120} L${x + 50} ${H - 108} L${x - 10} ${H - 108}Z" fill="#e2433b"/>`; }
+  return s;
+};
+BIOME_SCENERY.beach = { near: [["palm", 3], ["umbrella", 3], ["sandcastle", 1], ["surfboard", 1]], far: ["palm", "lifeguard"], obstacles: ["sandcastle", "surfboard"], special: ["banner"],
+  zones: { beach: { near: [["umbrella", 4], ["palm", 2], ["sandcastle", 1.5], ["lifeguard", 0.6]], dens: 0.7 }, boardwalk: { near: [["palm", 1]], dens: 0.2 },
+    dunes: { near: [["dune", 3], ["palm", 2], ["umbrella", 1]], dens: 0.55 } } };
+
+// ---- July: Fourth of July ----
+function usFlag(x, y, w) { const h = w * 0.55; let s = SV.rect(x, y, w, h, 2, "#ffffff", 2.5); for (let i = 0; i < 7; i++) s += `<rect x="${x}" y="${y + i * h / 6.5}" width="${w}" height="${h / 13}" fill="#e2433b"/>`; s += `<rect x="${x}" y="${y}" width="${w * 0.42}" height="${h * 0.54}" fill="#2b4ab3"/>`; for (let i = 0; i < 6; i++) s += SV.circ(x + w * 0.07 + (i % 3) * w * 0.13, y + h * 0.13 + ((i / 3) | 0) * h * 0.26, w * 0.025, "#fff", 0); return s; }
+def("flagpole", 160, 360, 1100, () => SV.rect(20, 10, 10, 346, 2, "#c9ced8", 2.5) + usFlag(30, 20, 120));
+def("porchhouse", 260, 260, 2100, () => SV.rect(20, 90, 220, 166, 3, "#f4ecdc", 3) + SV.path("M6 100 L130 20 L254 100Z", "#3a4a6a", 3) + SV.rect(20, 190, 220, 14, 2, "#c9ced8", 2.5) +
+  [[40, 120], [180, 120], [40, 210], [180, 210]].map(([x, y]) => SV.rect(x, y, 40, 40, 3, "#ffd36b", 2.5)).join("") + SV.rect(108, 200, 44, 56, 3, "#2b4ab3", 3) + usFlag(98, 108, 64), { solid: 1 });
+def("starbanner", 1100, 900, 6200, () => {
+  let s = SV.rect(30, 60, 22, 840, 4, "#c9ced8", 3) + SV.rect(1048, 60, 22, 840, 4, "#c9ced8", 3);
+  for (let i = 0; i < 9; i++) { const x = 60 + i * 110; s += SV.path(`M${x} 60 Q${x + 55} 140 ${x + 110} 60Z`, ["#e2433b", "#ffffff", "#2b4ab3"][i % 3], 3); }
+  s += `<path d="M41 60 L1059 60" stroke="${OL}" stroke-width="6"/>` + SV.path("M550 10 L562 44 L598 44 L569 64 L580 98 L550 78 L520 98 L531 64 L502 44 L538 44Z", "#ffd23f", 3);
+  return s;
+});
+def("float", 360, 280, 2300, () => SV.rect(20, 160, 320, 80, 10, "#2b4ab3", 3) + SV.circ(70, 248, 22, "#3a3540", 3) + SV.circ(290, 248, 22, "#3a3540", 3) + `<path d="M20 180 L340 180 M20 210 L340 210" stroke="#ffffff" stroke-width="10"/>` +
+  SV.path("M180 20 L200 80 L262 80 L212 116 L230 176 L180 140 L130 176 L148 116 L98 80 L160 80Z", "#ffd23f", 4) + SV.circ(60, 130, 26, "#e2433b", 3) + SV.circ(300, 130, 26, "#ffffff", 3), { obstacle: "whack" });
+BIOME_SCENERY.july4 = { near: [["porchhouse", 3], ["flagpole", 2], ["pine", 1], ["crowd", 1]], far: ["porchhouse", "pine"], obstacles: ["presents", "mossrock"], special: ["banner"],
+  zones: { main: { near: [["porchhouse", 4], ["flagpole", 2], ["crowd", 2]], dens: 0.85 }, park: { near: [["pine", 3], ["bush", 2], ["flagpole", 1]], dens: 0.65 }, lake: { near: [["reeds", 2], ["flagpole", 1]], dens: 0.4 } } };
+
+// ---- August: Carnival ----
+def("ferris", 600, 620, 5200, () => {
+  let s = `<path d="M300 300 L180 616 M300 300 L420 616" stroke="#c9ced8" stroke-width="16"/>` + `<circle cx="300" cy="300" r="270" fill="none" stroke="#ff3d7f" stroke-width="14"/><circle cx="300" cy="300" r="250" fill="none" stroke="${OL}" stroke-width="4"/>`;
+  for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU, x = 300 + Math.cos(a) * 270, y = 300 + Math.sin(a) * 270; s += `<path d="M300 300 L${x} ${y}" stroke="#ffd23f" stroke-width="5"/>` + SV.rect(x - 22, y, 44, 36, 8, RAINBOW[i % 7], 3); }
+  return s + SV.circ(300, 300, 26, "#ffd23f", 4);
+}, { solid: 1, glow: "#ffd36b" });
+def("tent", 300, 280, 2300, () => SV.path("M20 276 L40 120 L150 20 L260 120 L280 276Z", "#ffffff", 3) + `<path d="M60 276 L80 110 L150 20 M120 276 L130 70 M180 276 L170 70 M240 276 L220 110 L150 20" stroke="#e2433b" stroke-width="20"/>` + SV.rect(146, 0, 8, 24, 2, "#6b4423", 2) + SV.path("M154 2 L180 10 L154 18Z", "#ffd23f", 2) + SV.path("M120 276 L150 190 L180 276Z", "#3a2a24", 3), { solid: 1 });
+def("booth", 260, 230, 1900, () => SV.rect(20, 100, 220, 126, 4, "#2b9cff", 3) + SV.path("M6 104 L20 40 L240 40 L254 104Z", "#ffd23f", 3) + `<path d="M50 40 L44 104 M100 40 L98 104 M160 40 L162 104 M210 40 L216 104" stroke="#e2433b" stroke-width="12"/>` +
+  SV.rect(40, 130, 180, 60, 3, "#1b1426", 2.5) + SV.circ(80, 160, 14, "#ff3d7f", 2) + SV.circ(130, 160, 14, "#2bd9c5", 2) + SV.circ(180, 160, 14, "#ffd23f", 2), { solid: 1 });
+def("rail_coaster", 90, 220, 520, () => SV.rect(36, 60, 18, 160, 2, "#c9ced8", 2.5) + SV.rect(6, 20, 78, 44, 6, "#e2433b", 3) + `<path d="M6 42 L84 42" stroke="#ffd23f" stroke-width="6"/>`, { solid: 1 });
+def("balloons", 200, 340, 1000, () => { let s = ""; for (let i = 0; i < 5; i++) { const x = 40 + i * 30, y = 70 + (i % 2) * 40; s += `<path d="M${x} ${y + 40} Q${100 + (x - 100) * 0.2} 240 100 330" stroke="${OL}" stroke-width="2.5" fill="none"/>` + SV.ell(x, y, 30, 38, RAINBOW[i], 3) + SV.ell(x - 10, y - 12, 6, 9, "#ffffff", 0); } return s; }, { obstacle: "whack" });
+BG_EXTRA.fairground = (layer, Wd, H, R) => {
+  if (layer !== "far") return "";
+  let s = `<path d="M200 ${H} L200 ${H - 140} Q400 ${H - 330} 600 ${H - 140} Q700 ${H - 60} 820 ${H - 200} Q950 ${H - 330} 1080 ${H - 120} L1080 ${H}" stroke="#e2433b" stroke-width="10" fill="none"/>`;
+  for (let x = 220; x < 1080; x += 60) s += `<path d="M${x} ${H} L${x} ${H - 120 - 60 * Math.abs(Math.sin(x * 0.006))}" stroke="#9aa0ac" stroke-width="4"/>`;
+  s += `<circle cx="1600" cy="${H - 170}" r="130" fill="none" stroke="#ff79b0" stroke-width="10"/>`;
+  return s;
+};
+BIOME_SCENERY.carnival = { near: [["tent", 2], ["booth", 3], ["balloons", 1], ["bush", 1]], far: ["ferris", "tent"], obstacles: ["presents", "mossrock"], special: ["banner"],
+  zones: { midway: { near: [["booth", 4], ["ferris", 0.6], ["tent", 1], ["crowd", 1]], dens: 0.8 }, tents: { near: [["tent", 4], ["booth", 1]], dens: 0.75 } } };
+
+// ---- September: Autumn leaves ----
+def("coveredbridge", 1000, 700, 5000, () => {
+  let s = `<path fill-rule="evenodd" d="M40 700 L40 200 L500 30 L960 200 L960 700 L860 700 L860 260 L500 130 L140 260 L140 700 Z" fill="#a8302a" stroke="${OL}" stroke-width="4"/>`;
+  s += SV.path("M0 220 L500 0 L1000 220 L960 220 L500 40 L40 220Z", "#5a3a2a", 4) + `<path d="M140 400 L860 400" stroke="#7a2420" stroke-width="10"/>`;
+  return s;
+});
+def("squirrel", 160, 140, 560, () => SV.path("M30 120 Q0 60 40 20 Q70 0 70 40 Q50 50 60 90Z", "#c9761c", 3) + SV.ell(96, 100, 36, 30, "#c9761c", 3) + SV.circ(126, 70, 20, "#c9761c", 3) + SV.circ(132, 66, 3, OL, 0) + SV.ell(118, 50, 6, 10, "#c9761c", 2.5) + SV.ell(112, 110, 14, 10, "#f2dcae", 0), { obstacle: "small" });
+BIOME_SCENERY.autumn = { near: [["maple", 4], ["maple2", 4], ["mossrock", 1], ["stump", 1]], far: ["maple", "maple2"], obstacles: ["mossrock", "stump"], special: ["banner"],
+  zones: { maples: { near: [["maple", 6], ["maple2", 2]], dens: 0.85 }, gold: { near: [["maple2", 6], ["maple", 2]], dens: 0.85 }, creek: { near: [["reeds", 3], ["maple", 2]], dens: 0.6 },
+    farm: { near: [["barn", 1], ["woodfence", 3], ["haybale", 2], ["pumpkinpile", 1]], dens: 0.6 } } };

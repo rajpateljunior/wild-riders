@@ -599,6 +599,21 @@ function drawWeather(ctx, w, h, biome, race, me, t) {
       for (let a = 0; a < 14; a++) { const an = (a / 14) * TAU; ctx.beginPath(); ctx.arc(cx + Math.cos(an) * r, cy + Math.sin(an) * r + k * k * h * 0.03, 2.2, 0, TAU); ctx.fill(); }
     }
     ctx.globalCompositeOperation = "source-over";
+  } else if (kind === "colorpuffs") {
+    // Holi: soft clouds of coloured powder drifting through the air
+    for (let i = 0; i < 7; i++) {
+      const p = P[i]; p[0] -= 0.0012 + p[2] * 0.001 + me.lean * 0.002; p[1] += Math.sin(t * 0.4 + i) * 0.0006;
+      if (p[0] < -0.3) { p[0] = 1.3; p[1] = Math.random(); }
+      const x = p[0] * w, y = h * (0.15 + p[1] * 0.55), r = h * (0.12 + p[2] * 0.12);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r), c = ["#ff3d7f", "#ffd23f", "#2bd9c5", "#8a4dff", "#38e05a", "#ff8a1c", "#2b9cff"][i];
+      g.addColorStop(0, rgba(c, 0.26)); g.addColorStop(1, rgba(c, 0));
+      ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    for (let i = 7; i < 40; i++) {
+      const p = P[i]; p[1] += 0.002 + p[2] * 0.002; p[0] += Math.sin(t + i) * 0.0015 - me.lean * 0.004;
+      if (p[1] > 1) { p[1] = 0; p[0] = Math.random(); }
+      ctx.fillStyle = ["#ff3d7f", "#ffd23f", "#2bd9c5", "#8a4dff", "#38e05a"][i % 5]; ctx.fillRect(((p[0] % 1) + 1) % 1 * w, p[1] * h, 3, 3);
+    }
   } else if (kind === "bats") {
     // a few bats flapping across the top of the sky, and autumn leaves tumbling down
     for (let i = 0; i < 5; i++) {

@@ -8,13 +8,13 @@
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.14k";
+const APP_VERSION = "2026.10.14l";
 const WHATS_NEW = [
-  "<b>Coming up on Choose a Trail:</b> three new holiday trails switch on by themselves on their dates.",
-  "<b>Diwali (Nov 1–14):</b> a lit-up town at night, diyas, rangoli, marigold gates, firework spinners.",
-  "<b>Thanksgiving (Nov 15–30):</b> Harvest Hayride: red barns, maples, turkeys, hay ramps, a corn maze.",
-  "<b>Christmas (December):</b> North Pole Express: candy-cane gates, Santa's workshop, falling presents.",
-  "Still here now: <b>Halloween</b> (all October) and the <b>World Tour</b> (23 ★).",
+  "<b>A trail for every month of the year</b> is now built in. Each one switches on by itself.",
+  "<b>Jan</b> New Year fireworks · <b>Feb</b> Lunar New Year lanterns + dragon · <b>Mar</b> Holi colour blasts.",
+  "<b>Apr</b> egg-hunt jumps + bunnies · <b>May</b> tulips, windmills, rolling cheese · <b>Jun</b> Beach Bash.",
+  "<b>Jul</b> Fourth of July parade · <b>Aug</b> carnival roller-coaster · <b>Sep</b> autumn covered bridges.",
+  "Right now: <b>Halloween</b> (October), then Diwali, Thanksgiving and Christmas.",
 ];
 // ============================================
 

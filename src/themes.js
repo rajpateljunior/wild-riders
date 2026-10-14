@@ -34,9 +34,10 @@ function seasonActive(b, d) {
 function seasonDaysLeft(b) {
   const d = window.WR_DATE ? new Date(window.WR_DATE) : new Date();
   const z = b.season[1];
-  let end = new Date(d.getFullYear(), Math.floor(z / 100) - 1, z % 100);
+  const at = (y) => { const m = Math.floor(z / 100) - 1; return new Date(y, m, Math.min(z % 100, new Date(y, m + 1, 0).getDate())); };   // Feb 29 → Feb 28 in other years
+  let end = at(d.getFullYear());
   const day0 = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  if (end < day0) end = new Date(d.getFullYear() + 1, Math.floor(z / 100) - 1, z % 100);
+  if (end < day0) end = at(d.getFullYear() + 1);
   return Math.round((end - day0) / 864e5) + 1;
 }
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
@@ -273,5 +274,142 @@ addTheme({ id: "xmas", name: "Christmas", sub: "North Pole", group: "season", se
       { t: "S", n: 90, d: 6, z: "village" }, { t: "SW", dir: 1, k: 2, d: 14, z: "forest", f: "mtn" }, { t: "S", n: 90, d: 4, z: "lake", f: "lake" },
       { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 34, z: "canes" }, { t: "C", n: 120, d: 56, z: "forest", j: 1, jat: 0.2, jr: "skijump" }, { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "village" },
       { t: "S", n: 100, d: 6, z: "village", g: "candygate", ge: 30 },
+    ] },
+]);
+
+/* ======================= SEASONAL: JANUARY – SEPTEMBER ======================= */
+const S_NIGHT = { dark: 1, aurora: 0 };
+addTheme(Object.assign({ id: "newyear", name: "New Year", sub: "Midnight countdown", group: "season", season: [101, 131], item: "popper", unlock: 0,
+  sky: ["#040818", "#101c44", "#2a2a5a"], fog: "#1a2040", sun: "#f4f2ff", sunY: 0.12, sunX: 0.2, sunR: 0.03, darkK: 0.5,
+  road: ["#4a4a58", "#43434f"], rut: "#383844", edge: ["#ffd23f", "#ffffff"], ground: ["#eef4fa", "#e2eaf4"],
+  rock: ["#8c94a6", "#ffffff"], chasm: ["#2a3a5a", "#24324f"], water: ["#3a5a8a", "#4a6a9a"], bridgeOver: "water", plank: ["#7a5a3a", "#6b4f32"],
+  weather: "fireworks", music: 9, surf: "ice", bg: { far: ["#1e2c50", "#18243f"], near: "#dbe6f4", tree: "#2c4e44", snow: 1, extra: "skyline" } }, S_NIGHT), [
+  { id: "s01", name: "New Year Fireworks", seed: 9001, len: 3500, curvy: 0.9, hilly: 1.0, ramps: 6, splits: 2, pads: 9, haz: 0.7, bursts: { n: 8, kind: "fire" },
+    blurb: "A snowy town at midnight on New Year's Eve: fireworks overhead, sparkling streets, and a finish under the big clock tower.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "town", g: "nygate", ge: 999 }, { t: "T", dir: 1, c: 3, n: 170, d: 26, z: "town" }, { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "park" },
+      { t: "S", n: 90, d: 4, z: "river", f: "bridge" }, { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "town" }, { t: "X", n: 130, d: 44, z: "park" },
+      { t: "SW", dir: 1, k: 2, d: 14, z: "town", f: "mtn" }, { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 34, z: "town" }, { t: "C", n: 120, d: 56, z: "park" },
+      { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "town" }, { t: "S", n: 160, d: 6, z: "square", g: "nygate", ge: 60 },
+    ] },
+]);
+addTheme({ id: "lunar", name: "Lunar New Year", sub: "Lantern streets", group: "season", season: [201, 229], item: "firecracker", unlock: 0,
+  sky: ["#3a1a4a", "#c2443a", "#ffb36b"], fog: "#c8705a", sun: "#ffe8b0", sunY: 0.3, sunX: 0.7,
+  road: ["#5a4a48", "#524240"], rut: "#463836", edge: ["#c4362b", "#ffd23f"], ground: ["#7a5a4a", "#704f41"],
+  rock: ["#8a3a2a", "#c9a227"], chasm: ["#3a2028", "#331c23"], water: ["#3a5a7a", "#4a6a8a"], bridgeOver: "water", plank: ["#c4362b", "#b32f25"],
+  weather: null, music: 8, surf: null, bg: { far: ["#7a3040", "#6a2836"], near: "#5a2a2a", tree: null, extra: "pagodas" } }, [
+  { id: "s02", name: "Lantern Festival", seed: 9002, len: 3500, curvy: 0.9, hilly: 0.95, ramps: 6, splits: 2, pads: 9, haz: 0.75,
+    movers: [{ id: "dragon", n: 5, amp: 0.9, spd: 0.6 }], bursts: { n: 7, kind: "fire" },
+    blurb: "Red lantern streets at sunset for Lunar New Year: a dancing dragon weaving across the road, firecrackers and golden gateways.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "street", g: "paifang", ge: 999 }, { t: "T", dir: 1, c: 3, n: 170, d: 26, z: "street", g: "lanterns", ge: 10 }, { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "market" },
+      { t: "S", n: 90, d: 4, z: "garden", f: "bridge" }, { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "street", g: "lanterns", ge: 10 }, { t: "X", n: 130, d: 44, z: "garden" },
+      { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 34, z: "market" }, { t: "S", n: 100, d: 6, z: "street", g: "paifang", ge: 999 }, { t: "H", dir: -1, d: 6, z: "garden" },
+      { t: "C", n: 120, d: 56, z: "street", g: "lanterns", ge: 12 }, { t: "T", dir: 1, c: 3, n: 160, d: 24, z: "market" }, { t: "S", n: 100, d: 6, z: "street" },
+    ] },
+]);
+addTheme({ id: "holi", name: "Holi", sub: "Festival of Colours", group: "season", season: [301, 331], item: "colorballoon", unlock: 0,
+  sky: ["#4fa8f0", "#bfe2fa", "#fff1d0"], fog: "#f6dbe8", sun: "#fffbe8", sunY: 0.12, sunX: 0.3,
+  road: ["#b8906a", "#ad8660"], rut: "#9a7652", edge: ["#ff3d7f", "#ffd23f"], ground: ["#8fc45a", "#86b952"],
+  rock: ["#c98a55", "#ffd23f"], chasm: ["#4a6a3a", "#426034"], water: ["#4ab0d8", "#62c0e4"], bridgeOver: "water", plank: ["#8a6a4a", "#7a5c3e"],
+  weather: "colorpuffs", music: 3, surf: null, bg: { far: ["#d98aa8", "#c8789a"], near: "#e8b85a", tree: "#3f8a32" } }, [
+  { id: "s03", name: "Holi Color Rush", seed: 9003, len: 3500, curvy: 0.9, hilly: 0.95, ramps: 6, splits: 2, pads: 9, haz: 0.75, bursts: { n: 12, kind: "color" },
+    blurb: "Holi in the streets: clouds of coloured powder burst up from the road, dhol drums, colour stalls, and everyone gets painted.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "street" }, { t: "T", dir: 1, c: 3, n: 170, d: 26, z: "street" }, { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "bazaar", f: "canyon", ws: "lights" },
+      { t: "S", n: 120, d: 6, z: "square" }, { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "park" }, { t: "X", n: 130, d: 44, z: "street" },
+      { t: "S", n: 80, d: 2, z: "ghat", f: "bridge" }, { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 34, z: "bazaar" }, { t: "H", dir: -1, d: 6, z: "park" },
+      { t: "C", n: 120, d: 56, z: "street" }, { t: "T", dir: 1, c: 3, n: 160, d: 24, z: "square" }, { t: "S", n: 100, d: 6, z: "square" },
+    ] },
+]);
+addTheme({ id: "easter", name: "Spring", sub: "Egg hunt", group: "season", season: [401, 430], item: "egg", unlock: 0,
+  sky: ["#7ac4f2", "#d6eefa", "#fff6e0"], fog: "#e8f2e0", sun: "#fffbe8", sunY: 0.14, sunX: 0.7,
+  road: ["#c9a882", "#bf9e78"], rut: "#a8886a", edge: ["#ff9ec8", "#fff6c2"], ground: ["#8fd46a", "#86c962"],
+  rock: ["#a8a8b8", "#8fd46a"], chasm: ["#4f8a4a", "#477f43"], water: ["#7ac4f2", "#8fd0f6"], bridgeOver: "water", plank: ["#c98a55", "#b87a48"],
+  weather: "petals", music: 9, surf: null, bg: { far: ["#a8d8b0", "#90c89a"], near: "#7ac45a", tree: "#4f9b3c" } }, [
+  { id: "s04", name: "Spring Egg Hunt", seed: 9004, len: 3500, curvy: 0.85, hilly: 1.0, ramps: 4, splits: 2, pads: 8, haz: 0.65,
+    movers: [{ id: "bunny", n: 8, amp: 1.0, spd: 0.9 }],
+    blurb: "Pastel spring meadows: jump off giant painted eggs, dodge hopping bunnies, and hunt for the golden egg crates.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "meadow" }, { t: "T", dir: 1, c: 3, n: 170, d: 26, z: "meadow", j: 1, jat: 0.5, jr: "eggramp" }, { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "garden" },
+      { t: "S", n: 80, d: 2, z: "pond", f: "bridge" }, { t: "X", n: 130, d: 40, z: "meadow", j: 1, jat: 0.15, jr: "eggramp" }, { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "eggs" },
+      { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 30, z: "garden" }, { t: "S", n: 140, d: 6, z: "eggs", j: 1, jat: 0.4, jr: "eggramp" }, { t: "C", n: 120, d: 50, z: "meadow" },
+      { t: "T", dir: 1, c: 3, n: 160, d: 24, z: "eggs" }, { t: "S", n: 100, d: 6, z: "garden" },
+    ] },
+]);
+addTheme({ id: "tulips", name: "Tulip Festival", sub: "Windmills & canals", group: "season", season: [501, 531], item: "tulipbulb", unlock: 0,
+  sky: ["#5aa6e6", "#c9e2f5", "#f4f8ff"], fog: "#dde9f0", sun: "#fffbe8", sunY: 0.14, sunX: 0.3,
+  road: ["#b06a4a", "#a56044"], rut: "#8a5038", edge: ["#6b4423", "#f2ead8"], ground: ["#6fb84a", "#66ad43"],
+  rock: ["#8c94a6", "#6fb84a"], chasm: ["#3a6a8a", "#335f7f"], water: ["#3a8ad0", "#4a9ae0"], bridgeOver: "water", plank: ["#f2ead8", "#e6ddc8"],
+  weather: null, music: 9, surf: null, bg: { far: ["#9ab8d0", "#86a6c0"], near: "#5fa840", tree: null, extra: "windmills", amp: 30, jag: 0 } }, [
+  { id: "s05", name: "Tulip Canal Run", seed: 9005, len: 3500, curvy: 0.85, hilly: 0.8, ramps: 6, splits: 2, pads: 9, haz: 0.65,
+    movers: [{ id: "cheese", n: 7, amp: 1.0, spd: 1.0 }],
+    blurb: "Flat-out through stripes of tulips: windmills, canal bridges, gabled houses and runaway cheese wheels rolling across the road.",
+    plan: [
+      { t: "S", n: 100, d: 4, z: "tulips" }, { t: "T", dir: 1, c: 2.5, n: 170, d: 20, z: "tulips" }, { t: "S", n: 80, d: 2, z: "canal", f: "bridge" },
+      { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 24, z: "town" }, { t: "S", n: 120, d: 6, z: "mills", f: "waterL" }, { t: "T", dir: -1, c: 3, n: 160, d: 20, z: "tulips" },
+      { t: "S", n: 80, d: 2, z: "canal", f: "bridge" }, { t: "X", n: 130, d: 36, z: "tulips" }, { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 28, z: "town" },
+      { t: "S", n: 120, d: 6, z: "mills", f: "waterR" }, { t: "T", dir: 1, c: 3, n: 160, d: 20, z: "tulips" }, { t: "S", n: 80, d: 2, z: "canal", f: "bridge" },
+      { t: "S", n: 100, d: 6, z: "town" },
+    ] },
+]);
+addTheme({ id: "beach", name: "Summer", sub: "Beach bash", group: "season", season: [601, 630], item: "beachball", unlock: 0,
+  sky: ["#2f9ae8", "#9ed8f6", "#fff4d0"], fog: "#e6f2f0", sun: "#ffffff", sunY: 0.1, sunX: 0.7,
+  road: ["#c9a06a", "#bf9660"], rut: "#a8865a", edge: ["#ff8a1c", "#fff6e0"], ground: ["#f2d79a", "#ebcf90"],
+  rock: ["#c9a882", "#f2d79a"], chasm: ["#1f8ad0", "#1c80c2"], water: ["#1f9ae0", "#3ab0ee"], bridgeOver: "water", plank: ["#c98a55", "#b87a48"],
+  weather: null, music: 14, surf: "sand", bg: { far: ["#2b9cff", "#1f8ae6"], near: "#f2d79a", tree: null, extra: "ocean", amp: 20, jag: 0 } }, [
+  { id: "s06", name: "Beach Bash", seed: 9006, len: 3500, curvy: 0.85, hilly: 0.85, ramps: 7, splits: 2, pads: 9, haz: 0.7,
+    movers: [{ id: "beachball", n: 8, amp: 1.0, spd: 1.1 }], obs: ["sandcastle", "surfboard"],
+    blurb: "Sun, sand and a boardwalk by the waves: smash through sandcastles, dodge bouncing beach balls, and jump the lifeguard dunes.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "beach", f: "waterR" }, { t: "T", dir: 1, c: 3, n: 170, d: 20, z: "beach", f: "waterR" }, { t: "S", n: 140, d: 4, z: "boardwalk", f: "bridge", rs: "rope" },
+      { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 26, z: "dunes" }, { t: "X", n: 130, d: 36, z: "beach", j: 1, jat: 0.15, jr: "sandramp" }, { t: "T", dir: -1, c: 3, n: 160, d: 20, z: "beach", f: "waterL" },
+      { t: "S", n: 120, d: 4, z: "boardwalk", f: "bridge", rs: "rope" }, { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 28, z: "dunes" }, { t: "C", n: 110, d: 44, z: "beach", f: "waterR" },
+      { t: "T", dir: 1, c: 3, n: 160, d: 20, z: "beach", f: "waterR" }, { t: "S", n: 100, d: 6, z: "beach" },
+    ] },
+]);
+addTheme(Object.assign({ id: "july4", name: "Fourth of July", sub: "Parade night", group: "season", season: [701, 731], item: "sparkler", unlock: 0,
+  sky: ["#06102a", "#1a2a5a", "#3a3a6a"], fog: "#1c2448", sun: "#f4f2ff", sunY: 0.12, sunX: 0.75, sunR: 0.03, darkK: 0.5,
+  road: ["#4a4a52", "#43434b"], rut: "#38383f", edge: ["#e2433b", "#ffffff"], ground: ["#3f6a3a", "#386034"],
+  rock: ["#8a7a6a", "#3f6a3a"], chasm: ["#1a2a3a", "#162433"], water: ["#2a4a7a", "#344f80"], bridgeOver: "water", plank: ["#8a6a4a", "#7a5c3e"],
+  weather: "fireworks", music: 0, surf: null, bg: { far: ["#1a2a4a", "#14223d"], near: "#2a4a30", tree: "#1f3a24" } }, S_NIGHT), [
+  { id: "s07", name: "Fireworks Parade", seed: 9007, len: 3500, curvy: 0.85, hilly: 0.9, ramps: 6, splits: 2, pads: 9, haz: 0.7, bursts: { n: 9, kind: "fire" },
+    movers: [{ id: "float", n: 4, amp: 0.7, spd: 0.25 }],
+    blurb: "A small-town parade route on the Fourth of July: fireworks overhead, star-spangled banners, slow parade floats and sparklers on the road.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "main", g: "starbanner", ge: 999 }, { t: "T", dir: 1, c: 3, n: 170, d: 26, z: "main" }, { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "park" },
+      { t: "S", n: 120, d: 6, z: "main", g: "starbanner", ge: 40 }, { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "lake", f: "waterL" }, { t: "S", n: 80, d: 2, z: "lake", f: "bridge" },
+      { t: "X", n: 130, d: 44, z: "park" }, { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 34, z: "main" }, { t: "C", n: 120, d: 56, z: "park" },
+      { t: "T", dir: 1, c: 3, n: 160, d: 24, z: "main" }, { t: "S", n: 120, d: 6, z: "main", g: "starbanner", ge: 50 },
+    ] },
+]);
+addTheme({ id: "carnival", name: "Carnival", sub: "Summer fair", group: "season", season: [801, 831], item: "cottoncandy", unlock: 0,
+  sky: ["#4a8ae0", "#f2b0c8", "#ffe0b0"], fog: "#f0c8c8", sun: "#fff4d8", sunY: 0.26, sunX: 0.3,
+  road: ["#8a7a6a", "#80705f"], rut: "#6e6052", edge: ["#ff3d7f", "#ffffff"], ground: ["#6aaa4a", "#619f43"],
+  rock: ["#8a7a6a", "#6aaa4a"], chasm: ["#4a6a3a", "#426034"], water: ["#4a9ad8", "#5aaae6"], bridgeOver: "chasm", plank: ["#e2433b", "#d63b33"],
+  weather: null, music: 13, surf: null, bg: { far: ["#c87aa0", "#b86a90"], near: "#5a9a40", tree: "#3f7a32", extra: "fairground" } }, [
+  { id: "s08", name: "Carnival Coaster", seed: 9008, len: 3500, curvy: 0.9, hilly: 1.15, ramps: 6, splits: 1, pads: 10, haz: 0.7,
+    movers: [{ id: "balloons", n: 7, amp: 0.9, spd: 0.7 }],
+    blurb: "A summer fair at sunset: past the Ferris wheel and game booths, drifting balloons, and a wild stretch riding on the roller-coaster track.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "midway" }, { t: "T", dir: 1, c: 3, n: 170, d: 26, z: "midway" }, { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "tents" },
+      { t: "X", n: 130, d: 50, f: "ridge", rs: "coaster" }, { t: "T", dir: -1, c: 4, n: 160, d: 34, f: "ridge", rs: "coaster" }, { t: "X", n: 130, d: 56, f: "ridge", rs: "coaster" },
+      { t: "C", n: 120, d: 60, f: "ridge", rs: "coaster" }, { t: "S", n: 100, d: 6, z: "midway" }, { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 34, z: "tents" },
+      { t: "T", dir: 1, c: 3, n: 160, d: 24, z: "midway" }, { t: "S", n: 100, d: 6, z: "midway" },
+    ] },
+]);
+addTheme({ id: "autumn", name: "Autumn", sub: "Falling leaves", group: "season", season: [901, 930], item: "acorn", unlock: 0,
+  sky: ["#5aa0d8", "#c9dcea", "#ffe2b8"], fog: "#e8d0b0", sun: "#fff2cc", sunY: 0.2, sunX: 0.7,
+  road: ["#8a6a4a", "#80603f"], rut: "#6e5236", edge: ["#5a3a22", "#f2dcae"], ground: ["#a8862e", "#9e7c28"],
+  rock: ["#7d7f74", "#c9761c"], chasm: ["#4a5a3a", "#425034"], water: ["#4a8ab8", "#5a9ac8"], bridgeOver: "water", plank: ["#9a4a2a", "#8a3f24"],
+  weather: "leaves", music: 12, surf: "mud", bg: { far: ["#c9863e", "#b8762e"], near: "#a8562c", tree: "#c4562b" } }, [
+  { id: "s09", name: "Autumn Leaf Rush", seed: 9009, len: 3500, curvy: 0.9, hilly: 1.05, ramps: 6, splits: 2, pads: 8, haz: 0.7,
+    movers: [{ id: "squirrel", n: 8, amp: 1.0, spd: 1.0 }], fallers: [{ id: "branch", n: 5 }],
+    blurb: "Through a red-and-gold forest in full autumn colour: covered wooden bridges, squirrels darting across, and falling branches.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "maples" }, { t: "T", dir: 1, c: 3, n: 170, d: 26, z: "maples" }, { t: "S", n: 90, d: 2, z: "creek", f: "bridge", g: "coveredbridge", ge: 4 },
+      { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "gold" }, { t: "X", n: 130, d: 44, z: "maples" }, { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "farm" },
+      { t: "S", n: 90, d: 2, z: "creek", f: "bridge", g: "coveredbridge", ge: 4 }, { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 34, z: "gold" }, { t: "SW", dir: -1, k: 2, d: 14, z: "maples", f: "mtn" },
+      { t: "C", n: 120, d: 56, z: "gold" }, { t: "T", dir: 1, c: 3, n: 160, d: 24, z: "maples" }, { t: "S", n: 100, d: 6, z: "farm" },
     ] },
 ]);

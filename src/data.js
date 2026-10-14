@@ -74,6 +74,15 @@ const ITEMS = {
   laddoo:    { name: "Laddoo Bomb",   dmg: 14, spd: 5400, slow: 0.76, col: "#ffb13b" },
   pie:       { name: "Pumpkin Pie",   dmg: 13, spd: 5400, slow: 0.72, col: "#e8862f", blind: 1 },
   giftbox:   { name: "Gift Bomb",     dmg: 15, spd: 5500, slow: 0.75, col: "#e2433b" },
+  popper:    { name: "Party Popper",  dmg: 12, spd: 5800, slow: 0.76, col: "#ffd23f", blind: 1 },
+  firecracker:{ name: "Firecracker",  dmg: 15, spd: 5600, slow: 0.74, col: "#e2433b", burn: 1 },
+  colorballoon:{ name: "Colour Balloon", dmg: 10, spd: 5600, slow: 0.78, col: "#ff3d7f", blind: 1 },
+  egg:       { name: "Egg Bomb",      dmg: 12, spd: 5500, slow: 0.76, col: "#ffd23f", blind: 1 },
+  tulipbulb: { name: "Tulip Bulb",    dmg: 13, spd: 5500, slow: 0.76, col: "#ff3d7f" },
+  beachball: { name: "Beach Ball",    dmg: 11, spd: 5800, slow: 0.72, col: "#2b9cff" },
+  sparkler:  { name: "Sparkler Bomb", dmg: 14, spd: 5700, slow: 0.76, col: "#ffd23f", burn: 1 },
+  cottoncandy:{ name: "Cotton Candy", dmg: 10, spd: 5500, slow: 0.7,  col: "#ff9ec8", blind: 1 },
+  acorn:     { name: "Acorn",         dmg: 12, spd: 5700, slow: 0.78, col: "#8a5a3a" },
   // utility items (from ? crates; PUNCH or swipe down uses them): shield blocks the next hit (15 s), mine is dropped behind you
   bubble:    { name: "Shield",        dmg: 0,  spd: 0,    slow: 1,    col: "#2bd9c5", util: "shield" },
   mine:      { name: "Mine",          dmg: 18, spd: 0,    slow: 0.5,  col: "#ff5a5a", util: "mine" },
@@ -179,7 +188,7 @@ const TRACKS = [
       { t: "C", n: 140, d: 60, z: "dunes" }, { t: "S", n: 200, d: 14, z: "dunes" },
     ] },
   // Glacier Peak -----------------------------------------------------------------------------------------------------
-  { id: "g1", biome: 2, name: "Frostbite Run", seed: 3301, len: 3600, curvy: 0.85, hilly: 1.1, ramps: 7, splits: 2, pads: 8, haz: 0.8, grip: 0.8, surfN: 1.3,
+  { id: "g1", biome: 2, name: "Frostbite Run", seed: 3301, len: 3950, curvy: 0.85, hilly: 1.1, ramps: 7, splits: 2, pads: 8, haz: 0.8, grip: 0.8, surfN: 1.3,
     blurb: "Ski-resort slalom on low-grip snow, black ice you can barely see, and a glowing blue ice cave.",
     look: { surf: "blackice" },
     plan: [
