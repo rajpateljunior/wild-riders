@@ -31,8 +31,8 @@ const check = (name, cond, msg) => { if (!cond) { fails++; console.log('FAIL', n
     check(name, s.rl === 2, 'rl ' + s.rl);
     for (const k of keepKeys) {
       let want = old[k];
-      if (k === 'tl') want = 2;
-      if (k === 'best' && (old.tl || 1) < 2) want = {};                     // the older track-layout migration (already shipped) clears these
+      if (k === 'tl') want = 3;
+      if (k === 'best' && (old.tl || 1) < 3) want = {};                     // the track-layout migrations (gen 2 and the 2026-10-14 gen 3 rework) clear these
       if (k === 'settings') want = Object.assign({}, want, { tone: 'arcade' });
       check(name, JSON.stringify(s[k]) === JSON.stringify(want), `${k} changed: ${JSON.stringify(s[k])} vs ${JSON.stringify(want)}`);
     }

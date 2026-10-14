@@ -560,119 +560,142 @@ const BIOMES = [
         lake (frozen lake both sides), ford (river across the trail)
    `look` tints the sky for the second trail of a biome (time of day). */
 const TRACKS = [
-  { id: "f1", biome: 0, name: "Fernline Descent", seed: 1101, len: 3300, curvy: 0.8, hilly: 0.8, ramps: 5, splits: 2, pads: 7, haz: 0.6,
-    blurb: "Flowing forest bends, a sunny meadow and a wooden bridge over the river.",
+  // Redwood Run ------------------------------------------------------------------------------------------------------
+  { id: "f1", biome: 0, name: "Fernline Descent", seed: 1101, len: 3300, curvy: 0.8, hilly: 0.8, ramps: 5, splits: 2, pads: 7, haz: 0.6, wide: 1.15,
+    movers: [{ id: "rlog", n: 7, amp: 0.95, spd: 0.95 }],
+    blurb: "Wide, sunny and fast: ride through hollow giant redwoods, dodge rolling logs, cross the river bridge.",
+    look: { sky: ["#5fb9f0", "#cdeedb", "#fff1b8"], fog: "#c6e6d0", sun: "#fff6cc", sunY: 0.16, sunX: 0.7 },
     plan: [
-      { t: "S", n: 80, d: 4, z: "deep" }, { t: "T", dir: 1, c: 3, n: 180, d: 30, z: "deep" }, { t: "T", dir: -1, c: 3.5, n: 160, d: 28, z: "deep" },
+      { t: "S", n: 80, d: 4, z: "deep" }, { t: "T", dir: 1, c: 3, n: 180, d: 30, z: "giants" }, { t: "T", dir: -1, c: 3.5, n: 160, d: 28, f: "tunnel", ts: "redwood" },
       { t: "S", n: 90, d: 10, z: "meadow" }, { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "meadow" }, { t: "T", dir: 1, c: 2.5, n: 130, d: 14, z: "river", f: "waterL" },
-      { t: "S", n: 70, d: 2, z: "river", f: "bridge" }, { t: "T", dir: -1, c: 4.5, n: 150, d: 34, z: "deep" }, { t: "X", n: 130, d: 40, z: "deep" },
+      { t: "S", n: 70, d: 2, z: "river", f: "bridge" }, { t: "T", dir: -1, c: 4.5, n: 150, d: 34, z: "giants" }, { t: "X", n: 130, d: 40, z: "deep" },
       { t: "T", dir: 1, c: 5, n: 130, d: 26, z: "camp" }, { t: "S", n: 90, d: 8, z: "camp" }, { t: "H", dir: -1, d: 6, z: "deep" },
-      { t: "C", n: 120, d: 60, z: "deep" }, { t: "T", dir: 1, c: 3, n: 170, d: 34, z: "meadow" }, { t: "E", dir: -1, k: 2, c: 3.5, n: 150, d: 24, z: "deep" },
-      { t: "T", dir: -1, c: 2, n: 150, d: 20, z: "river", f: "waterR" }, { t: "S", n: 100, d: 10, z: "deep" },
+      { t: "C", n: 120, d: 60, z: "giants" }, { t: "T", dir: 1, c: 3, n: 170, d: 34, f: "tunnel", ts: "redwood" }, { t: "E", dir: -1, k: 2, c: 3.5, n: 150, d: 24, z: "deep" },
+      { t: "T", dir: -1, c: 2, n: 150, d: 20, z: "river", f: "waterR" }, { t: "S", n: 100, d: 10, z: "meadow" },
     ] },
-  { id: "f2", biome: 0, name: "Giant's Staircase", seed: 1102, len: 3700, curvy: 0.9, hilly: 1.1, ramps: 7, splits: 2, pads: 8, haz: 0.85,
-    blurb: "Switchbacks down a cliff face, rock tunnels and a logging camp. Golden hour.",
-    look: { sky: ["#e98a4f", "#f6c08a", "#ffe6b0"], fog: "#e7c29a", sun: "#fff0c0", sunY: 0.3, sunX: 0.22 },
+  { id: "f2", biome: 0, name: "Giant's Staircase", seed: 1102, len: 3700, curvy: 0.9, hilly: 1.1, ramps: 6, splits: 1, pads: 8, haz: 0.85, wide: 0.85,
+    fallers: [{ id: "branch", n: 8 }],
+    blurb: "Foggy cliff ledges, a swaying rope bridge over the gorge, falling branches and a waterfall jump to finish.",
+    look: { sky: ["#8f9c9e", "#bfc9c8", "#dde3df"], fog: "#cdd6d3", sun: "#f4f6f0", sunY: 0.22, sunX: 0.3, weather: "fog", fogK: 2.5 },
     plan: [
-      { t: "S", n: 60, d: 6, z: "deep" }, { t: "T", dir: -1, c: 3, n: 140, d: 34, z: "deep", f: "mtn" }, { t: "SW", dir: 1, k: 3, d: 14, z: "deep", f: "mtn" },
-      { t: "ST", k: 4, d: 16, z: "camp" }, { t: "T", dir: 1, c: 4, n: 120, d: 30, f: "tunnel" }, { t: "C", n: 110, d: 64, z: "deep" },
-      { t: "SW", dir: -1, k: 2, d: 14, z: "deep", f: "mtn" }, { t: "T", dir: -1, c: 3, n: 140, d: 24, z: "camp" }, { t: "ST", k: 3, d: 18, z: "deep" },
-      { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 40, z: "deep" }, { t: "H", dir: 1, d: 8, z: "deep", f: "mtn" }, { t: "X", n: 120, d: 50, z: "meadow" },
-      { t: "T", dir: -1, c: 5, n: 130, d: 30, f: "tunnel" }, { t: "S", n: 80, d: 12, z: "meadow" }, { t: "SW", dir: 1, k: 2, d: 16, z: "deep", f: "mtn" },
-      { t: "C", n: 120, d: 70, z: "deep" }, { t: "S", n: 80, d: 8, z: "meadow" },
+      { t: "S", n: 60, d: 6, z: "fog" }, { t: "T", dir: -1, c: 3, n: 140, d: 34, z: "fog", f: "mtn" }, { t: "SW", dir: 1, k: 3, d: 14, z: "fog", f: "mtn" },
+      { t: "ST", k: 4, d: 16, z: "camp" }, { t: "T", dir: 1, c: 4, n: 120, d: 30, f: "tunnel" }, { t: "S", n: 100, d: 4, f: "bridge", rs: "rope" },
+      { t: "C", n: 110, d: 64, z: "fog" }, { t: "SW", dir: -1, k: 2, d: 14, z: "fog", f: "mtn" }, { t: "T", dir: -1, c: 3, n: 140, d: 24, z: "camp" },
+      { t: "ST", k: 3, d: 18, z: "deep" }, { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 40, z: "fog" }, { t: "S", n: 100, d: 4, f: "bridge", rs: "rope" },
+      { t: "H", dir: 1, d: 8, z: "fog", f: "mtn" }, { t: "X", n: 120, d: 50, z: "meadow" }, { t: "T", dir: -1, c: 5, n: 130, d: 30, f: "tunnel" },
+      { t: "SW", dir: 1, k: 2, d: 16, z: "fog", f: "mtn" }, { t: "S", n: 60, d: 4, z: "falls", f: "waterL" }, { t: "C", n: 130, d: 72, z: "falls", j: 1, jat: 0.15, jr: "stoneramp" },
+      { t: "S", n: 80, d: 8, z: "river", f: "waterR" },
     ] },
-  { id: "d1", biome: 1, name: "Mesa Drop", seed: 2201, len: 3500, curvy: 0.75, hilly: 1.0, ramps: 6, splits: 2, pads: 8, haz: 0.7,
-    blurb: "Winding red-rock canyons, an adobe village and a plunge off the mesa edge.",
+  // Saffron Dunes ----------------------------------------------------------------------------------------------------
+  { id: "d1", biome: 1, name: "Fortress Drop", seed: 2201, len: 3500, curvy: 0.75, hilly: 1.0, ramps: 5, splits: 2, pads: 8, haz: 0.7,
+    movers: [{ id: "camel", n: 6, amp: 0.85, spd: 0.32 }], obs: ["cart", "pots", "boulder"],
+    blurb: "A desert fort town: drop off the fort walls, race narrow stone alleys and stairs, dodge camels in the market.",
+    look: { sky: ["#3f8fd0", "#a8d6ee", "#ffe6b0"], ground: ["#e3ad6a", "#d9a25e"] },
     plan: [
-      { t: "S", n: 90, d: 4, z: "open" }, { t: "T", dir: 1, c: 2, n: 200, d: 20, z: "open" }, { t: "E", dir: -1, k: 4, c: 4.5, n: 260, d: 36, f: "canyon" },
-      { t: "S", n: 100, d: 6, z: "pueblo" }, { t: "T", dir: -1, c: 3, n: 150, d: 20, z: "pueblo" }, { t: "X", n: 150, d: 60, z: "open" },
-      { t: "C", n: 130, d: 74, z: "open", f: "cliffR" }, { t: "T", dir: 1, c: 3.5, n: 160, d: 30, z: "open" }, { t: "E", dir: 1, k: 3, c: 5, n: 200, d: 30, f: "canyon" },
-      { t: "S", n: 120, d: 10, z: "oasis", f: "waterR" }, { t: "T", dir: -1, c: 2.5, n: 160, d: 20, z: "oasis" }, { t: "H", dir: 1, d: 6, f: "canyon" },
-      { t: "S", n: 160, d: 12, z: "open" }, { t: "T", dir: -1, c: 4, n: 150, d: 34, z: "open" }, { t: "S", n: 100, d: 8, z: "pueblo" },
+      { t: "S", n: 80, d: 4, z: "fort", g: "fortgate", ge: 999 }, { t: "T", dir: 1, c: 2, n: 160, d: 16, z: "fort" }, { t: "ST", k: 3, d: 14, z: "fort" },
+      { t: "E", dir: -1, k: 4, c: 4.5, n: 240, d: 30, z: "market", f: "canyon", ws: "fort" }, { t: "S", n: 100, d: 6, z: "market" }, { t: "T", dir: -1, c: 3, n: 150, d: 20, z: "market" },
+      { t: "X", n: 140, d: 60, z: "fort", j: 1, jat: 0.12, jr: "stoneramp" }, { t: "C", n: 130, d: 74, z: "open", f: "cliffR" }, { t: "T", dir: 1, c: 3.5, n: 160, d: 30, z: "open" },
+      { t: "E", dir: 1, k: 3, c: 5, n: 200, d: 30, z: "market", f: "canyon", ws: "fort" }, { t: "S", n: 120, d: 10, z: "oasis", f: "waterR" }, { t: "H", dir: 1, d: 6, z: "fort", f: "canyon", ws: "fort" },
+      { t: "S", n: 160, d: 12, z: "market", g: "fortgate", ge: 999 }, { t: "T", dir: -1, c: 4, n: 150, d: 34, z: "open" }, { t: "S", n: 100, d: 8, z: "fort" },
     ] },
-  { id: "d2", biome: 1, name: "Sandstorm Alley", seed: 2202, len: 3800, curvy: 0.9, hilly: 0.9, ramps: 6, splits: 3, pads: 9, haz: 0.9, storm: 1,
-    blurb: "Flat-out desert straights cut by hairpins and a dark slot canyon. Hazy sunset.",
+  { id: "d2", biome: 1, name: "Sandstorm Alley", seed: 2202, len: 3800, curvy: 0.85, hilly: 1.25, ramps: 6, splits: 2, pads: 9, haz: 0.9, storm: 1, wide: 1.2, deep: 1, surfN: 1.6,
+    blurb: "Giant rolling dunes with huge crest launches, deep sand off the trail, sandstorms and a dark slot canyon.",
     look: { sky: ["#c9653a", "#ee9f62", "#ffd49a"], fog: "#f0bb85", sun: "#fff3d0", sunY: 0.26, sunX: 0.7 },
     plan: [
-      { t: "S", n: 200, d: 14, z: "open" }, { t: "H", dir: -1, d: 6, f: "canyon" }, { t: "S", n: 240, d: 20, z: "open" }, { t: "H", dir: 1, d: 6, f: "canyon" },
-      { t: "S", n: 160, d: 12, z: "oasis", f: "waterL" }, { t: "T", dir: 1, c: 3, n: 140, d: 20, z: "oasis" }, { t: "S", n: 220, d: 22, z: "open" },
-      { t: "T", dir: -1, c: 4, n: 120, d: 20, f: "tunnel" }, { t: "S", n: 200, d: 18, z: "open" }, { t: "SW", dir: -1, k: 2, d: 10, f: "canyon" },
-      { t: "S", n: 240, d: 24, z: "pueblo" }, { t: "H", dir: 1, d: 6, f: "canyon" }, { t: "C", n: 140, d: 60, z: "open" }, { t: "S", n: 200, d: 14, z: "open" },
+      { t: "S", n: 160, d: 14, z: "dunes" }, { t: "X", n: 160, d: 30, z: "dunes" }, { t: "H", dir: -1, d: 6, f: "canyon" },
+      { t: "X", n: 200, d: 40, z: "dunes", j: 1, jat: 0.18, jr: "sandramp" }, { t: "S", n: 160, d: 12, z: "oasis", f: "waterL" }, { t: "T", dir: 1, c: 3, n: 140, d: 20, z: "oasis" },
+      { t: "X", n: 200, d: 40, z: "dunes" }, { t: "T", dir: -1, c: 4, n: 120, d: 20, f: "tunnel" }, { t: "X", n: 180, d: 30, z: "dunes", j: 1, jat: 0.18, jr: "sandramp" },
+      { t: "SW", dir: -1, k: 2, d: 10, f: "canyon" }, { t: "X", n: 220, d: 40, z: "dunes" }, { t: "H", dir: 1, d: 6, f: "canyon" },
+      { t: "C", n: 140, d: 60, z: "dunes" }, { t: "S", n: 200, d: 14, z: "dunes" },
     ] },
-  { id: "g1", biome: 2, name: "Frostbite Run", seed: 3301, len: 3600, curvy: 0.85, hilly: 1.1, ramps: 7, splits: 2, pads: 8, haz: 0.8,
-    blurb: "Ski-resort slalom past the lodges, an ice tunnel and a bridge over a crevasse.",
+  // Glacier Peak -----------------------------------------------------------------------------------------------------
+  { id: "g1", biome: 2, name: "Frostbite Run", seed: 3301, len: 3600, curvy: 0.85, hilly: 1.1, ramps: 7, splits: 2, pads: 8, haz: 0.8, grip: 0.8, surfN: 1.3,
+    blurb: "Ski-resort slalom on low-grip snow, black ice you can barely see, and a glowing blue ice cave.",
+    look: { surf: "blackice" },
     plan: [
       { t: "S", n: 80, d: 6, z: "resort" }, { t: "E", dir: 1, k: 4, c: 3.5, n: 260, d: 40, z: "resort" }, { t: "S", n: 100, d: 10, z: "resort" },
-      { t: "T", dir: -1, c: 3, n: 160, d: 30, z: "bowl" }, { t: "X", n: 120, d: 40, z: "bowl" }, { t: "T", dir: 1, c: 4.5, n: 150, d: 30, f: "tunnel" },
+      { t: "T", dir: -1, c: 3, n: 160, d: 30, z: "bowl" }, { t: "X", n: 120, d: 40, z: "bowl" }, { t: "T", dir: 1, c: 4.5, n: 170, d: 30, f: "tunnel", ts: "icecave" },
       { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 34, z: "icefall" }, { t: "S", n: 110, d: 14, z: "resort" }, { t: "H", dir: 1, d: 6, z: "icefall", f: "mtn" },
       { t: "C", n: 140, d: 70, z: "bowl" }, { t: "S", n: 80, d: 6, z: "icefall", f: "bridge" }, { t: "T", dir: -1, c: 3, n: 150, d: 24, z: "resort" },
       { t: "E", dir: 1, k: 3, c: 3.5, n: 200, d: 30, z: "resort" }, { t: "S", n: 120, d: 10, z: "resort" },
     ] },
-  { id: "g2", biome: 2, name: "Avalanche!", seed: 3302, len: 3900, curvy: 0.75, hilly: 1.3, ramps: 8, splits: 2, pads: 10, haz: 0.9, avalanche: 1,
-    blurb: "Steep chutes, cliff ledges and an avalanche shed, with the mountain right behind you. Grey storm sky.",
+  { id: "g2", biome: 2, name: "Avalanche!", seed: 3302, len: 3900, curvy: 0.75, hilly: 1.5, ramps: 6, splits: 2, pads: 10, haz: 0.9, avalanche: 1,
+    movers: [{ id: "snowroll", n: 6, amp: 1.0, spd: 0.8 }],
+    blurb: "Steeper than ever: crevasse jumps, rolling snowballs, and the mountain itself right behind you.",
     look: { sky: ["#7489a8", "#bccadc", "#eef3fa"], fog: "#dfe7f2", sun: "#f4f7ff", sunY: 0.14, sunX: 0.4 },
     plan: [
       { t: "S", n: 60, d: 10, z: "bowl" }, { t: "C", n: 160, d: 90, z: "bowl" }, { t: "T", dir: -1, c: 3, n: 150, d: 50, z: "icefall", f: "mtn" },
-      { t: "C", n: 140, d: 84, z: "bowl" }, { t: "T", dir: 1, c: 4, n: 140, d: 40, f: "tunnel" }, { t: "C", n: 150, d: 90, z: "bowl" },
+      { t: "C", n: 180, d: 84, z: "crevasse", gap: 2 }, { t: "T", dir: 1, c: 4, n: 140, d: 40, f: "tunnel" }, { t: "C", n: 150, d: 90, z: "bowl" },
       { t: "S", n: 80, d: 20, z: "icefall", f: "bridge" }, { t: "T", dir: -1, c: 4.5, n: 140, d: 50, z: "icefall", f: "mtn" }, { t: "X", n: 140, d: 70, z: "bowl" },
-      { t: "E", dir: 1, k: 3, c: 4, n: 210, d: 70, z: "icefall" }, { t: "C", n: 160, d: 96, z: "bowl" }, { t: "T", dir: 1, c: 3, n: 150, d: 50, z: "icefall", f: "mtn" },
+      { t: "E", dir: 1, k: 3, c: 4, n: 210, d: 70, z: "icefall" }, { t: "C", n: 180, d: 96, z: "crevasse", gap: 2 }, { t: "T", dir: 1, c: 3, n: 150, d: 50, z: "icefall", f: "mtn" },
       { t: "S", n: 100, d: 20, z: "resort" },
     ] },
-  { id: "m1", biome: 3, name: "Tea Terrace Twist", seed: 4401, len: 3700, curvy: 1.0, hilly: 1.0, ramps: 6, splits: 2, pads: 8, haz: 0.85,
-    blurb: "Non-stop S-bends through tea terraces, a festival village and two river fords.",
+  // Monsoon Ghats ----------------------------------------------------------------------------------------------------
+  { id: "m1", biome: 3, name: "Tea Terrace Twist", seed: 4401, len: 3700, curvy: 1.0, hilly: 1.0, ramps: 6, splits: 2, pads: 8, haz: 0.85, surfN: 1.4,
+    blurb: "Heavy rain on the tea terraces: non-stop S-bends, splashing puddles, river fords and a jump down the terrace steps.",
+    look: { surf: "water", rainK: 1.7, sky: ["#4f6c78", "#8aa6a2", "#c9d8c4"], fog: "#9ab5a6" },
     plan: [
       { t: "S", n: 70, d: 6, z: "terrace" }, { t: "E", dir: -1, k: 5, c: 4, n: 320, d: 40, z: "terrace" }, { t: "S", n: 90, d: 8, z: "village" },
       { t: "E", dir: 1, k: 3, c: 3.5, n: 200, d: 20, z: "village" }, { t: "T", dir: 1, c: 3, n: 140, d: 16, z: "terrace", f: "ford" },
-      { t: "E", dir: -1, k: 4, c: 4.5, n: 260, d: 40, z: "terrace" }, { t: "H", dir: -1, d: 6, z: "jungle", f: "mtn" }, { t: "E", dir: 1, k: 4, c: 4, n: 260, d: 34, z: "jungle" },
-      { t: "S", n: 90, d: 8, z: "village" }, { t: "E", dir: -1, k: 5, c: 4.5, n: 320, d: 44, z: "terrace" }, { t: "T", dir: -1, c: 3, n: 150, d: 20, z: "terrace", f: "ford" },
-      { t: "S", n: 90, d: 8, z: "village" },
+      { t: "ST", k: 4, d: 18, z: "terrace", j: 1, jat: 0.04, jr: "stoneramp" }, { t: "E", dir: -1, k: 4, c: 4.5, n: 260, d: 40, z: "terrace" }, { t: "H", dir: -1, d: 6, z: "jungle", f: "mtn" },
+      { t: "E", dir: 1, k: 4, c: 4, n: 260, d: 34, z: "jungle" }, { t: "S", n: 90, d: 8, z: "village" }, { t: "E", dir: -1, k: 5, c: 4.5, n: 320, d: 44, z: "terrace" },
+      { t: "T", dir: -1, c: 3, n: 150, d: 20, z: "terrace", f: "ford" }, { t: "S", n: 90, d: 8, z: "village" },
     ] },
   { id: "m2", biome: 3, name: "Waterfall Gauntlet", seed: 4402, len: 4000, curvy: 0.95, hilly: 1.2, ramps: 8, splits: 2, pads: 9, haz: 1.0,
-    blurb: "Jungle gorge bridges, cliffside hairpins and two rides right behind the waterfalls. Misty morning.",
-    look: { sky: ["#6f8d9c", "#b6cbc6", "#e9efdb"], fog: "#c3d3c7", sun: "#fbfbea", sunY: 0.16, sunX: 0.62 },
+    movers: [{ id: "vine", n: 6, amp: 0.8, spd: 0.9 }],
+    blurb: "Jungle night with fireflies: ride behind two waterfalls, through a crumbling temple hall, and dodge swinging vines.",
+    look: { sky: ["#071420", "#123038", "#28483f"], fog: "#183229", sun: "#eef6d8", sunY: 0.16, sunX: 0.62, dark: 1, darkK: 0.6, aurora: 0, weather: "fireflies" },
     plan: [
       { t: "S", n: 80, d: 8, z: "jungle" }, { t: "T", dir: 1, c: 3.5, n: 170, d: 36, z: "jungle", f: "waterR" }, { t: "S", n: 90, d: 4, z: "jungle", f: "bridge" },
       { t: "T", dir: -1, c: 4, n: 150, d: 34, z: "jungle", f: "mtn" }, { t: "SW", dir: 1, k: 2, d: 12, z: "jungle", f: "mtn" }, { t: "T", dir: -1, c: 3, n: 130, d: 20, f: "falls" },
-      { t: "E", dir: 1, k: 3, c: 4.5, n: 210, d: 40, z: "jungle" }, { t: "S", n: 90, d: 4, z: "jungle", f: "bridge" }, { t: "X", n: 130, d: 50, z: "jungle" },
-      { t: "H", dir: 1, d: 8, z: "jungle", f: "mtn" }, { t: "C", n: 130, d: 64, z: "jungle" }, { t: "T", dir: -1, c: 3, n: 150, d: 20, z: "village" },
-      { t: "E", dir: 1, k: 3, c: 4, n: 210, d: 34, z: "terrace" }, { t: "T", dir: 1, c: 3, n: 140, d: 20, f: "falls" }, { t: "S", n: 100, d: 10, z: "village" },
+      { t: "E", dir: 1, k: 3, c: 4.5, n: 210, d: 40, z: "ruins" }, { t: "T", dir: 1, c: 3, n: 160, d: 24, f: "tunnel", ts: "temple" }, { t: "S", n: 90, d: 4, z: "ruins", f: "bridge" },
+      { t: "X", n: 130, d: 50, z: "jungle" }, { t: "H", dir: 1, d: 8, z: "jungle", f: "mtn" }, { t: "C", n: 130, d: 64, z: "jungle" },
+      { t: "T", dir: -1, c: 3, n: 150, d: 20, z: "ruins" }, { t: "E", dir: 1, k: 3, c: 4, n: 210, d: 34, z: "jungle" }, { t: "T", dir: 1, c: 3, n: 140, d: 20, f: "falls" },
+      { t: "S", n: 100, d: 10, z: "village" },
     ] },
-  { id: "v1", biome: 4, name: "Ashfall Chute", seed: 5501, len: 3800, curvy: 0.85, hilly: 1.1, ramps: 7, splits: 2, pads: 9, haz: 0.95,
-    blurb: "Steep chutes beside lava rivers, big crest jumps and a glowing lava tube.",
+  // Ember Caldera ----------------------------------------------------------------------------------------------------
+  { id: "v1", biome: 4, name: "Ashfall Chute", seed: 5501, len: 3800, curvy: 0.85, hilly: 1.1, ramps: 6, splits: 2, pads: 9, haz: 0.95,
+    bursts: { n: 8, kind: "lava" },
+    blurb: "Lava valley chutes, bridges that crumble behind you, ground that erupts, and a glowing lava tube.",
     plan: [
       { t: "S", n: 70, d: 10, z: "ash" }, { t: "C", n: 180, d: 100, z: "ash" }, { t: "T", dir: -1, c: 3, n: 170, d: 40, z: "ash", f: "lavaR" },
-      { t: "X", n: 130, d: 60, z: "ash" }, { t: "C", n: 160, d: 100, z: "obsidian" }, { t: "T", dir: 1, c: 4, n: 150, d: 44, f: "tunnel" },
-      { t: "C", n: 150, d: 90, z: "ash", f: "lavaL" }, { t: "X", n: 130, d: 60, z: "obsidian" }, { t: "E", dir: -1, k: 3, c: 4, n: 200, d: 60, z: "obsidian" },
-      { t: "C", n: 170, d: 100, z: "ash" }, { t: "T", dir: 1, c: 3, n: 150, d: 40, z: "ash", f: "lavaL" }, { t: "S", n: 100, d: 14, z: "ash" },
+      { t: "S", n: 100, d: 6, z: "ash", f: "bridge", cr: 1 }, { t: "X", n: 130, d: 60, z: "ash" }, { t: "C", n: 160, d: 100, z: "obsidian" },
+      { t: "T", dir: 1, c: 4, n: 150, d: 44, f: "tunnel" }, { t: "C", n: 150, d: 90, z: "ash", f: "lavaL" }, { t: "S", n: 100, d: 6, z: "obsidian", f: "bridge", cr: 1 },
+      { t: "X", n: 130, d: 60, z: "obsidian" }, { t: "E", dir: -1, k: 3, c: 4, n: 200, d: 60, z: "obsidian" }, { t: "C", n: 170, d: 100, z: "ash" },
+      { t: "S", n: 100, d: 6, z: "ash", f: "bridge", cr: 1 }, { t: "T", dir: 1, c: 3, n: 150, d: 40, z: "ash", f: "lavaL" }, { t: "S", n: 100, d: 14, z: "ash" },
     ] },
-  { id: "v2", biome: 4, name: "Geyser Gorge", seed: 5502, len: 4100, curvy: 1.0, hilly: 1.2, ramps: 8, splits: 2, pads: 10, haz: 1.05,
-    blurb: "A narrow gorge, cliff switchbacks, an obsidian field and bridges over the lava lake. Violet night.",
+  { id: "v2", biome: 4, name: "Geyser Gorge", seed: 5502, len: 4100, curvy: 1.0, hilly: 1.2, ramps: 7, splits: 1, pads: 10, haz: 1.0,
+    fallers: [{ id: "fallrock", n: 8 }],
+    blurb: "A narrow gorge, cliff switchbacks and lava-lake bridges, then into the crater: falling rocks, spiral to the core.",
     look: { sky: ["#0d0817", "#35173d", "#9c3636"], fog: "#3d1f33", sun: "#ffc08a", sunY: 0.36, sunX: 0.7 },
     plan: [
       { t: "S", n: 70, d: 8, z: "ash" }, { t: "E", dir: 1, k: 4, c: 4.5, n: 260, d: 44, f: "canyon" }, { t: "S", n: 90, d: 10, z: "ash", f: "bridge" },
-      { t: "SW", dir: -1, k: 3, d: 12, z: "ash", f: "mtn" }, { t: "T", dir: 1, c: 4, n: 160, d: 30, f: "tunnel" }, { t: "S", n: 110, d: 14, z: "obsidian" },
-      { t: "E", dir: -1, k: 3, c: 5, n: 220, d: 40, f: "canyon" }, { t: "H", dir: -1, d: 8, z: "ash", f: "mtn" }, { t: "X", n: 130, d: 50, z: "obsidian" },
-      { t: "T", dir: 1, c: 3, n: 150, d: 24, z: "ash", f: "lavaR" }, { t: "S", n: 90, d: 8, z: "ash", f: "bridge" }, { t: "E", dir: 1, k: 4, c: 4.5, n: 260, d: 44, z: "ash" },
-      { t: "SW", dir: 1, k: 2, d: 12, z: "obsidian", f: "mtn" }, { t: "S", n: 110, d: 10, z: "obsidian" },
+      { t: "SW", dir: -1, k: 3, d: 12, z: "ash", f: "mtn" }, { t: "S", n: 110, d: 14, z: "obsidian" }, { t: "E", dir: -1, k: 3, c: 5, n: 220, d: 40, f: "canyon" },
+      { t: "X", n: 130, d: 50, z: "obsidian" }, { t: "S", n: 90, d: 8, z: "ash", f: "bridge" }, { t: "T", dir: 1, c: 4, n: 180, d: 30, f: "tunnel", ts: "crater" },
+      { t: "E", dir: 1, k: 3, c: 4.5, n: 220, d: 44, z: "crater", f: "lavaR" }, { t: "T", dir: -1, c: 4, n: 180, d: 30, f: "tunnel", ts: "crater" }, { t: "SW", dir: 1, k: 2, d: 12, z: "crater", f: "mtn" },
+      { t: "T", dir: 1, c: 5.5, n: 190, d: 40, f: "tunnel", ts: "crater" }, { t: "S", n: 100, d: 10, z: "crater", f: "lavaL" },
     ] },
-  { id: "t1", biome: 5, name: "Northern Lights", seed: 6601, len: 3900, curvy: 0.9, hilly: 1.0, ramps: 7, splits: 2, pads: 9, haz: 0.95,
-    blurb: "Wide frozen plains, two crossings over a frozen lake and a lantern-lit igloo village.",
+  // Aurora Tundra ----------------------------------------------------------------------------------------------------
+  { id: "t1", biome: 5, name: "Northern Lights", seed: 6601, len: 3900, curvy: 0.9, hilly: 1.0, ramps: 7, splits: 1, pads: 9, haz: 0.95, wide: 1.25, surfN: 1.2,
+    blurb: "Wide open ice under the aurora: the frozen lake cracks into two lanes, thin ice slows you, igloo village.",
+    look: { surf: "thinice" },
     plan: [
       { t: "S", n: 90, d: 6, z: "forest" }, { t: "T", dir: 1, c: 2.5, n: 220, d: 24, z: "plains" }, { t: "T", dir: -1, c: 2.5, n: 200, d: 24, z: "plains" },
-      { t: "S", n: 140, d: 6, z: "lake", f: "lake" }, { t: "T", dir: 1, c: 3, n: 150, d: 16, z: "village" }, { t: "S", n: 90, d: 6, z: "village" },
+      { t: "S", n: 160, d: 6, z: "lake", f: "lake", fork: 1 }, { t: "T", dir: 1, c: 3, n: 150, d: 16, z: "village" }, { t: "S", n: 90, d: 6, z: "village" },
       { t: "E", dir: -1, k: 4, c: 4, n: 260, d: 36, z: "forest" }, { t: "X", n: 130, d: 40, z: "plains" }, { t: "T", dir: -1, c: 3.5, n: 170, d: 30, z: "plains" },
-      { t: "S", n: 140, d: 6, z: "lake", f: "lake" }, { t: "E", dir: 1, k: 3, c: 4, n: 210, d: 30, z: "forest" }, { t: "H", dir: 1, d: 6, z: "forest" },
+      { t: "S", n: 160, d: 6, z: "lake", f: "lake", fork: 1 }, { t: "E", dir: 1, k: 3, c: 4, n: 210, d: 30, z: "forest" }, { t: "H", dir: 1, d: 6, z: "forest" },
       { t: "T", dir: -1, c: 3, n: 170, d: 20, z: "village" }, { t: "S", n: 110, d: 8, z: "village" },
     ] },
-  { id: "t2", biome: 5, name: "Midnight Lake", seed: 6602, len: 4200, curvy: 1.0, hilly: 1.1, ramps: 8, splits: 2, pads: 10, haz: 1.1,
-    blurb: "Along the lakeshore, through glowing crystal caves and down icy switchbacks.",
+  { id: "t2", biome: 5, name: "Aurora Pines", seed: 6602, len: 4200, curvy: 1.0, hilly: 1.1, ramps: 7, splits: 2, pads: 10, haz: 1.0,
+    movers: [{ id: "reindeer", n: 7, amp: 1.0, spd: 0.4 }],
+    blurb: "Deep pine forest and glowing crystal caves, reindeer crossing the trail, and a ski-jump under the aurora.",
     look: { sky: ["#02060f", "#06182b", "#0f3846"], fog: "#0f2a3e" },
     plan: [
-      { t: "S", n: 80, d: 6, z: "forest" }, { t: "T", dir: -1, c: 3, n: 200, d: 24, z: "forest", f: "waterL" }, { t: "T", dir: 1, c: 2.5, n: 180, d: 16, z: "village", f: "waterL" },
-      { t: "T", dir: 1, c: 4, n: 160, d: 30, f: "cave" }, { t: "SW", dir: -1, k: 3, d: 12, z: "forest", f: "mtn" }, { t: "S", n: 100, d: 6, z: "lake", f: "bridge" },
-      { t: "E", dir: 1, k: 3, c: 4.5, n: 210, d: 34, z: "forest" }, { t: "T", dir: -1, c: 3, n: 170, d: 20, z: "plains", f: "waterR" }, { t: "C", n: 140, d: 60, z: "forest" },
-      { t: "T", dir: 1, c: 4, n: 160, d: 30, f: "cave" }, { t: "E", dir: -1, k: 4, c: 4, n: 260, d: 34, z: "forest" }, { t: "S", n: 120, d: 6, z: "lake", f: "lake" },
-      { t: "H", dir: -1, d: 6, z: "forest" }, { t: "S", n: 110, d: 8, z: "village" },
+      { t: "S", n: 80, d: 6, z: "pines" }, { t: "T", dir: -1, c: 3, n: 200, d: 24, z: "pines" }, { t: "T", dir: 1, c: 2.5, n: 180, d: 16, z: "village", f: "waterL" },
+      { t: "T", dir: 1, c: 4, n: 160, d: 30, f: "cave" }, { t: "SW", dir: -1, k: 3, d: 12, z: "pines", f: "mtn" }, { t: "S", n: 100, d: 6, z: "lake", f: "bridge" },
+      { t: "E", dir: 1, k: 3, c: 4.5, n: 210, d: 34, z: "pines" }, { t: "T", dir: -1, c: 3, n: 170, d: 20, z: "pines" }, { t: "C", n: 140, d: 60, z: "forest" },
+      { t: "T", dir: 1, c: 4, n: 160, d: 30, f: "cave" }, { t: "E", dir: -1, k: 4, c: 4, n: 260, d: 34, z: "pines" }, { t: "H", dir: -1, d: 6, z: "forest" },
+      { t: "X", n: 150, d: 50, z: "plains", j: 1, jat: 0.15, jr: "skijump" }, { t: "S", n: 110, d: 8, z: "village" },
     ] },
 ];
 
@@ -1911,7 +1934,7 @@ async function buildWorldSprites(biome, track) {
   const kit = biomeKit(biome);
   if (track) {
     for (const s of track.segs) for (const sp of s.sprites) if (!kit[sp.id]) ids.add(sp.id);
-    for (const b of track.def.plan) if (b.ts && KIT_EXTRA[b.ts]) Object.assign(kit, KIT_EXTRA[b.ts](biome));
+    for (const b of track.def.plan) for (const k of [b.ts, b.ws]) if (k && KIT_EXTRA[k]) Object.assign(kit, KIT_EXTRA[k](biome));
   }
   [...ids].forEach((id) => { if (!W[id]) ids.delete(id); });              // kit pieces (walls, tunnels) are built from the kit below
   const out = { sprites: {}, items: {} };
@@ -2041,6 +2064,171 @@ BIOME_SCENERY.halloween = {
     manor: { near: [["ironfence", 3], ["lantern", 2], ["pumpkins", 2]], dens: 0.65 },
   },
 };
+
+/* ======================= NATURE TRAIL REWORK (each of the 12 trails gets its own set piece and hazard) ======================= */
+// generic big jumps (full-width launch ramps)
+function bigRampSVG(w, top, side, stripe) {
+  let s = SV.path(`M10 146 L${w * 0.16} 24 L${w * 0.84} 24 L${w - 10} 146Z`, side, 3);
+  for (let i = 1; i < 6; i++) s += `<path d="M${10 + i * w * 0.026} ${146 - i * 20.3} L${w - 10 - i * w * 0.026} ${146 - i * 20.3}" stroke="${shade(side, -0.25)}" stroke-width="3"/>`;
+  s += SV.rect(w * 0.15, 14, w * 0.7, 14, 5, top, 3);
+  if (stripe) for (let x = w * 0.18; x < w * 0.82; x += 60) s += `<rect x="${x}" y="15" width="30" height="12" fill="${stripe}"/>`;
+  return s;
+}
+def("bigramp", 640, 150, 4400, () => bigRampSVG(640, "#ffd23f", "#c8924f", OL));
+def("sandramp", 640, 150, 4400, () => bigRampSVG(640, "#f6dca0", "#e0a865", null) + `<path d="M60 140 Q320 70 580 140" stroke="#f2cf91" stroke-width="10" fill="none" opacity=".7"/>`);
+def("gapramp", 440, 150, 2900, () => bigRampSVG(440, "#bfe9ff", "#e8f0fa", "#2b7de9"));
+def("skijump", 640, 150, 4400, () => bigRampSVG(640, "#ffffff", "#dbe6f4", "#e2433b") + `<path d="M120 60 L520 60" stroke="#e2433b" stroke-width="6"/>`);
+def("stoneramp", 640, 150, 4400, () => bigRampSVG(640, "#c9c2a8", "#8f8a78", null));
+
+// Fernline: rolling logs and hollow giant redwoods you ride through
+def("rlog", 300, 120, 1400, () => {
+  let s = SV.rect(40, 30, 220, 80, 38, "#7b4a2a", 3);
+  for (let i = 0; i < 4; i++) s += `<path d="M${80 + i * 45} 36 Q${96 + i * 45} 70 ${82 + i * 45} 104" stroke="#5e3519" stroke-width="3" fill="none"/>`;
+  s += SV.ell(42, 70, 30, 40, "#d9a86a", 3) + `<ellipse cx="42" cy="70" rx="16" ry="22" fill="none" stroke="#9b6a3a" stroke-width="2.5"/><ellipse cx="42" cy="70" rx="6" ry="8" fill="none" stroke="#9b6a3a" stroke-width="2.5"/>`;
+  return s;
+}, { obstacle: "log" });
+KIT_EXTRA.redwood = () => ({
+  portal_redwood: { w: 1600, h: 900, ww: 16000, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M240 900 Q200 500 360 0 L1240 0 Q1400 500 1360 900 Z ${PORTAL_HOLE}" fill="#8a3f24" stroke="${OL}" stroke-width="4"/>`;
+    for (let i = 0; i < 12; i++) { const x = 300 + i * 92; s += `<path d="M${x} 0 Q${x + (i % 2 ? 30 : -30)} 450 ${x + (x < 800 ? -40 : 40)} 900" stroke="#5e2a17" stroke-width="8" fill="none" opacity=".75"/>`; }
+    s += `<path fill-rule="evenodd" d="M540 900 L540 650 Q540 500 800 486 Q1060 500 1060 650 L1060 900 Z ${PORTAL_HOLE}" fill="#d9a86a" stroke="${OL}" stroke-width="4"/>`;
+    s += `<path d="M566 900 L566 664 Q566 524 800 512 Q1034 524 1034 664 L1034 900" stroke="#9b6a3a" stroke-width="5" fill="none"/>`;
+    s += SV.path("M200 900 Q260 820 380 860 Q300 900 200 900Z M1400 900 Q1340 820 1220 860 Q1300 900 1400 900Z", "#5aa046", 3);
+    s += SV.ell(500, 260, 120, 60, "#3f8a32", 3) + SV.ell(1120, 340, 110, 56, "#3f8a32", 3);
+    return s;
+  } },
+  rib_redwood: { w: 560, h: 400, ww: 5600, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M0 400 L0 0 L560 0 L560 400 Z ${RIB_HOLE}" fill="#9b5a33" stroke="${OL}" stroke-width="3"/>`;
+    for (let i = 0; i < 4; i++) s += `<path d="M${76 - i * 16} 400 L${76 - i * 16} ${176 - i * 6} Q${76 - i * 16} ${74 - i * 18} 280 ${64 - i * 16} Q${484 + i * 16} ${74 - i * 18} ${484 + i * 16} ${176 - i * 6} L${484 + i * 16} 400" stroke="${i % 2 ? "#c98a55" : "#7a3f22"}" stroke-width="7" fill="none"/>`;
+    return s;
+  } },
+});
+// Giant's Staircase: rope bridge rails and falling branches
+def("rail_rope", 60, 130, 320, () => SV.rect(22, 30, 16, 98, 4, "#7b4a2a", 2.5) + `<path d="M-30 40 Q30 56 90 40 M-30 72 Q30 88 90 72" stroke="#d9b07a" stroke-width="5" fill="none"/>`);
+def("branch", 340, 150, 1500, () => SV.poly([[20, 120], [140, 92], [320, 70]], 16, "#6b4423") + SV.poly([[140, 92], [200, 40]], 9, "#6b4423") +
+  SV.ell(220, 34, 50, 26, "#3f8a32", 3) + SV.ell(300, 60, 40, 24, "#3f8a32", 3) + SV.ell(110, 70, 34, 20, "#4f9b3c", 3), { solid: 1, obstacle: "rock" });
+
+// Fortress Drop: desert fort town, market, camels
+KIT_EXTRA.fort = () => ({
+  wall_fort: { w: 300, h: 420, ww: 3400, solid: 1, svg: () => {
+    let s = SV.path("M0 420 L0 60 L40 60 L40 30 L80 30 L80 60 L120 60 L120 30 L160 30 L160 60 L200 60 L200 30 L240 30 L240 60 L300 60 L300 420Z", "#d9a26a", 3);
+    for (let y = 100; y < 420; y += 40) s += `<path d="M0 ${y} L300 ${y}" stroke="#b9814a" stroke-width="3"/>` + `<path d="M${(y / 40) % 2 ? 60 : 20} ${y - 40} L${(y / 40) % 2 ? 60 : 20} ${y} M${(y / 40) % 2 ? 180 : 140} ${y - 40} L${(y / 40) % 2 ? 180 : 140} ${y} M${(y / 40) % 2 ? 280 : 250} ${y - 40} L${(y / 40) % 2 ? 280 : 250} ${y}" stroke="#b9814a" stroke-width="3"/>`;
+    s += SV.path("M110 220 L110 170 Q130 146 150 170 L150 220Z", "#3a2a24", 2.5) + `<path d="M120 300 Q150 280 180 300" stroke="#c4562b" stroke-width="6" fill="none"/>`;
+    return s;
+  } },
+});
+def("fortgate", 1100, 620, 6600, () => {
+  let s = `<path fill-rule="evenodd" d="M0 620 L0 90 L60 90 L60 50 L130 50 L130 90 L200 90 L200 50 L270 50 L270 90 L830 90 L830 50 L900 50 L900 90 L970 90 L970 50 L1040 50 L1040 90 L1100 90 L1100 620 Z M230 620 L230 330 Q230 170 550 156 Q870 170 870 330 L870 620 Z" fill="#d9a26a" stroke="${OL}" stroke-width="4"/>`;
+  s += `<path d="M250 620 L250 336 Q250 192 550 178 Q850 192 850 336 L850 620" stroke="#c4562b" stroke-width="16" fill="none"/>`;
+  s += SV.ell(550, 120, 70, 40, "#e8862f", 3) + SV.rect(70, 200, 70, 90, 30, "#3a2a24", 3) + SV.rect(960, 200, 70, 90, 30, "#3a2a24", 3);
+  s += `<path d="M300 120 L800 120" stroke="#c4562b" stroke-width="8" stroke-dasharray="20 14"/>`;
+  return s;
+});
+def("fortower", 220, 460, 1900, () => SV.rect(40, 120, 140, 336, 6, "#d9a26a", 3) + SV.path("M20 130 L110 40 L200 130Z", "#c4562b", 3) + SV.rect(104, 4, 8, 40, 2, "#6b4423", 2) + SV.path("M112 6 L150 16 L112 28Z", "#e2433b", 2) +
+  SV.rect(90, 180, 40, 60, 18, "#3a2a24", 3) + SV.rect(90, 300, 40, 60, 18, "#3a2a24", 3) + `<path d="M40 260 L180 260 M40 400 L180 400" stroke="#b9814a" stroke-width="4"/>`, { solid: 1 });
+def("stall", 280, 230, 1900, () => SV.rect(30, 120, 220, 106, 4, "#c8924f", 3) + SV.path("M10 120 L40 40 L240 40 L270 120Z", "#e2433b", 3) +
+  `<path d="M60 40 L50 120 M110 40 L105 120 M170 40 L175 120 M220 40 L230 120" stroke="#fff3d6" stroke-width="12"/>` +
+  SV.circ(80, 110, 14, "#ff8a1c", 2.5) + SV.circ(110, 112, 12, "#ffd23f", 2.5) + SV.circ(160, 110, 14, "#2bb673", 2.5) + SV.circ(196, 112, 12, "#e2433b", 2.5), { solid: 1 });
+def("cart", 220, 150, 1100, () => SV.rect(20, 50, 180, 60, 6, "#a8743f", 3) + SV.circ(60, 118, 26, "#6b4423", 3) + SV.circ(160, 118, 26, "#6b4423", 3) +
+  SV.circ(60, 46, 16, "#ff8a1c", 2) + SV.circ(94, 42, 16, "#ffd23f", 2) + SV.circ(128, 46, 16, "#e2433b", 2) + SV.circ(160, 42, 16, "#2bb673", 2), { solid: 1, obstacle: "rock" });
+def("pots", 180, 110, 800, () => SV.path("M20 106 Q6 60 40 40 L60 40 Q94 60 80 106Z", "#c4562b", 3) + SV.path("M90 106 Q80 70 106 56 L124 56 Q150 70 140 106Z", "#d9772f", 3) + SV.path("M140 106 Q132 80 150 70 L162 70 Q178 80 172 106Z", "#c4562b", 3), { obstacle: "small" });
+def("rug", 200, 220, 1100, () => SV.rect(20, 10, 8, 206, 2, "#6b4423", 2.5) + SV.rect(172, 10, 8, 206, 2, "#6b4423", 2.5) + SV.rect(14, 10, 172, 10, 2, "#6b4423", 2.5) +
+  SV.rect(36, 22, 128, 150, 4, "#b3122f", 3) + `<rect x="50" y="36" width="100" height="122" fill="none" stroke="#ffd23f" stroke-width="5"/><path d="M100 50 L130 97 L100 144 L70 97Z" fill="#2b4ab3"/>`);
+def("camel", 300, 260, 1600, () => {
+  let s = "";
+  for (const x of [80, 110, 200, 228]) s += SV.rect(x, 170, 16, 84, 6, "#c99560", 2.5);
+  s += SV.path("M60 180 Q50 120 100 112 Q120 60 150 100 Q170 54 210 104 Q250 110 246 170 Q150 200 60 180Z", "#d9a86a", 3);
+  s += SV.path("M240 140 Q262 120 262 70 L286 60 Q300 70 294 84 L276 86 Q278 132 252 168Z", "#d9a86a", 3) + SV.circ(284, 70, 3, OL, 0);
+  s += SV.path("M110 120 L220 120 L214 150 L116 150Z", "#e2433b", 2.5) + `<path d="M120 135 L210 135" stroke="#ffd23f" stroke-width="4" stroke-dasharray="8 6"/>`;
+  return s;
+}, { solid: 1 });
+// Sandstorm Alley: giant dunes
+def("dune", 520, 170, 5200, () => SV.path("M0 168 Q140 20 300 60 Q420 90 520 168Z", "#efc07c", 3) + `<path d="M140 60 Q240 50 300 60 Q360 80 420 120" stroke="#f8dba6" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M300 60 Q420 90 520 168 L300 168Z" fill="#d9a05e" opacity=".55"/>`);
+
+// Frostbite Run: blue ice cave; Avalanche!: rolling snowballs
+KIT_EXTRA.icecave = () => ({
+  portal_icecave: { w: 1600, h: 900, ww: 16000, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M0 900 L0 420 L180 260 L330 330 L520 120 L700 220 L860 40 L1040 200 L1220 110 L1400 300 L1600 260 L1600 900 Z ${PORTAL_HOLE}" fill="#9fd6f2" stroke="${OL}" stroke-width="4"/>`;
+    s += `<path d="M520 120 L560 600 M860 40 L840 520 M1220 110 L1160 640 M180 260 L260 760 M1400 300 L1380 820" stroke="#e6f7ff" stroke-width="10" opacity=".8"/>`;
+    s += `<path fill-rule="evenodd" d="M560 900 L560 660 Q560 530 800 518 Q1040 530 1040 660 L1040 900 Z ${PORTAL_HOLE}" fill="#5aa9d8" stroke="${OL}" stroke-width="3"/>`;
+    s += SV.path("M0 420 L180 260 L330 330 L520 120 L700 220 L860 40 L1040 200 L1220 110 L1400 300 L1600 260 L1600 300 Q1400 340 1220 150 Q1040 240 860 80 Q700 260 520 160 Q330 370 180 300 Q80 400 0 460Z", "#ffffff", 3);
+    for (const x of [640, 760, 900, 980]) s += SV.path(`M${x} 540 L${x + 14} 600 L${x + 28} 540Z`, "#e6f7ff", 2);       // icicles over the mouth
+    return s;
+  } },
+  rib_icecave: { w: 560, h: 400, ww: 5600, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M0 400 L0 0 L560 0 L560 400 Z ${RIB_HOLE}" fill="#7cc3e8" stroke="${OL}" stroke-width="3" opacity=".9"/>`;
+    s += `<path d="M76 400 L76 176 Q76 74 280 64 Q484 74 484 176 L484 400" stroke="#d8f3ff" stroke-width="9" fill="none" opacity=".8"/>`;
+    for (const [x, h] of [[120, 70], [200, 46], [300, 60], [400, 50]]) s += SV.path(`M${x} ${70 - h * 0.2} L${x + 12} ${70 + h} L${x + 24} ${70 - h * 0.2}Z`, "#e6f7ff", 2);
+    return s;
+  }, glow: null },
+});
+def("snowroll", 200, 200, 1100, () => SV.circ(100, 104, 90, "#f4f9ff", 3) + `<path d="M40 80 Q90 50 140 70 M30 130 Q100 110 170 140" stroke="#bcd6f0" stroke-width="6" fill="none"/>` + SV.rect(80, 16, 24, 30, 4, "#6b4423", 2.5), { obstacle: "log" });
+
+// Waterfall Gauntlet: temple ruins hall, swinging vines
+KIT_EXTRA.temple = () => ({
+  portal_temple: { w: 1600, h: 900, ww: 16000, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M200 900 L200 420 L340 420 L340 300 L480 300 L480 180 L640 180 L640 60 L960 60 L960 180 L1120 180 L1120 300 L1260 300 L1260 420 L1400 420 L1400 900 Z ${PORTAL_HOLE}" fill="#8f8a78" stroke="${OL}" stroke-width="4"/>`;
+    for (const y of [180, 300, 420]) s += `<path d="M200 ${y + 40} L1400 ${y + 40}" stroke="#6f6a5c" stroke-width="8"/>`;
+    for (let x = 680; x < 960; x += 70) s += SV.circ(x + 20, 120, 22, "#a8a28e", 3);
+    s += `<path fill-rule="evenodd" d="M548 900 L548 656 Q548 516 800 504 Q1052 516 1052 656 L1052 900 Z ${PORTAL_HOLE}" fill="#a8a28e" stroke="${OL}" stroke-width="4"/>`;
+    s += `<path d="M260 420 Q300 620 260 900 M1340 420 Q1300 600 1340 900 M640 180 Q600 300 660 420" stroke="#3c8a3c" stroke-width="18" fill="none" stroke-linecap="round"/>`;
+    s += SV.ell(300, 410, 70, 30, "#3c9a3a", 3) + SV.ell(1310, 400, 80, 30, "#3c9a3a", 3) + SV.ell(800, 50, 120, 36, "#3c9a3a", 3);
+    return s;
+  } },
+  rib_temple: { w: 560, h: 400, ww: 5600, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M0 400 L0 0 L560 0 L560 400 Z ${RIB_HOLE}" fill="#7a7564" stroke="${OL}" stroke-width="3"/>`;
+    s += SV.rect(30, 100, 46, 300, 4, "#a8a28e", 3) + SV.rect(484, 100, 46, 300, 4, "#a8a28e", 3);
+    for (const y of [140, 220, 300]) s += `<path d="M36 ${y} L70 ${y} M490 ${y} L524 ${y}" stroke="#6f6a5c" stroke-width="5"/>` + SV.circ(53, y + 30, 8, "#ffd23f", 2) + SV.circ(507, y + 30, 8, "#ffd23f", 2);
+    s += `<path d="M100 0 Q120 60 96 120 M460 0 Q440 70 470 130" stroke="#3c8a3c" stroke-width="9" fill="none" stroke-linecap="round"/>`;
+    return s;
+  } },
+});
+def("vine", 160, 420, 700, () => {
+  let s = `<path d="M80 0 Q60 120 84 220 Q100 300 80 380" stroke="#3c7a2a" stroke-width="12" fill="none" stroke-linecap="round"/>`;
+  for (let y = 40; y < 380; y += 46) s += SV.path(`M${80 + (y % 92 ? 10 : -10)} ${y} q${y % 92 ? 34 : -34} -6 ${y % 92 ? 44 : -44} 20 q${y % 92 ? -24 : 24} 8 ${y % 92 ? -44 : 44} -20Z`, "#4fae46", 2.5);
+  return s;
+}, { obstacle: "whack" });
+def("ruin", 220, 300, 1300, () => SV.rect(40, 60, 70, 236, 4, "#a8a28e", 3) + SV.rect(30, 40, 90, 26, 4, "#8f8a78", 3) + SV.rect(130, 160, 70, 136, 4, "#a8a28e", 3) + SV.path("M130 160 L150 140 L180 156 L200 140 L200 160Z", "#8f8a78", 2.5) +
+  `<path d="M60 100 Q70 180 52 260" stroke="#3c8a3c" stroke-width="10" fill="none" stroke-linecap="round"/>` + SV.ell(80, 44, 50, 18, "#3c9a3a", 2.5), { solid: 1 });
+
+// Geyser Gorge: inside the crater; Ashfall Chute: falling rocks
+KIT_EXTRA.crater = () => ({
+  portal_crater: { w: 1600, h: 900, ww: 16000, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M0 900 L0 500 L200 380 L360 420 L560 240 L800 300 L1040 220 L1240 400 L1420 360 L1600 480 L1600 900 Z ${PORTAL_HOLE}" fill="#2e2626" stroke="${OL}" stroke-width="4"/>`;
+    s += `<path d="M200 400 L260 640 L220 860 M560 260 L600 480 M1240 420 L1200 700 L1260 880 M1040 240 L1000 460" stroke="#ff5a1f" stroke-width="10" fill="none" stroke-linecap="round" opacity=".9"/>`;
+    s += `<path d="M560 900 L560 670 Q560 540 800 528 Q1040 540 1040 670 L1040 900" stroke="#ff7a1f" stroke-width="14" fill="none" opacity=".85"/>`;
+    return s;
+  } },
+  rib_crater: { w: 560, h: 400, ww: 5600, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M0 400 L0 0 L560 0 L560 400 Z ${RIB_HOLE}" fill="#241c1c" stroke="${OL}" stroke-width="3"/>`;
+    s += `<path d="M30 60 L56 180 L36 320 M530 80 L504 220 L524 360 M200 20 L230 60 M360 16 L330 56" stroke="#ff5a1f" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+    return s;
+  } },
+});
+def("fallrock", 200, 150, 1000, () => rock(200, 150, "#4a3a3a", null) + `<path d="M50 120 L90 80 L130 110" stroke="#ff7a1f" stroke-width="4" fill="none"/>`, { solid: 1, obstacle: "rock" });
+
+// Aurora Pines: reindeer crossing
+def("reindeer", 280, 280, 1500, () => {
+  let s = "";
+  for (const x of [70, 96, 180, 204]) s += SV.rect(x, 170, 14, 100, 5, "#8a5a3a", 2.5);
+  s += SV.ell(140, 160, 90, 40, "#9b6a43", 3) + SV.ell(140, 176, 60, 18, "#e8d7b8", 0);
+  s += SV.path("M210 140 Q230 100 232 70 L262 66 Q276 80 266 96 L246 100 Q240 130 226 160Z", "#9b6a43", 3) + SV.circ(268, 90, 8, "#e2433b", 2.5) + SV.circ(250, 78, 3, OL, 0);
+  s += `<path d="M236 70 L224 30 L210 20 M224 30 L236 14 M250 66 L262 26 L276 16 M262 26 L252 10" stroke="#d9c8a8" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+  s += SV.rect(196, 128, 30, 10, 3, "#e2433b", 2) + SV.circ(212, 142, 6, "#ffd23f", 2);
+  return s;
+}, { solid: 1 });
+
+// extra scenery zones for the reworked trails
+Object.assign(BIOME_SCENERY.forest.zones, { giants: { near: [["redwood", 7], ["fern", 3], ["mossrock", 1]], dens: 0.85 }, fog: { near: [["pine", 4], ["fern", 3], ["mossrock", 1.5], ["stump", 1]], dens: 0.7 }, falls: { near: [["waterfall", 2], ["mossrock", 2], ["reeds", 2], ["fern", 2]], dens: 0.5 } });
+Object.assign(BIOME_SCENERY.desert.zones, {
+  fort: { near: [["fortower", 2], ["adobe", 2], ["palm", 1], ["pots", 1]], dens: 0.6 },
+  market: { near: [["stall", 4], ["rug", 2], ["pots", 1.5], ["palm", 1]], dens: 0.8 },
+  dunes: { near: [["dune", 5], ["smallcactus", 0.5], ["skull", 0.4]], dens: 0.5 },
+});
+Object.assign(BIOME_SCENERY.glacier.zones, { crevasse: { near: [["serac", 3], ["iceblock", 2], ["snowrock", 1]], dens: 0.5 } });
+Object.assign(BIOME_SCENERY.ghats.zones, { ruins: { near: [["ruin", 4], ["banana", 2], ["palm", 1.5], ["jrock", 1]], dens: 0.75 } });
+Object.assign(BIOME_SCENERY.volcano.zones, { crater: { near: [["spire", 3], ["obsidian", 2], ["lavarock", 2]], dens: 0.6 } });
+Object.assign(BIOME_SCENERY.tundra.zones, { pines: { near: [["darkpine", 8], ["tsnowrock", 1], ["lantern", 0.4]], dens: 0.9 } });
 
 // ===== audio.js =====
 /* Synthesized audio: engine/wind, SFX and a procedural soundtrack per biome. No audio files. */
@@ -2375,16 +2563,45 @@ function buildTrack(def) {
   }
   const featBlocks = (s) => !!(s.feat && s.feat !== "waterL" && s.feat !== "waterR" && s.feat !== "lavaL" && s.feat !== "lavaR" && s.feat !== "canyon" && s.feat !== "mtn" && s.feat !== "cliffL" && s.feat !== "cliffR");
 
+  // ---- 1b. Set pieces from plan-beat keys: j big jump, gap crevasse jumps, cr crumbling bridge, rs/ws rail/wall style ----
+  const bigJump = (i, id, xs) => {
+    const s = segs[i];
+    if (!s) return;
+    s.ramp = (xs || [-0.55, 0, 0.55]).map((x) => ({ x })); s.big = 1;
+    s.sprites.push({ id: id || "bigramp", x: 0, flat: 1 });
+    for (let k = i - 4; k < i + 70; k++) if (segs[k]) segs[k].noObs = 1;      // keep the run-up and landing clear
+  };
+  const crumbles = [];
+  for (const { from, to, b } of beats) {
+    if (b.j) bigJump(Math.max(from + 4, Math.min(to - 20, from + Math.round((to - from) * (b.jat ?? 0.4)))), b.jr);
+    if (b.gap) for (let k = 0; k < b.gap; k++) {
+      const i = from + Math.round((to - from) * (k + 0.5) / b.gap) - 6;
+      bigJump(i, "gapramp", [-0.42, 0, 0.42]);                                   // the ramp covers the middle; ride the edge and you drop in
+      for (let g = i + 7; g < i + 12; g++) if (segs[g]) segs[g].gap = 1;
+    }
+    for (let k = from; k < to; k++) {
+      const s = segs[k];
+      if (b.rs) s.rs = b.rs;
+      if (b.ws) s.ws = b.ws;
+      // crumbling bridge: every other 10-segment stretch has one side (left, then right) that collapses after the first rider
+      const ch = ((k - from) / 10) | 0;
+      if (b.cr && s.bridge && ch % 2 === 1) { s.crumble = 1; s.crSide = ((ch / 2) | 0) % 2 ? 1 : -1; crumbles.push(s); }
+    }
+  }
+
   // ---- 2. Features ----
   const freeAt = (i, span = 6) => { for (let k = i - span; k <= i + span; k++) { const s = segs[k]; if (!s || s.ramp || s.split || s.surface || s.vent || s.decal || s.pin || featBlocks(s)) return false; } return true; };
   const placeable = (i) => i > 70 && i < finishIdx - 60;
 
-  // split sections (a fork with a median; the riskier side carries pads and a repair kit)
-  for (let n = 0; n < def.splits; n++) {
+  // split sections (a fork with a median; the riskier side carries pads and a repair kit). A beat with `fork: 1` always
+  // forks (e.g. the frozen lake cracking into two lanes); the rest are placed at random.
+  const forced = beats.filter((x) => x.b.fork).map((x) => [Math.max(x.from + 8, 80), x.to - 8]);
+  for (let n = 0; n < def.splits + forced.length; n++) {
     let i0 = -1;
-    const len = 90 + ((R() * 50) | 0);
+    let len = 90 + ((R() * 50) | 0);
+    if (n < forced.length) { i0 = forced[n][0]; len = Math.max(50, Math.min(len, forced[n][1] - i0)); }
     for (let tries = 0; tries < 40 && i0 < 0; tries++) {
-      const c = 160 + (((finishIdx - 360) / def.splits) * (n + 0.1 + R() * 0.8)) | 0;
+      const c = 160 + (((finishIdx - 360) / def.splits) * (n - forced.length + 0.1 + R() * 0.8)) | 0;
       let ok = true;
       for (let k = c - 10; k < c + len + 10; k++) if (!segs[k] || segs[k].split || segs[k].ramp || segs[k].feat || segs[k].pin || segs[k].surface || Math.abs(segs[k].curve) > 3.2) { ok = false; break; }
       if (ok) i0 = c;
@@ -2442,7 +2659,7 @@ function buildTrack(def) {
   // biome surfaces
   const surf = biome.surf !== undefined ? biome.surf : { forest: null, desert: "sand", glacier: "ice", ghats: "mud", volcano: "lava", tundra: "ice" }[biome.id];
   if (surf) {
-    const count = Math.round(6 * def.haz);
+    const count = Math.round(6 * def.haz * (def.surfN || 1));
     for (let n = 0; n < count; n++) {
       for (let tries = 0; tries < 20; tries++) {
         const i = 110 + ((R() * (finishIdx - 230)) | 0);
@@ -2471,7 +2688,7 @@ function buildTrack(def) {
   }
 
   // on-road obstacles
-  const obsIds = BIOME_SCENERY[biome.id].obstacles;
+  const obsIds = def.obs || BIOME_SCENERY[biome.id].obstacles;
   const nObs = Math.round(26 * def.haz * (def.len / 3500));
   for (let n = 0; n < nObs; n++) {
     for (let tries = 0; tries < 20; tries++) {
@@ -2504,6 +2721,33 @@ function buildTrack(def) {
         s.sprites.push(sp); s.mover = 1; movers.push(sp);
         break;
       }
+    }
+  }
+
+  // fallers: branches / rocks / bricks that drop onto the trail when a rider gets close (a shadow shows where)
+  const fallers = [];
+  for (const m of def.fallers || []) {
+    for (let n = 0; n < m.n; n++) {
+      for (let tries = 0; tries < 30; tries++) {
+        const i = 140 + ((R() * (finishIdx - 240)) | 0);
+        const s = segs[i];
+        if (!placeable(i) || s.bridge || s.pin || s.split || s.ramp || s.vent || s.noObs || s.mover || s.faller) continue;
+        const sp = { id: m.id, x: (R() * 1.4 - 0.7) * s.w, y: 0, fall: { z: i * SEG, t0: 0 } };
+        s.sprites.push(sp); s.faller = 1; fallers.push(sp);
+        break;
+      }
+    }
+  }
+  // bursts: spots on the trail that glow, then erupt (lava, Holi colour, fireworks); `kind` decides the effect
+  const bursts = [];
+  if (def.bursts) for (let n = 0; n < def.bursts.n; n++) {
+    for (let tries = 0; tries < 30; tries++) {
+      const i = 140 + ((R() * (finishIdx - 240)) | 0);
+      const s = segs[i];
+      if (!placeable(i) || !freeAt(i, 10) || s.noObs || s.mover) continue;
+      s.burst = { x: (R() * 1.3 - 0.65) * s.w, ph: R() * 3.2, kind: def.bursts.kind, st: 0 };
+      bursts.push(s);
+      break;
     }
   }
 
@@ -2547,8 +2791,8 @@ function buildTrack(def) {
     } else tunRun = 0;
     for (const side of [-1, 1]) {
       const wall = side < 0 ? s.wallL : s.wallR, rail = side < 0 ? s.railL : s.railR, g = side < 0 ? s.gL : s.gR;
-      if (wall) { s.sprites.push({ id: "wall", x: side * (edge + (wall === 2 ? 1.25 : s.tun ? 0.85 : 0.95)) }); continue; }
-      if (rail) { if (i % 2 === 0) s.sprites.push({ id: "rail", x: side * (edge + 0.16) }); continue; }
+      if (wall) { s.sprites.push({ id: s.ws ? "wall_" + s.ws : "wall", x: side * (edge + (wall === 2 ? 1.25 : s.tun ? 0.85 : 0.95)) }); continue; }
+      if (rail) { if (i % 2 === 0) s.sprites.push({ id: s.rs ? "rail_" + s.rs : "rail", x: side * (edge + 0.16) }); continue; }
       if (g) { if (g === "water" && set.zones && R() < 0.12) s.sprites.push({ id: "reeds", x: side * (edge + 0.32) }); continue; }
       if (R() < zp.dens) s.sprites.push({ id: zp.pick(), x: side * (edge + 0.5 + R() * 1.5) });
       if (i % 4 === 0 && R() < 0.5 + zp.dens * 0.5) s.sprites.push({ id: set.far[(R() * set.far.length) | 0], x: side * (edge + 2.4 + R() * 4) });
@@ -2568,7 +2812,7 @@ function buildTrack(def) {
     segs[i].sprites.push({ id: "crowd", x: -(segs[i].w + 0.9) }, { id: "crowd", x: segs[i].w + 0.9 });
   }
   return {
-    def, biome, segs, N, beats, movers,
+    def, biome, segs, N, beats, movers, fallers, bursts, crumbles,
     length: N * SEG,
     finishZ: finishIdx * SEG,
     startZ: 22 * SEG,
@@ -2645,7 +2889,7 @@ function renderView(ctx, vp, race, me, tnow) {
   const segs = track.segs;
   const dd = race.split ? Math.min(RENDER.drawDist, 110) : RENDER.drawDist;
   const fogC = race.stormFog > 0 ? mix(biome.fog, "#d9a868", race.stormFog) : biome.fog;
-  const fogDensity = biome.dark ? 2.2 : 1.4 + race.stormFog * 5;
+  const fogDensity = (biome.dark ? 2.2 : 1.4 + race.stormFog * 5) * (biome.fogK || 1);
   let maxy = h;
   let x = 0, dx = -(base.curve * basePct);
   const drawn = [];
@@ -2680,6 +2924,13 @@ function renderView(ctx, vp, race, me, tnow) {
     for (const sp of s.sprites) {
       const S = assets.sprites[sp.id];
       if (!S || sp.dead) continue;
+      if (sp.fall) {                                     // falling branch / rock: hidden until it drops, shadow grows under it
+        if (!sp.fall.t0) continue;
+        const gx = s.sx1 + s.sc1 * sp.x * ROAD_W * K;
+        if (sp.y > 0) { const r = S.ww * s.sc1 * K * 0.5 * (1 - sp.y / 3200); ctx.fillStyle = `rgba(0,0,0,${0.45 * alpha})`; ctx.beginPath(); ctx.ellipse(gx, s.sy1, r, r * 0.22, 0, 0, TAU); ctx.fill(); }
+        drawSprite(ctx, S, gx, s.sy1 - sp.y * s.sc1 * K, s.sc1 * K, s.clip, alpha, false);
+        continue;
+      }
       drawSprite(ctx, S, s.sx1 + s.sc1 * sp.x * ROAD_W * K, s.sy1, s.sc1 * K, s.clip, alpha, sp.flat);
       if (S.glow && (biome.dark || tun > 0.05)) glows.push([s.sx1 + s.sc1 * sp.x * ROAD_W * K, s.sy1 - S.wh * s.sc1 * K * 0.7, S.ww * s.sc1 * K * 1.2, S.glow]);
     }
@@ -2823,9 +3074,15 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
   quad(ctx, sx1 - r1, sy1, sx1 - i1, sy1, sx2 - i2, sy2, sx2 - r2, sy2, edgeCol);
   quad(ctx, sx1 + i1, sy1, sx1 + r1, sy1, sx2 + r2, sy2, sx2 + i2, sy2, edgeCol);
   // road (planks on bridges)
-  quad(ctx, sx1 - rw1, sy1, sx1 + rw1, sy1, sx2 + rw2, sy2, sx2 - rw2, sy2, s.bridge ? biome.plank[0] : biome.road[0]);   // one flat colour: no stripes on the drivable surface
+  // crevasse = a dark crack right across the trail; a collapsed bridge shows what's underneath
+  const roadCol = s.gap ? biome.chasm[1] : s.bridge ? biome.plank[0] : biome.road[0];
+  quad(ctx, sx1 - rw1, sy1, sx1 + rw1, sy1, sx2 + rw2, sy2, sx2 - rw2, sy2, roadCol);   // one flat colour: no stripes on the drivable surface
+  if (s.crumbled) {                                                   // that side of the bridge has fallen away
+    const under = sideGround(biome.lavaSide && biome.bridgeOver === "chasm" ? "lava" : biome.bridgeOver, s, biome, t), d = s.crSide;
+    quad(ctx, sx1 + d * 0.05 * rw1, sy1, sx1 + d * rw1, sy1, sx2 + d * rw2, sy2, sx2 + d * 0.05 * rw2, sy2, under);
+  }
   // tire ruts
-  if (s.rw1 > 6 && !s.bridge) {
+  if (s.rw1 > 6 && !s.bridge && !s.gap) {
     for (const rx of [-0.42, 0.42]) {
       const a1 = sx1 + rx * s.rw1, a2 = sx2 + rx * s.rw2;
       quad(ctx, a1 - s.rw1 * 0.06, sy1, a1 + s.rw1 * 0.06, sy1, a2 + s.rw2 * 0.06, sy2, a2 - s.rw2 * 0.06, sy2, biome.rut);
@@ -2840,7 +3097,7 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
   // surface patches
   const sf = s.surface;
   if (sf) {
-    const col = { sand: "#f2cf91", ice: "#bfeaff", mud: "#5a2e14", water: "#3a8fd0", lava: "#ff5a1f" }[sf.type];
+    const col = { sand: "#f2cf91", ice: "#bfeaff", mud: "#5a2e14", water: "#3a8fd0", lava: "#ff5a1f", blackice: "#a9c3dd", thinice: "#e6f6ff" }[sf.type];
     const taper = Math.sin((sf.k + 0.5) / sf.len * Math.PI);
     const c = (sf.x0 + sf.x1) / 2, hw = (sf.x1 - sf.x0) / 2 * (sf.type === "water" ? 1.2 : 0.4 + 0.6 * taper);
     let col2 = col;
@@ -2849,6 +3106,13 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
     if (sf.type === "ice") col2 = biome.dark ? "#7a9ac2" : "#b2e2fb";
     quad(ctx, sx1 + (c - hw) * s.rw1, sy1, sx1 + (c + hw) * s.rw1, sy1, sx2 + (c + hw) * s.rw2, sy2, sx2 + (c - hw) * s.rw2, sy2, col2);
     if (sf.type === "lava") { const hw2 = hw * 0.35; quad(ctx, sx1 + (c - hw2) * s.rw1, sy1, sx1 + (c + hw2) * s.rw1, sy1, sx2 + (c + hw2) * s.rw2, sy2, sx2 + (c - hw2) * s.rw2, sy2, "#ffe08a"); }
+  }
+  // bursts: a crack that glows (warning), then erupts
+  const bu = s.burst;
+  if (bu) {
+    const B = BURST_COL[bu.kind] || BURST_COL.lava;
+    const hw = 0.26, c = bu.x;
+    quad(ctx, sx1 + (c - hw) * s.rw1, sy1, sx1 + (c + hw) * s.rw1, sy1, sx2 + (c + hw) * s.rw2, sy2, sx2 + (c - hw) * s.rw2, sy2, B[bu.st]);
   }
   // boost pads (animated chevrons)
   const d = s.decal;
@@ -2864,6 +3128,7 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
   }
 }
 
+const BURST_COL = { lava: ["#3a2626", "#ff8a1c", "#ffe08a"], color: ["#d9c9ee", "#ff79b0", "#ffffff"], fire: ["#3a3348", "#ffd23f", "#ffffff"] };
 function sideGround(type, s, biome, t) {
   if (!type) return biome.ground[s.dark];
   if (type === "water") return (s.i + Math.floor(t * 5)) % 4 === 0 ? biome.water[1] : biome.water[0];
@@ -3076,7 +3341,8 @@ function drawWeather(ctx, w, h, biome, race, me, t) {
   const P = me.weather || (me.weather = Array.from({ length: 70 }, () => [Math.random(), Math.random(), Math.random()]));
   const kind = biome.weather;
   if (kind === "rain") {
-    ctx.strokeStyle = "rgba(200,225,255,.55)"; ctx.lineWidth = 1.5; ctx.beginPath();
+    const heavy = biome.rainK || 1;
+    ctx.strokeStyle = `rgba(200,225,255,${Math.min(0.8, 0.55 * heavy)})`; ctx.lineWidth = 1.5 * Math.min(1.4, heavy); ctx.beginPath();
     for (const p of P) {
       p[1] += 0.035 + sp * 0.02; p[0] -= 0.004 + me.lean * 0.01;
       if (p[1] > 1) { p[1] -= 1; p[0] = Math.random(); }
@@ -3114,6 +3380,27 @@ function drawWeather(ctx, w, h, biome, race, me, t) {
       ctx.fillRect(p[0] * w, p[1] * h, 6 + p[2] * 10, 1.5);
     }
     if (race.stormFog > 0) { ctx.fillStyle = `rgba(214,160,96,${race.stormFog * 0.45})`; ctx.fillRect(0, 0, w, h); }
+  } else if (kind === "fog") {
+    // thick drifting mist (fog density is also raised by biome.fogK)
+    for (let i = 0; i < 6; i++) {
+      const p = P[i]; p[0] -= 0.0008 + p[2] * 0.0008 + me.lean * 0.002;
+      if (p[0] < -0.4) p[0] += 1.8;
+      const x = p[0] * w, y = h * (0.3 + p[1] * 0.5);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, h * 0.5);
+      g.addColorStop(0, "rgba(235,240,245,.22)"); g.addColorStop(1, "rgba(235,240,245,0)");
+      ctx.fillStyle = g; ctx.fillRect(x - h * 0.5, y - h * 0.5, h, h);
+    }
+    ctx.fillStyle = "rgba(225,232,238,.12)"; ctx.fillRect(0, 0, w, h);
+  } else if (kind === "fireflies") {
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < 26; i++) {
+      const p = P[i]; p[0] += Math.sin(t * 0.7 + i * 3) * 0.0012 - me.lean * 0.003; p[1] += Math.cos(t * 0.5 + i) * 0.0008;
+      const x = ((p[0] % 1) + 1) % 1 * w, y = (0.25 + (((p[1] % 0.7) + 0.7) % 0.7)) * h;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, 9);
+      g.addColorStop(0, "rgba(230,255,140,.9)"); g.addColorStop(1, "rgba(230,255,140,0)");
+      ctx.fillStyle = g; ctx.fillRect(x - 9, y - 9, 18, 18);
+    }
+    ctx.globalCompositeOperation = "source-over";
   } else if (kind === "bats") {
     // a few bats flapping across the top of the sky, and autumn leaves tumbling down
     for (let i = 0; i < 5; i++) {
@@ -3664,6 +3951,8 @@ function updateRider(race, e, inp, dt) {
     else if (sf.type === "mud") { surfMax = 0.68; if (Math.random() < 0.35) spawnFx(race, e.z - 60, e.x + rnd(-0.1, 0.1), 60, "#5a2e14", 60, 0.5); }
     else if (sf.type === "water") { surfMax = 0.76; if (Math.random() < 0.6) spawnFx(race, e.z - 40, e.x + rnd(-0.15, 0.15), 120, "#d8f1ff", 70, 0.5, 900); }
     else if (sf.type === "ice") slip = true;
+    else if (sf.type === "blackice") { slip = true; surfMax = 0.96; }                    // nearly invisible, extra slippery
+    else if (sf.type === "thinice") { surfMax = 0.74; if (Math.random() < 0.3) spawnFx(race, e.z - 40, e.x + rnd(-0.15, 0.15), 30, "#e9f7ff", 50, 0.4, 500); }
     else if (sf.type === "lava") { damage(race, e, 14 * dt, null, "lava", true); e.burnT = Math.max(e.burnT, 0.8); spawnFx(race, e.z - 40, e.x, 60, "#ff7a1f", 60, 0.5, 600); }
   }
   const offroad = Math.abs(e.x) > seg.w + 0.03 || (seg.split > 0.4 && Math.abs(e.x) < 0.2 * seg.split);
@@ -3672,7 +3961,7 @@ function updateRider(race, e, inp, dt) {
   else if (offroad && e.h <= 0 && sideG === "water") { surfMax *= 0.55; if (Math.random() < 0.6) spawnFx(race, e.z - 40, e.x + rnd(-0.15, 0.15), 120, "#d8f1ff", 70, 0.5, 900); }
   else if (offroad && e.h <= 0 && sideG === "lava") { surfMax *= 0.6; damage(race, e, 16 * dt, null, "lava", true); e.burnT = Math.max(e.burnT, 0.8); spawnFx(race, e.z - 40, e.x, 60, "#ff7a1f", 60, 0.5, 600); }
   else if (offroad && e.h <= 0) {
-    surfMax *= 0.58;
+    surfMax *= tr.def.deep ? 0.44 : 0.58;                              // deep sand / snow beside some trails
     if (e.human) e.shake = Math.max(e.shake, 2 * pct);
     if (Math.random() < 0.4) spawnFx(race, e.z - 60, e.x + rnd(-0.1, 0.1), 50, tr.biome.ground[0], 80, 0.6);
   }
@@ -3708,7 +3997,7 @@ function updateRider(race, e, inp, dt) {
   // ----- steering -----
   const steer = clamp(inp.steer || 0, -1, 1) * (e.blindT > 0 && !e.human ? 0.4 : 1);
   const rate = 2.15 * e.handling * (drifting ? 1.5 : 1) * (e.h > 0 ? 0.55 : 1) * (0.4 + 0.6 * Math.min(1, pct * 1.5)) * Math.min(1, 0.08 + pct * 5);
-  const gripK = e.h > 0 ? 2.5 : slip ? 1.2 : 9 * e.grip;
+  const gripK = e.h > 0 ? 2.5 : slip ? 1.2 * (tr.def.grip || 1) : 9 * e.grip * (tr.def.grip || 1);   // some trails have less grip (Frostbite Run)
   e.vx += (steer * rate - e.vx) * Math.min(1, gripK * dt);
   e.x += e.vx * dt;
   if (e.h <= 0) e.x -= CENT * pct * pct * seg.curve * dt * (slip ? 1.35 : 1) * (drifting ? 0.5 : 1);
@@ -3756,7 +4045,12 @@ function updateRider(race, e, inp, dt) {
   for (let i = prevSeg + 1; i <= curSeg; i++) {
     const s = tr.segs[i];
     if (!s) continue;
-    if (e.h <= 0 && s.ramp) for (const r of s.ramp) if (Math.abs(e.x - r.x) < 0.3) { launch(race, e, 1700 + e.speed * 0.22); break; }
+    if (e.h <= 0 && s.ramp) for (const r of s.ramp) if (Math.abs(e.x - r.x) < 0.3) { launch(race, e, s.big ? 2600 + e.speed * 0.24 : 1700 + e.speed * 0.22); break; }
+    if (s.gap && e.h <= 0) fallIn(race, e, "CREVASSE!", "#bfe9ff");
+    if (s.crumble && e.h <= 0) {
+      if (s.crumbled) { if (e.x * s.crSide > 0.05) fallIn(race, e, "BRIDGE GONE!", "#ff8a1c"); }   // only that side fell: ride the other side
+      else if (!s.crT) s.crT = race.time + 1.6;                         // the first rider over it starts the collapse
+    }
     if (e.h <= 0 && s.vent && Math.abs(e.x - s.vent.x) < 0.32) { launch(race, e, 3600); for (let k = 0; k < 14; k++) spawnFx(race, s.i * SEG, s.vent.x + rnd(-0.2, 0.2), 120 + Math.random() * 120, "#f0f0f0", 40 + k * 60, 1.2, 1400); }
     if (e.h < 380 && e.invuln <= 0 && !(e.ghostT > 0)) collideSprites(race, e, s);
     for (const o of s.objs) {
@@ -3784,6 +4078,8 @@ function updateRider(race, e, inp, dt) {
     race.events.push({ snd: "pad", e });
   }
   e.lastSeg = curSeg;
+  const bu = seg.burst;
+  if (bu && bu.st === 2 && e.h < 300 && Math.abs(e.x - bu.x) < 0.34 && (e.burstT || 0) < race.time) burstHit(race, e, bu);
 
   // ----- combat -----
   if (inp.super) trySuper(race, e);
@@ -3915,10 +4211,20 @@ function collideSprites(race, e, s) {
   const rHalf = (e.veh.w / ROAD_W) * 0.28;
   for (const sp of s.sprites) {
     if (sp.flat || sp.dead || sp.gate) continue;
+    if (sp.fall && (!sp.fall.t0 || sp.y > 250)) continue;               // a faller only blocks once it's down
     const S = assets.sprites[sp.id];
     if (!S || (!S.solid && !S.obstacle)) continue;
     const half = (S.ww / ROAD_W) * 0.5 * (S.obstacle === "log" ? 0.92 : 0.5);
     if (Math.abs(e.x - sp.x) > half + rHalf) continue;
+    if (S.obstacle === "whack") {                     // swinging vines, prayer-flag poles: a knock, not a crash
+      if ((e.booT || 0) > race.time) continue;
+      e.booT = race.time + 1.2;
+      damage(race, e, 4, null, "crash");
+      e.speed *= 0.8; e.wobble = 0.8; e.vx += (e.x < sp.x ? -1 : 1) * 1.2;
+      popup(e, "WHACK!", "#9be36b");
+      race.events.push({ snd: "bump", e });
+      continue;
+    }
     if (S.obstacle && e.jugT > 0) {                    // Bruno's TIMBERFALL smashes straight through logs and stumps
       sp.dead = true;
       for (let k = 0; k < 10; k++) spawnFx(race, e.z + 100, sp.x + rnd(-0.2, 0.2), 60 + Math.random() * 200, "#a0783c", 70, 0.7, 900);
@@ -3958,10 +4264,51 @@ function collideSprites(race, e, s) {
 
 /* Movers (ghosts, animals, rolling logs) sweep across the trail on a sine path. Same clock on every device. */
 function moveMovers(race) {
-  const ms = race.track.movers;
-  if (!ms) return;
-  const t = race.time;
-  for (const sp of ms) if (!sp.dead) sp.x = sp.mv.c + sp.mv.a * Math.sin(sp.mv.w * t + sp.mv.p);
+  const tr = race.track, t = race.time;
+  if (tr.movers) for (const sp of tr.movers) if (!sp.dead) sp.x = sp.mv.c + sp.mv.a * Math.sin(sp.mv.w * t + sp.mv.p);
+  // fallers: start dropping when someone is 2–14 segments away; 0.85 s from the sky to the ground
+  if (tr.fallers) for (const sp of tr.fallers) {
+    const f = sp.fall;
+    if (!f.t0) { if (race.riders.some((e) => f.z - e.z < 2800 && f.z - e.z > 400)) { f.t0 = t; sp.y = 2600; } continue; }
+    const k = (t - f.t0) / 0.85;
+    sp.y = k >= 1 ? 0 : 2600 * (1 - k * k);
+    if (k >= 1 && !f.landed) { f.landed = 1; for (let n = 0; n < 8; n++) spawnFx(race, f.z, sp.x + rnd(-0.2, 0.2), 30 + Math.random() * 120, "#8a7a6a", 60, 0.6, 600); }
+  }
+  // bursts: 3.2 s cycle — quiet, glowing warning (0.8 s), erupting (0.6 s)
+  if (tr.bursts) for (const s of tr.bursts) {
+    const b = s.burst, p = (t + b.ph) % 3.2;
+    const st = p > 2.6 ? 2 : p > 1.8 ? 1 : 0;
+    if (st === 2 && b.st !== 2) { const c = BURST_FX[b.kind] || BURST_FX.lava; for (let n = 0; n < 14; n++) spawnFx(race, s.i * SEG, b.x + rnd(-0.2, 0.2), 80 + Math.random() * 900, pick(c), 70, 0.9, 1600); }
+    b.st = st;
+  }
+  if (tr.crumbles) for (const s of tr.crumbles) if (s.crT && !s.crumbled && t > s.crT) {
+    s.crumbled = 1;
+    for (let n = 0; n < 6; n++) spawnFx(race, s.i * SEG, rnd(-0.9, 0.9), 40, "#5a4030", 70, 0.7, -400);
+  }
+}
+const BURST_FX = { lava: ["#ff5a1f", "#ffb347", "#ffe08a"], color: ["#ff3d7f", "#ffd23f", "#2bd9c5", "#8a4dff", "#38e05a"], fire: ["#ffd23f", "#ff3d7f", "#ffffff", "#2b9cff"] };
+function burstHit(race, e, b) {
+  e.burstT = race.time + 1;
+  if (b.kind === "color") {                         // Holi colour: blinds you in that colour, no damage
+    e.blindT = Math.max(e.blindT, 1.4); e.blindCol = pick(BURST_FX.color); e.speed *= 0.85;
+    popup(e, "COLOUR BLAST!", "#ff3d7f");
+    return;
+  }
+  damage(race, e, b.kind === "fire" ? 8 : 12, null, "lava", true);
+  if (b.kind !== "fire") e.burnT = Math.max(e.burnT, 1.2);
+  launch(race, e, 1900);
+  popup(e, b.kind === "fire" ? "FIREWORK!" : "ERUPTION!", "#ff8a1c");
+}
+// riding into a crevasse or onto a collapsed bridge: you scramble out slowly and hurt
+function fallIn(race, e, msg, col) {
+  if ((e.fallT || 0) > race.time || e.finished) return;
+  e.fallT = race.time + 1.2;
+  damage(race, e, 14, null, "crash");
+  e.speed *= 0.35; e.hurtT = 0.8; e.wobble = 1;
+  if (e.human) e.shake = 10;
+  popup(e, msg, col, true);
+  for (let k = 0; k < 10; k++) spawnFx(race, e.z + 60, e.x + rnd(-0.2, 0.2), 60 + Math.random() * 160, col, 60, 0.7, 700);
+  race.events.push({ snd: "crash", e });
 }
 
 function damage(race, e, amt, by, kind, silent) {
@@ -4294,7 +4641,7 @@ function chooseLine(race, e, segI) {
       const near = 1 - (i - segI) / 36;
       if (s.split > 0.2 && Math.abs(cx) < 0.3 * s.split + rHalf) cost += 6 * near;
       for (const sp of s.sprites) {
-        if (sp.flat || sp.dead || sp.gate) continue;
+        if (sp.flat || sp.dead || sp.gate || (sp.fall && !sp.fall.t0)) continue;
         const S = race.assets.sprites[sp.id];
         if (!S || (!S.solid && !S.obstacle)) continue;
         if (Math.abs(sp.x) > s.w + 0.4) continue;
@@ -4303,7 +4650,9 @@ function chooseLine(race, e, segI) {
       }
       if (s.surface && cx >= s.surface.x0 && cx <= s.surface.x1) cost += (s.surface.type === "lava" ? 4 : 0.8) * near * skill;
       if (s.decal && s.decal.type === "boost" && cx >= s.decal.x0 && cx <= s.decal.x1) cost -= 1.4 * near * skill;
-      if (s.ramp) for (const r of s.ramp) if (Math.abs(cx - r.x) < 0.25) cost -= 0.9 * near * skill;
+      if (s.ramp) for (const r of s.ramp) if (Math.abs(cx - r.x) < 0.25) cost -= (s.big ? 3 : 0.9) * near * skill;
+      if (s.burst && Math.abs(cx - s.burst.x) < 0.4) cost += (s.burst.st ? 3 : 1) * near * skill;
+      if (s.crumbled && cx * s.crSide > 0) cost += 4 * near;
       for (const o of s.objs) if (!(o.taken > race.time) && Math.abs(cx - o.x) < 0.3) cost -= (o.kind === "crate" ? (e.items.length < 3 ? 1 : 0) : (1 - e.hp / e.maxHp) * 3) * near * skill;
       if (Math.abs(cx) > s.w) cost += 3 * near;
     }
@@ -5124,7 +5473,7 @@ function netRematch() {
 
 const SAVE_KEY = "wild-riders-save-v1";
 function defaultSave() {
-  return { v: 1, tl: 2, rl: 2, coins: 500, stars: {}, best: {}, riders: ["kaito", "bruno"], vehs: ["mtb", "bmx"], upg: {},
+  return { v: 1, tl: 3, rl: 2, coins: 500, stars: {}, best: {}, riders: ["kaito", "bruno"], vehs: ["mtb", "bmx"], upg: {},
     last: { rider: "kaito", rider2: "bruno", veh: "mtb", veh2: "bmx", track: "f1" },
     settings: { music: true, sfx: true, diff: 1, gfx: "auto", tone: "arcade" }, seenHelp: false, races: 0 };
 }
@@ -5169,7 +5518,7 @@ function restoreStoredCopy(s) {
   return m;
 }
 // Still save format v1. Two one-time migrations, each tracked by a generation number in the save (so they never run twice):
-//  `tl` = track-layout generation: the trails were redesigned in generation 2, so best times from older layouts are
+//  `tl` = track-layout generation: the trails were redesigned in generation 2 and reworked again in 3, so best times from older layouts are
 //         cleared once (stars, coins, riders, rides and upgrades are kept).
 //  `rl` = rider-lineup generation: generation 2 moved Priya to 5th place in the unlock order and made Bruno the free
 //         second starter. Everyone's UNLOCKED RIDERS reset to Kaito + Bruno and every coin spent on a rider (at the OLD
@@ -5177,7 +5526,7 @@ function restoreStoredCopy(s) {
 //         The untouched save is first copied to its own backup key, and a notice is queued for the next title screen.
 const BACKUP_KEY = "wild-riders-save-v1-backup-rl1";
 function migrateSave(s) {
-  if ((s.tl || 1) < 2) { s.best = {}; s.tl = 2; }
+  if ((s.tl || 1) < 3) { s.best = {}; s.tl = 3; }     // generation 3 = the 2026-10-14 trail rework (each trail got new set pieces)
   if ((s.rl || 1) < 2) migrateRiders(s);
   if (!Array.isArray(s.upgAll)) s.upgAll = mergeUpgrades(s.upg);
   return s;
@@ -5985,7 +6334,7 @@ const WHATS_NEW = [
 ]
 // ============================================
 
-const BUILD_ID = "wild-riders-73aaceaee3";            // stamped by tools/build.py; matches version.json of this build
+const BUILD_ID = "wild-riders-c51b60825f";            // stamped by tools/build.py; matches version.json of this build
 const VERSION_KEY = "wr-version", BACKUP_INFO_KEY = "wr-backup";
 const Upd = { reg: null, ready: false };
 

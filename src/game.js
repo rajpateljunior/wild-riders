@@ -289,6 +289,8 @@ function updateRider(race, e, inp, dt) {
     else if (sf.type === "mud") { surfMax = 0.68; if (Math.random() < 0.35) spawnFx(race, e.z - 60, e.x + rnd(-0.1, 0.1), 60, "#5a2e14", 60, 0.5); }
     else if (sf.type === "water") { surfMax = 0.76; if (Math.random() < 0.6) spawnFx(race, e.z - 40, e.x + rnd(-0.15, 0.15), 120, "#d8f1ff", 70, 0.5, 900); }
     else if (sf.type === "ice") slip = true;
+    else if (sf.type === "blackice") { slip = true; surfMax = 0.96; }                    // nearly invisible, extra slippery
+    else if (sf.type === "thinice") { surfMax = 0.74; if (Math.random() < 0.3) spawnFx(race, e.z - 40, e.x + rnd(-0.15, 0.15), 30, "#e9f7ff", 50, 0.4, 500); }
     else if (sf.type === "lava") { damage(race, e, 14 * dt, null, "lava", true); e.burnT = Math.max(e.burnT, 0.8); spawnFx(race, e.z - 40, e.x, 60, "#ff7a1f", 60, 0.5, 600); }
   }
   const offroad = Math.abs(e.x) > seg.w + 0.03 || (seg.split > 0.4 && Math.abs(e.x) < 0.2 * seg.split);
@@ -297,7 +299,7 @@ function updateRider(race, e, inp, dt) {
   else if (offroad && e.h <= 0 && sideG === "water") { surfMax *= 0.55; if (Math.random() < 0.6) spawnFx(race, e.z - 40, e.x + rnd(-0.15, 0.15), 120, "#d8f1ff", 70, 0.5, 900); }
   else if (offroad && e.h <= 0 && sideG === "lava") { surfMax *= 0.6; damage(race, e, 16 * dt, null, "lava", true); e.burnT = Math.max(e.burnT, 0.8); spawnFx(race, e.z - 40, e.x, 60, "#ff7a1f", 60, 0.5, 600); }
   else if (offroad && e.h <= 0) {
-    surfMax *= 0.58;
+    surfMax *= tr.def.deep ? 0.44 : 0.58;                              // deep sand / snow beside some trails
     if (e.human) e.shake = Math.max(e.shake, 2 * pct);
     if (Math.random() < 0.4) spawnFx(race, e.z - 60, e.x + rnd(-0.1, 0.1), 50, tr.biome.ground[0], 80, 0.6);
   }
@@ -333,7 +335,7 @@ function updateRider(race, e, inp, dt) {
   // ----- steering -----
   const steer = clamp(inp.steer || 0, -1, 1) * (e.blindT > 0 && !e.human ? 0.4 : 1);
   const rate = 2.15 * e.handling * (drifting ? 1.5 : 1) * (e.h > 0 ? 0.55 : 1) * (0.4 + 0.6 * Math.min(1, pct * 1.5)) * Math.min(1, 0.08 + pct * 5);
-  const gripK = e.h > 0 ? 2.5 : slip ? 1.2 : 9 * e.grip;
+  const gripK = e.h > 0 ? 2.5 : slip ? 1.2 * (tr.def.grip || 1) : 9 * e.grip * (tr.def.grip || 1);   // some trails have less grip (Frostbite Run)
   e.vx += (steer * rate - e.vx) * Math.min(1, gripK * dt);
   e.x += e.vx * dt;
   if (e.h <= 0) e.x -= CENT * pct * pct * seg.curve * dt * (slip ? 1.35 : 1) * (drifting ? 0.5 : 1);
@@ -381,7 +383,12 @@ function updateRider(race, e, inp, dt) {
   for (let i = prevSeg + 1; i <= curSeg; i++) {
     const s = tr.segs[i];
     if (!s) continue;
-    if (e.h <= 0 && s.ramp) for (const r of s.ramp) if (Math.abs(e.x - r.x) < 0.3) { launch(race, e, 1700 + e.speed * 0.22); break; }
+    if (e.h <= 0 && s.ramp) for (const r of s.ramp) if (Math.abs(e.x - r.x) < 0.3) { launch(race, e, s.big ? 2600 + e.speed * 0.24 : 1700 + e.speed * 0.22); break; }
+    if (s.gap && e.h <= 0) fallIn(race, e, "CREVASSE!", "#bfe9ff");
+    if (s.crumble && e.h <= 0) {
+      if (s.crumbled) { if (e.x * s.crSide > 0.05) fallIn(race, e, "BRIDGE GONE!", "#ff8a1c"); }   // only that side fell: ride the other side
+      else if (!s.crT) s.crT = race.time + 1.6;                         // the first rider over it starts the collapse
+    }
     if (e.h <= 0 && s.vent && Math.abs(e.x - s.vent.x) < 0.32) { launch(race, e, 3600); for (let k = 0; k < 14; k++) spawnFx(race, s.i * SEG, s.vent.x + rnd(-0.2, 0.2), 120 + Math.random() * 120, "#f0f0f0", 40 + k * 60, 1.2, 1400); }
     if (e.h < 380 && e.invuln <= 0 && !(e.ghostT > 0)) collideSprites(race, e, s);
     for (const o of s.objs) {
@@ -409,6 +416,8 @@ function updateRider(race, e, inp, dt) {
     race.events.push({ snd: "pad", e });
   }
   e.lastSeg = curSeg;
+  const bu = seg.burst;
+  if (bu && bu.st === 2 && e.h < 300 && Math.abs(e.x - bu.x) < 0.34 && (e.burstT || 0) < race.time) burstHit(race, e, bu);
 
   // ----- combat -----
   if (inp.super) trySuper(race, e);
@@ -540,10 +549,20 @@ function collideSprites(race, e, s) {
   const rHalf = (e.veh.w / ROAD_W) * 0.28;
   for (const sp of s.sprites) {
     if (sp.flat || sp.dead || sp.gate) continue;
+    if (sp.fall && (!sp.fall.t0 || sp.y > 250)) continue;               // a faller only blocks once it's down
     const S = assets.sprites[sp.id];
     if (!S || (!S.solid && !S.obstacle)) continue;
     const half = (S.ww / ROAD_W) * 0.5 * (S.obstacle === "log" ? 0.92 : 0.5);
     if (Math.abs(e.x - sp.x) > half + rHalf) continue;
+    if (S.obstacle === "whack") {                     // swinging vines, prayer-flag poles: a knock, not a crash
+      if ((e.booT || 0) > race.time) continue;
+      e.booT = race.time + 1.2;
+      damage(race, e, 4, null, "crash");
+      e.speed *= 0.8; e.wobble = 0.8; e.vx += (e.x < sp.x ? -1 : 1) * 1.2;
+      popup(e, "WHACK!", "#9be36b");
+      race.events.push({ snd: "bump", e });
+      continue;
+    }
     if (S.obstacle && e.jugT > 0) {                    // Bruno's TIMBERFALL smashes straight through logs and stumps
       sp.dead = true;
       for (let k = 0; k < 10; k++) spawnFx(race, e.z + 100, sp.x + rnd(-0.2, 0.2), 60 + Math.random() * 200, "#a0783c", 70, 0.7, 900);
@@ -583,10 +602,51 @@ function collideSprites(race, e, s) {
 
 /* Movers (ghosts, animals, rolling logs) sweep across the trail on a sine path. Same clock on every device. */
 function moveMovers(race) {
-  const ms = race.track.movers;
-  if (!ms) return;
-  const t = race.time;
-  for (const sp of ms) if (!sp.dead) sp.x = sp.mv.c + sp.mv.a * Math.sin(sp.mv.w * t + sp.mv.p);
+  const tr = race.track, t = race.time;
+  if (tr.movers) for (const sp of tr.movers) if (!sp.dead) sp.x = sp.mv.c + sp.mv.a * Math.sin(sp.mv.w * t + sp.mv.p);
+  // fallers: start dropping when someone is 2–14 segments away; 0.85 s from the sky to the ground
+  if (tr.fallers) for (const sp of tr.fallers) {
+    const f = sp.fall;
+    if (!f.t0) { if (race.riders.some((e) => f.z - e.z < 2800 && f.z - e.z > 400)) { f.t0 = t; sp.y = 2600; } continue; }
+    const k = (t - f.t0) / 0.85;
+    sp.y = k >= 1 ? 0 : 2600 * (1 - k * k);
+    if (k >= 1 && !f.landed) { f.landed = 1; for (let n = 0; n < 8; n++) spawnFx(race, f.z, sp.x + rnd(-0.2, 0.2), 30 + Math.random() * 120, "#8a7a6a", 60, 0.6, 600); }
+  }
+  // bursts: 3.2 s cycle — quiet, glowing warning (0.8 s), erupting (0.6 s)
+  if (tr.bursts) for (const s of tr.bursts) {
+    const b = s.burst, p = (t + b.ph) % 3.2;
+    const st = p > 2.6 ? 2 : p > 1.8 ? 1 : 0;
+    if (st === 2 && b.st !== 2) { const c = BURST_FX[b.kind] || BURST_FX.lava; for (let n = 0; n < 14; n++) spawnFx(race, s.i * SEG, b.x + rnd(-0.2, 0.2), 80 + Math.random() * 900, pick(c), 70, 0.9, 1600); }
+    b.st = st;
+  }
+  if (tr.crumbles) for (const s of tr.crumbles) if (s.crT && !s.crumbled && t > s.crT) {
+    s.crumbled = 1;
+    for (let n = 0; n < 6; n++) spawnFx(race, s.i * SEG, rnd(-0.9, 0.9), 40, "#5a4030", 70, 0.7, -400);
+  }
+}
+const BURST_FX = { lava: ["#ff5a1f", "#ffb347", "#ffe08a"], color: ["#ff3d7f", "#ffd23f", "#2bd9c5", "#8a4dff", "#38e05a"], fire: ["#ffd23f", "#ff3d7f", "#ffffff", "#2b9cff"] };
+function burstHit(race, e, b) {
+  e.burstT = race.time + 1;
+  if (b.kind === "color") {                         // Holi colour: blinds you in that colour, no damage
+    e.blindT = Math.max(e.blindT, 1.4); e.blindCol = pick(BURST_FX.color); e.speed *= 0.85;
+    popup(e, "COLOUR BLAST!", "#ff3d7f");
+    return;
+  }
+  damage(race, e, b.kind === "fire" ? 8 : 12, null, "lava", true);
+  if (b.kind !== "fire") e.burnT = Math.max(e.burnT, 1.2);
+  launch(race, e, 1900);
+  popup(e, b.kind === "fire" ? "FIREWORK!" : "ERUPTION!", "#ff8a1c");
+}
+// riding into a crevasse or onto a collapsed bridge: you scramble out slowly and hurt
+function fallIn(race, e, msg, col) {
+  if ((e.fallT || 0) > race.time || e.finished) return;
+  e.fallT = race.time + 1.2;
+  damage(race, e, 14, null, "crash");
+  e.speed *= 0.35; e.hurtT = 0.8; e.wobble = 1;
+  if (e.human) e.shake = 10;
+  popup(e, msg, col, true);
+  for (let k = 0; k < 10; k++) spawnFx(race, e.z + 60, e.x + rnd(-0.2, 0.2), 60 + Math.random() * 160, col, 60, 0.7, 700);
+  race.events.push({ snd: "crash", e });
 }
 
 function damage(race, e, amt, by, kind, silent) {
@@ -919,7 +979,7 @@ function chooseLine(race, e, segI) {
       const near = 1 - (i - segI) / 36;
       if (s.split > 0.2 && Math.abs(cx) < 0.3 * s.split + rHalf) cost += 6 * near;
       for (const sp of s.sprites) {
-        if (sp.flat || sp.dead || sp.gate) continue;
+        if (sp.flat || sp.dead || sp.gate || (sp.fall && !sp.fall.t0)) continue;
         const S = race.assets.sprites[sp.id];
         if (!S || (!S.solid && !S.obstacle)) continue;
         if (Math.abs(sp.x) > s.w + 0.4) continue;
@@ -928,7 +988,9 @@ function chooseLine(race, e, segI) {
       }
       if (s.surface && cx >= s.surface.x0 && cx <= s.surface.x1) cost += (s.surface.type === "lava" ? 4 : 0.8) * near * skill;
       if (s.decal && s.decal.type === "boost" && cx >= s.decal.x0 && cx <= s.decal.x1) cost -= 1.4 * near * skill;
-      if (s.ramp) for (const r of s.ramp) if (Math.abs(cx - r.x) < 0.25) cost -= 0.9 * near * skill;
+      if (s.ramp) for (const r of s.ramp) if (Math.abs(cx - r.x) < 0.25) cost -= (s.big ? 3 : 0.9) * near * skill;
+      if (s.burst && Math.abs(cx - s.burst.x) < 0.4) cost += (s.burst.st ? 3 : 1) * near * skill;
+      if (s.crumbled && cx * s.crSide > 0) cost += 4 * near;
       for (const o of s.objs) if (!(o.taken > race.time) && Math.abs(cx - o.x) < 0.3) cost -= (o.kind === "crate" ? (e.items.length < 3 ? 1 : 0) : (1 - e.hp / e.maxHp) * 3) * near * skill;
       if (Math.abs(cx) > s.w) cost += 3 * near;
     }

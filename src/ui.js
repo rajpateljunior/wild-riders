@@ -2,7 +2,7 @@
 
 const SAVE_KEY = "wild-riders-save-v1";
 function defaultSave() {
-  return { v: 1, tl: 2, rl: 2, coins: 500, stars: {}, best: {}, riders: ["kaito", "bruno"], vehs: ["mtb", "bmx"], upg: {},
+  return { v: 1, tl: 3, rl: 2, coins: 500, stars: {}, best: {}, riders: ["kaito", "bruno"], vehs: ["mtb", "bmx"], upg: {},
     last: { rider: "kaito", rider2: "bruno", veh: "mtb", veh2: "bmx", track: "f1" },
     settings: { music: true, sfx: true, diff: 1, gfx: "auto", tone: "arcade" }, seenHelp: false, races: 0 };
 }
@@ -47,7 +47,7 @@ function restoreStoredCopy(s) {
   return m;
 }
 // Still save format v1. Two one-time migrations, each tracked by a generation number in the save (so they never run twice):
-//  `tl` = track-layout generation: the trails were redesigned in generation 2, so best times from older layouts are
+//  `tl` = track-layout generation: the trails were redesigned in generation 2 and reworked again in 3, so best times from older layouts are
 //         cleared once (stars, coins, riders, rides and upgrades are kept).
 //  `rl` = rider-lineup generation: generation 2 moved Priya to 5th place in the unlock order and made Bruno the free
 //         second starter. Everyone's UNLOCKED RIDERS reset to Kaito + Bruno and every coin spent on a rider (at the OLD
@@ -55,7 +55,7 @@ function restoreStoredCopy(s) {
 //         The untouched save is first copied to its own backup key, and a notice is queued for the next title screen.
 const BACKUP_KEY = "wild-riders-save-v1-backup-rl1";
 function migrateSave(s) {
-  if ((s.tl || 1) < 2) { s.best = {}; s.tl = 2; }
+  if ((s.tl || 1) < 3) { s.best = {}; s.tl = 3; }     // generation 3 = the 2026-10-14 trail rework (each trail got new set pieces)
   if ((s.rl || 1) < 2) migrateRiders(s);
   if (!Array.isArray(s.upgAll)) s.upgAll = mergeUpgrades(s.upg);
   return s;

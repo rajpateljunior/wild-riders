@@ -60,7 +60,7 @@ function renderView(ctx, vp, race, me, tnow) {
   const segs = track.segs;
   const dd = race.split ? Math.min(RENDER.drawDist, 110) : RENDER.drawDist;
   const fogC = race.stormFog > 0 ? mix(biome.fog, "#d9a868", race.stormFog) : biome.fog;
-  const fogDensity = biome.dark ? 2.2 : 1.4 + race.stormFog * 5;
+  const fogDensity = (biome.dark ? 2.2 : 1.4 + race.stormFog * 5) * (biome.fogK || 1);
   let maxy = h;
   let x = 0, dx = -(base.curve * basePct);
   const drawn = [];
@@ -95,6 +95,13 @@ function renderView(ctx, vp, race, me, tnow) {
     for (const sp of s.sprites) {
       const S = assets.sprites[sp.id];
       if (!S || sp.dead) continue;
+      if (sp.fall) {                                     // falling branch / rock: hidden until it drops, shadow grows under it
+        if (!sp.fall.t0) continue;
+        const gx = s.sx1 + s.sc1 * sp.x * ROAD_W * K;
+        if (sp.y > 0) { const r = S.ww * s.sc1 * K * 0.5 * (1 - sp.y / 3200); ctx.fillStyle = `rgba(0,0,0,${0.45 * alpha})`; ctx.beginPath(); ctx.ellipse(gx, s.sy1, r, r * 0.22, 0, 0, TAU); ctx.fill(); }
+        drawSprite(ctx, S, gx, s.sy1 - sp.y * s.sc1 * K, s.sc1 * K, s.clip, alpha, false);
+        continue;
+      }
       drawSprite(ctx, S, s.sx1 + s.sc1 * sp.x * ROAD_W * K, s.sy1, s.sc1 * K, s.clip, alpha, sp.flat);
       if (S.glow && (biome.dark || tun > 0.05)) glows.push([s.sx1 + s.sc1 * sp.x * ROAD_W * K, s.sy1 - S.wh * s.sc1 * K * 0.7, S.ww * s.sc1 * K * 1.2, S.glow]);
     }
@@ -238,9 +245,15 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
   quad(ctx, sx1 - r1, sy1, sx1 - i1, sy1, sx2 - i2, sy2, sx2 - r2, sy2, edgeCol);
   quad(ctx, sx1 + i1, sy1, sx1 + r1, sy1, sx2 + r2, sy2, sx2 + i2, sy2, edgeCol);
   // road (planks on bridges)
-  quad(ctx, sx1 - rw1, sy1, sx1 + rw1, sy1, sx2 + rw2, sy2, sx2 - rw2, sy2, s.bridge ? biome.plank[0] : biome.road[0]);   // one flat colour: no stripes on the drivable surface
+  // crevasse = a dark crack right across the trail; a collapsed bridge shows what's underneath
+  const roadCol = s.gap ? biome.chasm[1] : s.bridge ? biome.plank[0] : biome.road[0];
+  quad(ctx, sx1 - rw1, sy1, sx1 + rw1, sy1, sx2 + rw2, sy2, sx2 - rw2, sy2, roadCol);   // one flat colour: no stripes on the drivable surface
+  if (s.crumbled) {                                                   // that side of the bridge has fallen away
+    const under = sideGround(biome.lavaSide && biome.bridgeOver === "chasm" ? "lava" : biome.bridgeOver, s, biome, t), d = s.crSide;
+    quad(ctx, sx1 + d * 0.05 * rw1, sy1, sx1 + d * rw1, sy1, sx2 + d * rw2, sy2, sx2 + d * 0.05 * rw2, sy2, under);
+  }
   // tire ruts
-  if (s.rw1 > 6 && !s.bridge) {
+  if (s.rw1 > 6 && !s.bridge && !s.gap) {
     for (const rx of [-0.42, 0.42]) {
       const a1 = sx1 + rx * s.rw1, a2 = sx2 + rx * s.rw2;
       quad(ctx, a1 - s.rw1 * 0.06, sy1, a1 + s.rw1 * 0.06, sy1, a2 + s.rw2 * 0.06, sy2, a2 - s.rw2 * 0.06, sy2, biome.rut);
@@ -255,7 +268,7 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
   // surface patches
   const sf = s.surface;
   if (sf) {
-    const col = { sand: "#f2cf91", ice: "#bfeaff", mud: "#5a2e14", water: "#3a8fd0", lava: "#ff5a1f" }[sf.type];
+    const col = { sand: "#f2cf91", ice: "#bfeaff", mud: "#5a2e14", water: "#3a8fd0", lava: "#ff5a1f", blackice: "#a9c3dd", thinice: "#e6f6ff" }[sf.type];
     const taper = Math.sin((sf.k + 0.5) / sf.len * Math.PI);
     const c = (sf.x0 + sf.x1) / 2, hw = (sf.x1 - sf.x0) / 2 * (sf.type === "water" ? 1.2 : 0.4 + 0.6 * taper);
     let col2 = col;
@@ -264,6 +277,13 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
     if (sf.type === "ice") col2 = biome.dark ? "#7a9ac2" : "#b2e2fb";
     quad(ctx, sx1 + (c - hw) * s.rw1, sy1, sx1 + (c + hw) * s.rw1, sy1, sx2 + (c + hw) * s.rw2, sy2, sx2 + (c - hw) * s.rw2, sy2, col2);
     if (sf.type === "lava") { const hw2 = hw * 0.35; quad(ctx, sx1 + (c - hw2) * s.rw1, sy1, sx1 + (c + hw2) * s.rw1, sy1, sx2 + (c + hw2) * s.rw2, sy2, sx2 + (c - hw2) * s.rw2, sy2, "#ffe08a"); }
+  }
+  // bursts: a crack that glows (warning), then erupts
+  const bu = s.burst;
+  if (bu) {
+    const B = BURST_COL[bu.kind] || BURST_COL.lava;
+    const hw = 0.26, c = bu.x;
+    quad(ctx, sx1 + (c - hw) * s.rw1, sy1, sx1 + (c + hw) * s.rw1, sy1, sx2 + (c + hw) * s.rw2, sy2, sx2 + (c - hw) * s.rw2, sy2, B[bu.st]);
   }
   // boost pads (animated chevrons)
   const d = s.decal;
@@ -279,6 +299,7 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
   }
 }
 
+const BURST_COL = { lava: ["#3a2626", "#ff8a1c", "#ffe08a"], color: ["#d9c9ee", "#ff79b0", "#ffffff"], fire: ["#3a3348", "#ffd23f", "#ffffff"] };
 function sideGround(type, s, biome, t) {
   if (!type) return biome.ground[s.dark];
   if (type === "water") return (s.i + Math.floor(t * 5)) % 4 === 0 ? biome.water[1] : biome.water[0];
@@ -491,7 +512,8 @@ function drawWeather(ctx, w, h, biome, race, me, t) {
   const P = me.weather || (me.weather = Array.from({ length: 70 }, () => [Math.random(), Math.random(), Math.random()]));
   const kind = biome.weather;
   if (kind === "rain") {
-    ctx.strokeStyle = "rgba(200,225,255,.55)"; ctx.lineWidth = 1.5; ctx.beginPath();
+    const heavy = biome.rainK || 1;
+    ctx.strokeStyle = `rgba(200,225,255,${Math.min(0.8, 0.55 * heavy)})`; ctx.lineWidth = 1.5 * Math.min(1.4, heavy); ctx.beginPath();
     for (const p of P) {
       p[1] += 0.035 + sp * 0.02; p[0] -= 0.004 + me.lean * 0.01;
       if (p[1] > 1) { p[1] -= 1; p[0] = Math.random(); }
@@ -529,6 +551,27 @@ function drawWeather(ctx, w, h, biome, race, me, t) {
       ctx.fillRect(p[0] * w, p[1] * h, 6 + p[2] * 10, 1.5);
     }
     if (race.stormFog > 0) { ctx.fillStyle = `rgba(214,160,96,${race.stormFog * 0.45})`; ctx.fillRect(0, 0, w, h); }
+  } else if (kind === "fog") {
+    // thick drifting mist (fog density is also raised by biome.fogK)
+    for (let i = 0; i < 6; i++) {
+      const p = P[i]; p[0] -= 0.0008 + p[2] * 0.0008 + me.lean * 0.002;
+      if (p[0] < -0.4) p[0] += 1.8;
+      const x = p[0] * w, y = h * (0.3 + p[1] * 0.5);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, h * 0.5);
+      g.addColorStop(0, "rgba(235,240,245,.22)"); g.addColorStop(1, "rgba(235,240,245,0)");
+      ctx.fillStyle = g; ctx.fillRect(x - h * 0.5, y - h * 0.5, h, h);
+    }
+    ctx.fillStyle = "rgba(225,232,238,.12)"; ctx.fillRect(0, 0, w, h);
+  } else if (kind === "fireflies") {
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < 26; i++) {
+      const p = P[i]; p[0] += Math.sin(t * 0.7 + i * 3) * 0.0012 - me.lean * 0.003; p[1] += Math.cos(t * 0.5 + i) * 0.0008;
+      const x = ((p[0] % 1) + 1) % 1 * w, y = (0.25 + (((p[1] % 0.7) + 0.7) % 0.7)) * h;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, 9);
+      g.addColorStop(0, "rgba(230,255,140,.9)"); g.addColorStop(1, "rgba(230,255,140,0)");
+      ctx.fillStyle = g; ctx.fillRect(x - 9, y - 9, 18, 18);
+    }
+    ctx.globalCompositeOperation = "source-over";
   } else if (kind === "bats") {
     // a few bats flapping across the top of the sky, and autumn leaves tumbling down
     for (let i = 0; i < 5; i++) {

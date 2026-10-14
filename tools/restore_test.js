@@ -24,7 +24,7 @@ const old = { v: 1, tl: 2, coins: 6300, stars: { f1: 3, f2: 2, d1: 3 }, best: { 
       await p.screenshot({ path: '/tmp/claude-0/shots/restore-offer.png' });
       await p.click('#modal [data-a="yes"]'); await p.waitForTimeout(500);
       const s = await p.evaluate(() => JSON.parse(localStorage.getItem('wild-riders-save-v1')));
-      check(JSON.stringify(s.stars) === JSON.stringify(old.stars) && JSON.stringify(s.vehs) === JSON.stringify(old.vehs) && JSON.stringify(s.upg) === JSON.stringify(old.upg) && s.races === 33 && JSON.stringify(s.best) === JSON.stringify(old.best), 'progress restored ' + JSON.stringify(s));
+      check(JSON.stringify(s.stars) === JSON.stringify(old.stars) && JSON.stringify(s.vehs) === JSON.stringify(old.vehs) && JSON.stringify(s.upg) === JSON.stringify(old.upg) && s.races === 33 && JSON.stringify(s.best) === ((old.tl || 1) < 3 ? '{}' : JSON.stringify(old.best)), 'progress restored ' + JSON.stringify(s));
       check(JSON.stringify(s.riders) === '["kaito","bruno"]' && s.coins === 6300 + 2700, 'riders/coins ' + s.coins);
       await p.reload(); await p.waitForTimeout(2000);
       const h2 = await p.evaluate(() => !document.querySelector('#modal').classList.contains('hidden') && document.querySelector('.mbox h3').textContent);
