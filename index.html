@@ -6324,17 +6324,19 @@ function startupPopups() {
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.14h";
+const APP_VERSION = "2026.10.14i";
 const WHATS_NEW = [
-  "<b>New: Halloween trail!</b> Haunted Hollow is first on Choose a Trail, all October, for everyone.",
-  "Moonlit pumpkin patch, a crooked graveyard, and a ride straight through the haunted mansion.",
-  "<b>Ghosts</b> drift across the trail. Touch one and it spooks you blind for a second.",
-  "New throwable: the <b>Jack-o'-Bomb</b>. A new trail arrives every month and holiday.",
-  "Seasonal stars don't count toward unlocks, so nobody falls behind when a trail goes away.",
-]
+  "<b>All 12 trails reworked.</b> Each one now has its own big moment and hazard. Best times reset once.",
+  "<b>Fernline:</b> hollow redwoods, rolling logs · <b>Giant's Staircase:</b> fog, rope bridges, waterfall jump.",
+  "<b>Fortress Drop</b> (new name): fort walls, alleys, camels · <b>Sandstorm Alley:</b> giant dunes.",
+  "<b>Frostbite:</b> black ice, ice cave · <b>Avalanche!:</b> crevasse jumps (stay in the middle!), snowballs.",
+  "<b>Tea Terrace:</b> heavy rain, terrace jump · <b>Waterfall Gauntlet:</b> night, temple hall, swinging vines.",
+  "<b>Ashfall:</b> crumbling bridges, eruptions · <b>Geyser Gorge:</b> into the crater, falling rocks.",
+  "<b>Northern Lights:</b> the lake cracks into two lanes · <b>Aurora Pines</b> (new name): reindeer, ski jump.",
+];
 // ============================================
 
-const BUILD_ID = "wild-riders-c51b60825f";            // stamped by tools/build.py; matches version.json of this build
+const BUILD_ID = "wild-riders-fb75311983";            // stamped by tools/build.py; matches version.json of this build
 const VERSION_KEY = "wr-version", BACKUP_INFO_KEY = "wr-backup";
 const Upd = { reg: null, ready: false };
 
