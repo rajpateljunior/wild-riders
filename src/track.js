@@ -91,9 +91,12 @@ function buildTrack(def) {
     for (let k = from; k < to; k++) {
       const s = segs[k];
       s.zone = b.z || null;
+      const zd = b.z && BIOME_SCENERY[biome.id].zones && BIOME_SCENERY[biome.id].zones[b.z];
+      if (zd && zd.ground) s.gnd = zd.ground;                 // a zone can have its own ground / road colour (Kilimanjaro: snow, then savanna)
+      if (zd && zd.road) s.rd = zd.road;
       s.feat = (b.f === "ford" ? null : b.f) || null;
       if (b.ts) s.ts = b.ts;                                  // tunnel style (portal_<ts> / rib_<ts>)
-      if (b.g) { s.gateId = b.g; s.gateK = k - from; s.gateE = b.ge || 8; }   // arches over the trail (torii gates etc.)
+      if (b.g && k >= Math.max(from, 50)) { s.gateId = b.g; s.gateK = k - Math.max(from, 50); s.gateE = b.ge || 8; }   // (not before the start line)   // arches over the trail (torii gates etc.)
       if (b.f === "mtn") { if (s.curve > 0.4) side = 1; else if (s.curve < -0.4) side = -1; s.fside = side; }
     }
     if (b.f === "ford") {
@@ -111,6 +114,7 @@ function buildTrack(def) {
     if (!f) continue;
     if (f === "tunnel" || f === "falls" || f === "cave") { s.tun = f; s.gL = s.gR = "rock"; s.wl = s.wr = s.w + 0.32; s.wallL = s.wallR = 1; }
     else if (f === "bridge") { s.bridge = 1; s.gL = s.gR = sideType(biome.bridgeOver); s.wl = s.wr = s.w + 0.14; s.railL = s.railR = 1; }
+    else if (f === "ridge") { s.ridge = 1; s.gL = s.gR = sideType("chasm"); s.wl = s.wr = s.w + 0.14; s.railL = s.railR = 1; }   // on top of a wall / knife-edge ridge: drops both sides
     else if (f === "canyon") { s.wallL = s.wallR = 2; s.wl = s.wr = s.w + 0.55; }
     else if (f === "mtn" || f === "cliffL" || f === "cliffR") {
       const wall = f === "mtn" ? s.fside : f === "cliffL" ? -1 : 1;
@@ -124,7 +128,7 @@ function buildTrack(def) {
     else if (f === "lavaR") s.gR = "lava";
     else if (f === "lake") { s.gL = s.gR = "ice"; s.surface = { type: "ice", x0: -2.2, x1: 2.2, k: i, len: 9999 }; s.noObs = 1; }
   }
-  const featBlocks = (s) => !!(s.feat && s.feat !== "waterL" && s.feat !== "waterR" && s.feat !== "lavaL" && s.feat !== "lavaR" && s.feat !== "canyon" && s.feat !== "mtn" && s.feat !== "cliffL" && s.feat !== "cliffR");
+  const featBlocks = (s) => !!(s.feat && s.feat !== "waterL" && s.feat !== "waterR" && s.feat !== "lavaL" && s.feat !== "lavaR" && s.feat !== "canyon" && s.feat !== "ridge" && s.feat !== "mtn" && s.feat !== "cliffL" && s.feat !== "cliffR");
 
   // ---- 1b. Set pieces from plan-beat keys: j big jump, gap crevasse jumps, cr crumbling bridge, rs/ws rail/wall style ----
   const bigJump = (i, id, xs) => {
@@ -148,7 +152,7 @@ function buildTrack(def) {
       if (b.ws) s.ws = b.ws;
       // crumbling bridge: every other 10-segment stretch has one side (left, then right) that collapses after the first rider
       const ch = ((k - from) / 10) | 0;
-      if (b.cr && s.bridge && ch % 2 === 1) { s.crumble = 1; s.crSide = ((ch / 2) | 0) % 2 ? 1 : -1; crumbles.push(s); }
+      if (b.cr && (s.bridge || s.ridge) && ch % 2 === 1) { s.crumble = 1; s.crSide = ((ch / 2) | 0) % 2 ? 1 : -1; crumbles.push(s); }
     }
   }
 
@@ -276,7 +280,8 @@ function buildTrack(def) {
       for (let tries = 0; tries < 30; tries++) {
         const i = 130 + ((R() * (finishIdx - 230)) | 0);
         const s = segs[i];
-        if (!placeable(i) || s.tun || s.bridge || s.pin || s.split || s.ramp || s.vent || s.noObs) continue;
+        if (m.zone && tries > 25) break;
+        if (!placeable(i) || s.tun || s.bridge || s.pin || s.split || s.ramp || s.vent || s.noObs || (m.zone && s.zone !== m.zone)) continue;
         let near = false;
         for (let k = i - 30; k < i + 10; k++) if (segs[k] && (segs[k].ramp || segs[k].vent || segs[k].mover)) near = true;
         if (near) continue;
@@ -313,6 +318,14 @@ function buildTrack(def) {
       break;
     }
   }
+
+  // pacers: something that travels ALONG the trail beside it (the Swiss mountain train): seg range a..b, speed in BASE_SPEED units
+  const pacers = (def.pacers || []).map((pc) => {
+    let a = 0, b = 0;
+    const bt = beats.find((x) => x.b.pace);
+    if (bt) { a = bt.from; b = bt.to; }
+    return { id: pc.id, x: pc.x, a, b, speed: pc.speed, sp: { id: pc.id, x: pc.x }, seg: -1 };
+  }).filter((pc) => pc.b > pc.a);
 
   // crates: rows of three
   for (let i = 150; i < finishIdx - 80; i += 190 + ((R() * 80) | 0)) {
@@ -375,7 +388,7 @@ function buildTrack(def) {
     segs[i].sprites.push({ id: "crowd", x: -(segs[i].w + 0.9) }, { id: "crowd", x: segs[i].w + 0.9 });
   }
   return {
-    def, biome, segs, N, beats, movers, fallers, bursts, crumbles,
+    def, biome, segs, N, beats, movers, fallers, bursts, crumbles, pacers,
     length: N * SEG,
     finishZ: finishIdx * SEG,
     startZ: 22 * SEG,

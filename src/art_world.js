@@ -408,6 +408,7 @@ async function buildWorldSprites(biome, track) {
   const kit = biomeKit(biome);
   if (track) {
     for (const s of track.segs) for (const sp of s.sprites) if (!kit[sp.id]) ids.add(sp.id);
+    for (const pc of track.def.pacers || []) ids.add(pc.id);
     for (const b of track.def.plan) for (const k of [b.ts, b.ws]) if (k && KIT_EXTRA[k]) Object.assign(kit, KIT_EXTRA[k](biome));
   }
   [...ids].forEach((id) => { if (!W[id]) ids.delete(id); });              // kit pieces (walls, tunnels) are built from the kit below

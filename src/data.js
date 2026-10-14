@@ -70,6 +70,7 @@ const ITEMS = {
   paint:     { name: "Paint Bomb",    dmg: 12, spd: 5500, slow: 0.78, col: "#38e05a", blind: 1, sig: 1 },
   // seasonal / World Tour throwables (found in that trail's crates)
   pumpkin:   { name: "Jack-o'-Bomb",  dmg: 15, spd: 5300, slow: 0.75, col: "#ff8a1c", blind: 1 },
+  snowglobe: { name: "Snow Globe",    dmg: 14, spd: 5600, slow: 0.74, col: "#bfe9ff", blind: 1 },
   // utility items (from ? crates; PUNCH or swipe down uses them): shield blocks the next hit (15 s), mine is dropped behind you
   bubble:    { name: "Shield",        dmg: 0,  spd: 0,    slow: 1,    col: "#2bd9c5", util: "shield" },
   mine:      { name: "Mine",          dmg: 18, spd: 0,    slow: 0.5,  col: "#ff5a5a", util: "mine" },

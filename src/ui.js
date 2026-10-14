@@ -374,12 +374,76 @@ function openTrack() {
     c.onclick = () => { if (!unlocked) return; SFX.play("click"); App.pick.track = TRACKS.find((t) => t.biome === bi).id; openTrack(); };
     wrap.appendChild(c);
   });
+  const wc = trailCards().find((cd) => cd.kind === "world");
+  if (wc) wrap.appendChild(worldCard(wc, cur, stars));
   wrap.style.gridAutoColumns = "minmax(210px, 1fr)";
   const t = TRACKS.find((x) => x.id === cur), b = BIOMES[t.biome];
   $("#track-desc").innerHTML = `<span><b>${t.name}</b> — ${t.blurb || b.hazard} <i style="color:var(--sun);font-style:normal">${STAR_RULE}</i></span>`;
   $("#track-go").onclick = () => { SFX.play("click"); App.save.last.track = cur; saveGame(); if (App.mode === "online") return netHost(); startRace(); };
   show("scr-track");
   scrollSel(wrap);
+}
+
+/* ---------- World Tour: a card at the end of Choose a Trail that opens a world map with a pin per trail ---------- */
+const worldTracks = () => TRACKS.filter(isWorldTrack);
+function worldCard(wc, cur, stars) {
+  const unlocked = stars >= WORLD_UNLOCK;
+  const ts = worldTracks();
+  const got = ts.reduce((a, t) => a + (App.save.stars[t.id] || 0), 0);
+  const curW = ts.find((t) => t.id === cur);
+  const c = document.createElement("div");
+  c.className = "card biome world" + (curW ? " sel" : "");
+  c.innerHTML = `<div class="art">${worldMapSVG(true)}</div><div class="info" style="padding-bottom:0"><div class="nm">World Tour</div><div class="tg">${ts.length} famous places · ${got} / ${ts.length * 3} ★</div></div><div class="tracks">` +
+    (curW ? `<div class="trk sel"><div><div>${curW.name}</div><div class="bt">${BIOMES[curW.biome].sub}</div></div><span class="st">${[1, 2, 3].map((k) => `<span class="${k <= (App.save.stars[curW.id] || 0) ? "" : "off"}">★</span>`).join("")}</span></div>` : "") +
+    `<div class="trk wopen"><div><div>OPEN THE MAP ›</div><div class="bt">Pick a place to race</div></div></div></div>` +
+    (unlocked ? "" : `<div class="lock">★ ${WORLD_UNLOCK} TO UNLOCK<span style="font:700 12px Chakra Petch;color:#ccc">You have ${stars} ★</span></div>`);
+  c.onclick = () => { if (!unlocked) return; SFX.play("click"); openWorld(); };
+  return c;
+}
+// simple world map (equirectangular, 1000x500): continents drawn from rough lon/lat outlines
+const WORLD_LAND = [
+  [[-165, 65], [-140, 70], [-95, 72], [-80, 62], [-60, 55], [-65, 45], [-80, 30], [-82, 25], [-97, 20], [-90, 15], [-80, 8], [-85, 12], [-105, 22], [-115, 30], [-125, 40], [-125, 50], [-140, 60], [-165, 60]],
+  [[-55, 60], [-45, 60], [-20, 70], [-25, 82], [-60, 82], [-70, 76]],
+  [[-80, 10], [-60, 10], [-50, 0], [-35, -7], [-40, -22], [-55, -35], [-68, -55], [-75, -50], [-72, -30], [-80, -5]],
+  [[-10, 36], [-9, 43], [-2, 48], [-5, 58], [10, 63], [25, 70], [40, 68], [45, 55], [40, 45], [28, 41], [20, 40], [12, 44], [5, 43], [-2, 37]],
+  [[-17, 15], [-15, 28], [-5, 36], [10, 37], [32, 31], [43, 12], [51, 12], [40, -5], [40, -15], [32, -28], [20, -35], [13, -20], [10, -2], [9, 4], [-8, 5]],
+  [[40, 45], [45, 55], [40, 68], [70, 73], [100, 77], [140, 72], [170, 68], [160, 60], [142, 50], [135, 35], [122, 30], [120, 22], [108, 12], [100, 3], [98, 15], [90, 22], [78, 8], [72, 20], [60, 25], [50, 28], [43, 12], [35, 32], [28, 41]],
+  [[130, 31], [140, 35], [142, 40], [141, 45], [138, 40], [132, 34]],
+  [[113, -22], [130, -12], [142, -11], [153, -26], [146, -39], [135, -35], [115, -35]],
+  [[-8, 50], [2, 51], [-3, 58], [-6, 56]],
+];
+const lonX = (lon) => ((lon + 180) / 360) * 1000, latY = (lat) => ((90 - lat) / 180) * 500;
+function worldMapSVG(mini) {
+  let s = `<svg viewBox="0 ${mini ? 40 : 30} 1000 ${mini ? 380 : 420}" preserveAspectRatio="${mini ? "xMidYMid slice" : "xMidYMid meet"}" style="position:absolute;inset:0;width:100%;height:100%"><rect x="0" y="0" width="1000" height="500" fill="#1d5f9e"/>`;
+  for (let i = 1; i < 6; i++) s += `<path d="M0 ${i * 83} L1000 ${i * 83} M${i * 166} 0 L${i * 166} 500" stroke="#3a7cbc" stroke-width="1.5" opacity=".5"/>`;
+  for (const poly of WORLD_LAND) s += `<path d="M${poly.map(([lo, la]) => lonX(lo).toFixed(0) + " " + latY(la).toFixed(0)).join(" L")}Z" fill="#4f9b3c" stroke="#2c5e24" stroke-width="3" stroke-linejoin="round"/>`;
+  if (mini) for (const t of worldTracks()) { const b = BIOMES[t.biome]; s += `<circle cx="${lonX(b.lon)}" cy="${latY(b.lat)}" r="11" fill="#ffd23f" stroke="${OL}" stroke-width="4"/>`; }
+  return s + "</svg>";
+}
+function openWorld() {
+  App.step = "world";
+  const ts = worldTracks();
+  let cur = App.pick.track && ts.find((t) => t.id === App.pick.track) ? App.pick.track : ts[0].id;
+  App.pick.track = cur;
+  const map = $("#world-map");
+  map.innerHTML = `<div class="wm">${worldMapSVG(false)}</div>`;
+  const wm = map.firstElementChild;
+  for (const t of ts) {
+    const b = BIOMES[t.biome], st = App.save.stars[t.id] || 0;
+    const pin = document.createElement("button");
+    pin.className = "pin" + (t.id === cur ? " sel" : "") + (b.lab ? " " + b.lab : "");   // lab: label to the left / up / down so close pins never overlap
+    // the map shows y 30..450 of the 500-high world, so pins are placed in that window
+    pin.style.left = (lonX(b.lon) / 10) + "%"; pin.style.top = ((latY(b.lat) - 30) / 4.2) + "%";
+    pin.innerHTML = `<i></i><span class="pl"><b>${b.place}</b><em>${[1, 2, 3].map((k) => (k <= st ? "★" : "☆")).join("")}</em></span>`;
+    pin.onclick = (ev) => { ev.stopPropagation(); SFX.play("click"); App.pick.track = t.id; openWorld(); };
+    wm.appendChild(pin);
+  }
+  const got = ts.reduce((a, t) => a + (App.save.stars[t.id] || 0), 0);
+  $("#world-stars").textContent = got + " / " + ts.length * 3 + " ★";
+  const t = TRACKS.find((x) => x.id === cur);
+  $("#world-desc").innerHTML = `<span><b>${t.name}</b> · ${BIOMES[t.biome].sub} — ${t.blurb}</span>`;
+  $("#world-go").onclick = () => { SFX.play("click"); App.save.last.track = cur; saveGame(); if (App.mode === "online") return netHost(); startRace(); };
+  show("scr-world");
 }
 
 /* ---------- settings / help / save code ---------- */
@@ -646,6 +710,7 @@ function wireMenus() {
       else if (s === "rider2") { App.step = "veh"; openVeh(); }
       else if (s === "veh2") { App.step = "rider2"; openRider(); }
       else if (s === "track") { App.step = App.mode === "split" ? "veh2" : "veh"; openVeh(); }
+      else if (s === "world") { App.step = "track"; openTrack(); }
       else renderTitle();
     }
   }));

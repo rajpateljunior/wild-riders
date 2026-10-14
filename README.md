@@ -2,7 +2,7 @@
 
 Downhill bike & ATV racing for iPhone and iPad (landscape), in the spirit of PS2-era downhill racers.
 Armored anime riders (Arcade or Savage style), punches and kicks, throwables, health that slows you down, boost pads, ramps, tricks,
-six nature biomes, a seasonal trail every month, bots, two-player split screen, and online 2-player with room codes. Installable to the Home Screen and fully offline.
+six nature biomes, a seasonal trail every month, a World Tour of 8 famous places, bots, two-player split screen, and online 2-player with room codes. Installable to the Home Screen and fully offline.
 
 **Play:** https://rajpateljunior.github.io/wild-riders/ (open in Safari → Share → Add to Home Screen)
 

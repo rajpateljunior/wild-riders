@@ -306,6 +306,29 @@ body.savage .title-cast .dust i { background: rgba(120,90,80,.5); }
 .card.season.sel { border-color: var(--sun); }
 .ribbon { position: absolute; top: 8px; left: 8px; z-index: 1; background: #ff8a1c; color: #2a1406; font: 400 15px/1 Bangers, sans-serif; letter-spacing: 1px; padding: 4px 8px 3px; border-radius: 6px; box-shadow: 0 2px 0 rgba(0,0,0,.35); pointer-events: none; }
 
+/* World Tour card + map screen */
+.card.world { border-color: #2b9cff; }
+.card.world.sel { border-color: var(--sun); }
+.card.world .art svg { height: 100%; width: 100%; }
+.trk.wopen { color: #8fd0ff; }
+.wstars { margin-left: auto; margin-right: 10px; font: 400 18px Bangers, sans-serif; color: var(--sun); letter-spacing: 1px; }
+.worldmap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 4px 0; }
+.worldmap .wm { position: relative; height: 100%; max-width: 100%; aspect-ratio: 1000 / 420; border-radius: 14px; overflow: hidden; border: 2px solid var(--line); }
+.pin { position: absolute; width: 0; height: 0; padding: 0; border: 0; background: none; }
+.pin::before { content: ""; position: absolute; left: -24px; top: -24px; width: 48px; height: 48px; }   /* big tap target */
+.pin i { position: absolute; left: -10px; top: -10px; width: 20px; height: 20px; border-radius: 50%; background: #ffd23f; border: 3px solid #1b1426; box-shadow: 0 2px 0 rgba(0,0,0,.4); }
+.pin.sel i { left: -14px; top: -14px; width: 28px; height: 28px; background: #ff3d7f; }
+.pin .pl { position: absolute; left: 12px; top: -11px; white-space: nowrap; background: rgba(20,12,32,.82); border-radius: 7px; padding: 2px 7px 3px; text-align: left; pointer-events: none; display: flex; flex-direction: column; line-height: 1.05; }
+.pin.left .pl { left: auto; right: 12px; text-align: right; }
+.pin .pl b { font: 400 14px Bangers, sans-serif; letter-spacing: .5px; color: #fff; }
+.pin .pl em { font-style: normal; font-size: 10px; color: var(--sun); letter-spacing: 1px; }
+.pin.sel .pl { background: #ff3d7f; }
+.pin.sel .pl b { color: #fff; }
+#scr-world .footer { height: 46px; min-height: 0; flex: none; padding-top: 4px; }
+#scr-world .footer .desc { font-size: 11px; line-height: 1.25; height: 3.75em; overflow: hidden; display: flex; align-items: center; }
+.pin.up .pl { left: 50%; top: -44px; transform: translateX(-50%); text-align: center; }
+.pin.down .pl { left: 50%; top: 13px; transform: translateX(-50%); text-align: center; }
+
 </style>
 </head>
 <body>
@@ -346,6 +369,12 @@ body.savage .title-cast .dust i { background: rgba(120,90,80,.5); }
   <div class="topbar"><button class="back" data-act="back">‹</button><h2>CHOOSE A TRAIL</h2><span class="coins"><i class="coin"></i><span class="coinv">0</span></span></div>
   <div class="cards" id="track-cards"></div>
   <div class="footer"><div class="desc" id="track-desc"></div><button class="btn" style="--c:#2bd96a" id="track-go">RIDE!</button></div>
+</section>
+
+<section id="scr-world" class="screen hidden">
+  <div class="topbar"><button class="back" data-act="back">‹</button><h2>WORLD TOUR</h2><span class="wstars" id="world-stars"></span><span class="coins"><i class="coin"></i><span class="coinv">0</span></span></div>
+  <div class="worldmap" id="world-map"></div>
+  <div class="footer"><div class="desc" id="world-desc"></div><button class="btn" style="--c:#2bd96a" id="world-go">RIDE!</button></div>
 </section>
 
 <section id="scr-results" class="screen hidden">
@@ -504,6 +533,7 @@ const ITEMS = {
   paint:     { name: "Paint Bomb",    dmg: 12, spd: 5500, slow: 0.78, col: "#38e05a", blind: 1, sig: 1 },
   // seasonal / World Tour throwables (found in that trail's crates)
   pumpkin:   { name: "Jack-o'-Bomb",  dmg: 15, spd: 5300, slow: 0.75, col: "#ff8a1c", blind: 1 },
+  snowglobe: { name: "Snow Globe",    dmg: 14, spd: 5600, slow: 0.74, col: "#bfe9ff", blind: 1 },
   // utility items (from ? crates; PUNCH or swipe down uses them): shield blocks the next hit (15 s), mine is dropped behind you
   bubble:    { name: "Shield",        dmg: 0,  spd: 0,    slow: 1,    col: "#2bd9c5", util: "shield" },
   mine:      { name: "Mine",          dmg: 18, spd: 0,    slow: 0.5,  col: "#ff5a5a", util: "mine" },
@@ -792,6 +822,147 @@ addTheme({ id: "halloween", name: "Halloween", sub: "Spooky night", group: "seas
       { t: "X", n: 130, d: 40, z: "woods" }, { t: "T", dir: 1, c: 3.5, n: 170, d: 24, f: "tunnel", ts: "mansion" }, { t: "S", n: 90, d: 8, z: "manor" },
       { t: "H", dir: -1, d: 6, z: "woods" }, { t: "C", n: 120, d: 60, z: "woods" }, { t: "E", dir: 1, k: 3, c: 4, n: 200, d: 30, z: "graveyard" },
       { t: "T", dir: 1, c: 2.5, n: 150, d: 20, z: "swamp", f: "waterR" }, { t: "S", n: 110, d: 8, z: "patch" },
+    ] },
+]);
+
+/* ======================= WORLD TOUR ======================= */
+// World themes add: place (map label), lon/lat (pin), lab (label side: left / up / down)
+const W_BASE = { group: "world", unlock: WORLD_UNLOCK, item: "snowglobe" };
+
+addTheme(Object.assign({ id: "valpo", name: "Valparaíso", sub: "Chile", place: "VALPARAÍSO", lon: -71.6, lat: -33.05,
+  sky: ["#3c9ae0", "#a8d8f2", "#ffeec4"], fog: "#d9e6ee", sun: "#fff8d8", sunY: 0.14, sunX: 0.3,
+  road: ["#6f6b74", "#666270"], rut: "#55525c", edge: ["#ffd23f", "#2b7de9"], ground: ["#bfae96", "#b3a28a"],
+  rock: ["#e2433b", "#ffd23f"], chasm: ["#1d5f9e", "#1a5690"], water: ["#2b7de9", "#4b97f0"], bridgeOver: "water", plank: ["#8a6a4a", "#7a5c3e"],
+  weather: null, music: 0, surf: null, bg: { far: ["#2b7de9", "#2b6fc9"], near: "#d9c7a8", tree: null, extra: "harbor", amp: 60, jag: 0 } }, W_BASE), [
+  { id: "w1", name: "Valparaíso Hill Bomb", seed: 7101, len: 3500, curvy: 0.95, hilly: 1.2, ramps: 6, splits: 1, pads: 8, haz: 0.8,
+    movers: [{ id: "streetcart", n: 6, amp: 0.85, spd: 0.4 }], obs: ["trashcan", "streetcart"],
+    blurb: "Bomb down colourful hillside streets and stairways above the harbour: rooftop jumps, street carts, and a leap over the cable car.",
+    plan: [
+      { t: "S", n: 70, d: 8, z: "barrio" }, { t: "E", dir: 1, k: 3, c: 4.5, n: 220, d: 40, z: "barrio", f: "canyon", ws: "casas" }, { t: "ST", k: 3, d: 18, z: "barrio" },
+      { t: "T", dir: -1, c: 3.5, n: 160, d: 34, z: "plaza" }, { t: "X", n: 130, d: 50, z: "barrio", j: 1, jat: 0.12, jr: "stoneramp" }, { t: "H", dir: 1, d: 8, z: "barrio", f: "canyon", ws: "casas" },
+      { t: "C", n: 130, d: 70, z: "ascensor", j: 1, jat: 0.3, jr: "bigramp" }, { t: "E", dir: -1, k: 4, c: 5, n: 240, d: 40, z: "barrio", f: "canyon", ws: "casas" }, { t: "ST", k: 4, d: 20, z: "plaza" },
+      { t: "T", dir: 1, c: 3, n: 150, d: 30, z: "barrio" }, { t: "SW", dir: -1, k: 2, d: 14, z: "barrio", f: "canyon", ws: "casas" }, { t: "C", n: 120, d: 60, z: "port" },
+      { t: "S", n: 120, d: 6, z: "port", f: "waterR" },
+    ] },
+]);
+
+addTheme(Object.assign({ id: "greatwall", name: "Great Wall", sub: "China", place: "GREAT WALL", lon: 116.6, lat: 40.4, lab: "up",
+  sky: ["#5f9fd9", "#b7d9ee", "#f1f0d8"], fog: "#c9d9d0", sun: "#fffbe0", sunY: 0.12, sunX: 0.62,
+  road: ["#a89c86", "#9e927c"], rut: "#8a7f6a", edge: ["#7a705e", "#c9bfa8"], ground: ["#5e8a4a", "#557f43"],
+  rock: ["#8f8572", "#a89c86"], chasm: ["#5f8a5a", "#567f52"], water: ["#4a8ab8", "#5a9ac8"], bridgeOver: "chasm", plank: ["#8f8572", "#857b68"],
+  weather: null, music: 8, surf: null, bg: { far: ["#7aa58a", "#5f8f6f"], near: "#4f7a45", tree: "#3d6a38", extra: "greatwall" } }, W_BASE), [
+  { id: "w2", name: "Great Wall Descent", seed: 7201, len: 3300, curvy: 0.85, hilly: 1.2, ramps: 5, splits: 0, pads: 9, haz: 0.75,
+    obs: ["rubble"],
+    blurb: "Race along the top of the Great Wall: stair drops, watchtower tunnels and crumbling sections with a long fall on both sides.",
+    plan: [
+      { t: "S", n: 80, d: 4, f: "ridge", rs: "battlement" }, { t: "T", dir: 1, c: 2.5, n: 170, d: 26, f: "ridge", rs: "battlement" }, { t: "S", n: 34, d: 2, f: "tunnel", ts: "tower" },
+      { t: "ST", k: 4, d: 18, f: "ridge", rs: "battlement" }, { t: "T", dir: -1, c: 3, n: 160, d: 30, f: "ridge", rs: "battlement" }, { t: "S", n: 34, d: 2, f: "tunnel", ts: "tower" },
+      { t: "X", n: 140, d: 50, f: "ridge", rs: "battlement" }, { t: "E", dir: 1, k: 3, c: 3.5, n: 210, d: 34, f: "ridge", rs: "battlement" }, { t: "S", n: 34, d: 2, f: "tunnel", ts: "tower" },
+      { t: "ST", k: 5, d: 20, f: "ridge", rs: "battlement" }, { t: "T", dir: 1, c: 3.5, n: 160, d: 30, f: "ridge", rs: "battlement", cr: 1 }, { t: "S", n: 34, d: 2, f: "tunnel", ts: "tower" },
+      { t: "C", n: 130, d: 60, f: "ridge", rs: "battlement" }, { t: "T", dir: -1, c: 2.5, n: 150, d: 20, f: "ridge", rs: "battlement" }, { t: "S", n: 34, d: 2, f: "tunnel", ts: "tower" },
+      { t: "S", n: 90, d: 6, f: "ridge", rs: "battlement" },
+    ] },
+]);
+
+addTheme(Object.assign({ id: "alps", name: "Swiss Alps", sub: "Switzerland", place: "SWISS ALPS", lon: 7.75, lat: 46.0,
+  sky: ["#3f8ee0", "#a9d6f5", "#f2f8ff"], fog: "#d8ecf2", sun: "#ffffff", sunY: 0.12, sunX: 0.7,
+  road: ["#8a7b66", "#80725e"], rut: "#6e6252", edge: ["#5a4a3a", "#f2ead8"], ground: ["#5fae48", "#56a141"],
+  rock: ["#8c94a6", "#ffffff"], chasm: ["#3f7a4a", "#386e42"], water: ["#5ab0e0", "#6fc0ec"], bridgeOver: "water", plank: ["#9a6a3c", "#8a5c32"],
+  weather: null, music: 9, surf: null, bg: { far: ["#9fb6d2", "#7f98b8"], near: "#4f9a3e", tree: "#2f6b33", snow: 1, extra: "matterhorn" } }, W_BASE), [
+  { id: "w3", name: "Swiss Alps Express", seed: 7301, len: 3600, curvy: 0.85, hilly: 1.05, ramps: 6, splits: 2, pads: 8, haz: 0.7,
+    movers: [{ id: "alpcow", n: 7, amp: 0.9, spd: 0.3 }], pacers: [{ id: "redtrain", x: 2.35, speed: 0.92 }],
+    blurb: "Green alpine meadows under the Matterhorn: cowbell pastures, chalet villages, and a race with the red mountain train into its tunnel.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "meadow" }, { t: "T", dir: 1, c: 2.5, n: 180, d: 24, z: "meadow" }, { t: "E", dir: -1, k: 3, c: 3.5, n: 210, d: 30, z: "village" },
+      { t: "S", n: 80, d: 4, z: "village", f: "bridge" }, { t: "T", dir: -1, c: 3, n: 170, d: 30, z: "pasture" }, { t: "X", n: 140, d: 44, z: "pasture" },
+      { t: "SW", dir: 1, k: 2, d: 14, z: "meadow", f: "mtn" }, { t: "S", n: 260, d: 20, z: "railway", pace: 1 }, { t: "T", dir: 1, c: 2.5, n: 190, d: 26, f: "tunnel", ts: "rail" },
+      { t: "E", dir: 1, k: 3, c: 4, n: 210, d: 34, z: "village" }, { t: "C", n: 120, d: 56, z: "meadow" }, { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "pasture" },
+      { t: "S", n: 100, d: 6, z: "village" },
+    ] },
+]);
+
+addTheme(Object.assign({ id: "machu", name: "Machu Picchu", sub: "Peru", place: "MACHU PICCHU", lon: -72.5, lat: -13.2, lab: "left",
+  sky: ["#6aa3c9", "#c2dbe6", "#eef2ea"], fog: "#d6e2dc", sun: "#fffbe8", sunY: 0.15, sunX: 0.65,
+  road: ["#8c7a5e", "#837256"], rut: "#6e5f46", edge: ["#6f6656", "#b9b09a"], ground: ["#4f9a46", "#478f40"],
+  rock: ["#8f8a78", "#4f9a46"], chasm: ["#3f6e4a", "#386544"], water: ["#5a9ab8", "#6aaac8"], bridgeOver: "chasm", plank: ["#8a6a4a", "#7a5c3e"],
+  weather: "fog", fogK: 1.4, music: 1, surf: "mud", bg: { far: ["#6f9a7a", "#5a8a66"], near: "#3f7a3a", tree: "#2f6a30", extra: "picchu" } }, W_BASE), [
+  { id: "w4", name: "Machu Picchu Trail", seed: 7401, len: 3600, curvy: 0.95, hilly: 1.15, ramps: 6, splits: 1, pads: 8, haz: 0.8,
+    movers: [{ id: "llama", n: 7, amp: 0.85, spd: 0.35 }],
+    blurb: "Stone terraces in the clouds high in the Andes: ancient ruins, llamas on the path, and a steep stone-stairway finale.",
+    plan: [
+      { t: "S", n: 80, d: 6, z: "terraces" }, { t: "T", dir: -1, c: 3, n: 170, d: 30, z: "terraces", f: "mtn" }, { t: "E", dir: 1, k: 3, c: 4, n: 210, d: 34, z: "ruins" },
+      { t: "ST", k: 3, d: 16, z: "ruins" }, { t: "SW", dir: -1, k: 2, d: 14, z: "terraces", f: "mtn" }, { t: "T", dir: 1, c: 3, n: 150, d: 26, f: "tunnel", ts: "inca" },
+      { t: "X", n: 130, d: 44, z: "terraces" }, { t: "E", dir: -1, k: 4, c: 4.5, n: 240, d: 40, z: "ruins" }, { t: "H", dir: 1, d: 8, z: "terraces", f: "mtn" },
+      { t: "S", n: 90, d: 4, z: "cloud", f: "bridge", rs: "rope" }, { t: "T", dir: -1, c: 3.5, n: 160, d: 30, z: "ruins" }, { t: "ST", k: 5, d: 22, z: "ruins", j: 1, jat: 0.05, jr: "stoneramp" },
+      { t: "S", n: 90, d: 8, z: "ruins" },
+    ] },
+]);
+
+addTheme(Object.assign({ id: "moab", name: "Moab", sub: "Utah, USA", place: "MOAB", lon: -109.5, lat: 38.6,
+  sky: ["#2f86d8", "#94cbef", "#ffe6c0"], fog: "#f0c9a0", sun: "#fffbe0", sunY: 0.12, sunX: 0.25,
+  road: ["#d9895a", "#cf7f50"], rut: "#b86a40", edge: ["#9a4a26", "#f4d7b0"], ground: ["#e09a62", "#d68f58"],
+  rock: ["#c4562b", "#e07a45"], chasm: ["#7a3518", "#6e2f15"], water: ["#3fa0c8", "#5cb6d8"], bridgeOver: "chasm", plank: ["#a8743f", "#966536"],
+  weather: null, music: 1, surf: "sand", bg: { far: ["#d9784a", "#c4643a"], near: "#e8a06a", tree: null, extra: "buttes", amp: 140 } }, W_BASE), [
+  { id: "w5", name: "Moab Red Rock", seed: 7501, len: 3600, curvy: 0.85, hilly: 1.1, ramps: 8, splits: 2, pads: 8, haz: 0.75, grip: 1.12, wide: 1.1,
+    movers: [{ id: "tumbleroll", n: 8, amp: 1.05, spd: 0.9 }],
+    blurb: "Grippy red slickrock in the desert: ride under giant stone arches, big air off the domes, and a jump at the canyon edge.",
+    plan: [
+      { t: "S", n: 90, d: 4, z: "slickrock", g: "rockarch", ge: 999 }, { t: "X", n: 150, d: 40, z: "slickrock" }, { t: "T", dir: 1, c: 3, n: 170, d: 26, z: "hoodoos" },
+      { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "slickrock" }, { t: "S", n: 100, d: 6, z: "arches", g: "rockarch", ge: 999 }, { t: "X", n: 140, d: 44, z: "slickrock" },
+      { t: "T", dir: -1, c: 3.5, n: 160, d: 30, f: "canyon" }, { t: "S", n: 120, d: 10, z: "rim", f: "cliffR" }, { t: "C", n: 140, d: 70, z: "rim", f: "cliffR", j: 1, jat: 0.1, jr: "sandramp" },
+      { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 30, z: "hoodoos" }, { t: "S", n: 90, d: 6, z: "arches", g: "rockarch", ge: 999 }, { t: "X", n: 140, d: 40, z: "slickrock" },
+      { t: "T", dir: 1, c: 3, n: 150, d: 20, z: "slickrock" }, { t: "S", n: 100, d: 8, z: "arches" },
+    ] },
+]);
+
+addTheme(Object.assign({ id: "fuji", name: "Mount Fuji", sub: "Japan", place: "FUJI", lon: 138.7, lat: 35.4,
+  sky: ["#5aa6e6", "#c9e2f5", "#ffe9f0"], fog: "#f4e2ea", sun: "#fffaf0", sunY: 0.14, sunX: 0.3,
+  road: ["#c9b8a0", "#bfae96"], rut: "#a8987f", edge: ["#7a6a5a", "#f4ece0"], ground: ["#6fae58", "#66a251"],
+  rock: ["#8c94a6", "#ffffff"], chasm: ["#3f7a5a", "#386e52"], water: ["#4a9ad8", "#5aaae6"], bridgeOver: "water", plank: ["#c4362b", "#b32f25"],
+  weather: "petals", music: 10, surf: null, bg: { far: ["#9fb8d8", "#86a3c8"], near: "#5f9e4a", tree: "#3f7a3a", extra: "fujisan" } }, W_BASE), [
+  { id: "w6", name: "Fuji Blossom Run", seed: 7601, len: 3600, curvy: 0.9, hilly: 1.0, ramps: 6, splits: 2, pads: 8, haz: 0.7,
+    movers: [{ id: "deer", n: 7, amp: 0.9, spd: 0.4 }],
+    blurb: "Cherry blossoms under Mount Fuji: a red bridge over the pond, a five-storey pagoda, deer on the path and a tunnel of red torii gates.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "sakura" }, { t: "T", dir: 1, c: 3, n: 180, d: 26, z: "sakura" }, { t: "S", n: 80, d: 2, z: "pond", f: "bridge" },
+      { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "temple" }, { t: "S", n: 130, d: 10, z: "shrine", g: "torii", ge: 5 }, { t: "T", dir: -1, c: 3, n: 160, d: 30, z: "sakura" },
+      { t: "X", n: 130, d: 44, z: "sakura" }, { t: "SW", dir: 1, k: 2, d: 14, z: "temple", f: "mtn" }, { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 34, z: "sakura" },
+      { t: "T", dir: 1, c: 3, n: 150, d: 24, z: "shrine", g: "torii", ge: 5 }, { t: "C", n: 120, d: 56, z: "sakura" }, { t: "T", dir: -1, c: 2.5, n: 150, d: 20, z: "pond", f: "waterL" },
+      { t: "S", n: 100, d: 8, z: "temple" },
+    ] },
+]);
+
+addTheme(Object.assign({ id: "ladakh", name: "Ladakh", sub: "Himalaya, India", place: "LADAKH", lon: 77.6, lat: 34.2, lab: "down",
+  sky: ["#1f5fc4", "#79b3ea", "#e0ecf6"], fog: "#d6dde2", sun: "#ffffff", sunY: 0.1, sunX: 0.7,
+  road: ["#5a5660", "#524e58"], rut: "#45424c", edge: ["#ffd23f", "#f2eee6"], ground: ["#b39a78", "#a88f6d"],
+  rock: ["#9a8468", "#f2f4f8"], chasm: ["#7a6a58", "#6f604f"], water: ["#4ab0d8", "#62c0e4"], bridgeOver: "water", plank: ["#8a6a4a", "#7a5c3e"],
+  weather: null, music: 3, surf: "sand", bg: { far: ["#a8b4c8", "#8e9cb4"], near: "#a08a6a", tree: null, snow: 1, extra: "himalaya", jag: 60 } }, W_BASE), [
+  { id: "w7", name: "Ladakh Himalaya", seed: 7701, len: 3800, curvy: 0.95, hilly: 1.25, ramps: 5, splits: 1, pads: 9, haz: 0.8,
+    movers: [{ id: "yak", n: 7, amp: 0.85, spd: 0.3 }],
+    blurb: "Switchbacks down a high Himalayan pass under strings of prayer flags: white stupas, a cliffside monastery, and yaks on the road.",
+    plan: [
+      { t: "S", n: 80, d: 6, z: "pass", g: "prayerflags", ge: 9 }, { t: "SW", dir: 1, k: 3, d: 16, z: "pass", f: "mtn" }, { t: "T", dir: -1, c: 3, n: 170, d: 30, z: "stupas" },
+      { t: "S", n: 100, d: 8, z: "stupas", g: "prayerflags", ge: 14 }, { t: "SW", dir: -1, k: 3, d: 16, z: "pass", f: "mtn" }, { t: "E", dir: 1, k: 3, c: 4, n: 210, d: 34, z: "valley" },
+      { t: "S", n: 80, d: 4, z: "valley", f: "bridge", g: "prayerflags", ge: 20 }, { t: "T", dir: 1, c: 3.5, n: 160, d: 30, z: "monastery" }, { t: "SW", dir: 1, k: 2, d: 14, z: "monastery", f: "mtn" },
+      { t: "X", n: 130, d: 44, z: "valley" }, { t: "E", dir: -1, k: 3, c: 4.5, n: 200, d: 30, z: "stupas" }, { t: "C", n: 120, d: 56, z: "pass" },
+      { t: "T", dir: -1, c: 3, n: 150, d: 20, z: "village", g: "prayerflags", ge: 12 }, { t: "S", n: 100, d: 8, z: "village" },
+    ] },
+]);
+
+addTheme(Object.assign({ id: "kili", name: "Kilimanjaro", sub: "Tanzania", place: "KILIMANJARO", lon: 37.35, lat: -3.07,
+  sky: ["#3f94dc", "#a6d4f0", "#ffe7b8"], fog: "#efd9b0", sun: "#fff6d0", sunY: 0.14, sunX: 0.72,
+  road: ["#b86a3a", "#ad6034"], rut: "#94512b", edge: ["#7a4222", "#f2d7a8"], ground: ["#c9b058", "#bea450"],
+  rock: ["#7a6a5a", "#ffffff"], chasm: ["#7a5a3a", "#6f5034"], water: ["#4a9ab8", "#5aaac8"], bridgeOver: "water", plank: ["#8a6a4a", "#7a5c3e"],
+  weather: null, music: 3, surf: "sand", bg: { far: ["#9ab0c4", "#7f96ac"], near: "#b39a50", tree: null, extra: "kilimanjaro" } }, W_BASE), [
+  { id: "w8", name: "Kilimanjaro Safari", seed: 7801, len: 3800, curvy: 0.85, hilly: 1.15, ramps: 6, splits: 2, pads: 8, haz: 0.75,
+    movers: [{ id: "zebra", n: 6, amp: 1.0, spd: 0.55, zone: "herd" }, { id: "giraffe", n: 4, amp: 0.9, spd: 0.35, zone: "herd" }],
+    blurb: "From the snowy summit of Africa's highest mountain down into the savanna: acacia plains and a zebra and giraffe stampede.",
+    plan: [
+      { t: "S", n: 80, d: 8, z: "summit" }, { t: "C", n: 150, d: 80, z: "summit" }, { t: "SW", dir: -1, k: 2, d: 16, z: "moor", f: "mtn" },
+      { t: "T", dir: 1, c: 3, n: 170, d: 34, z: "moor" }, { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 40, z: "forest" }, { t: "X", n: 140, d: 44, z: "savanna" },
+      { t: "S", n: 220, d: 10, z: "herd" }, { t: "T", dir: 1, c: 2.5, n: 180, d: 20, z: "herd" }, { t: "S", n: 80, d: 2, z: "savanna", f: "ford" },
+      { t: "E", dir: 1, k: 3, c: 4, n: 200, d: 30, z: "savanna" }, { t: "S", n: 200, d: 10, z: "herd" }, { t: "T", dir: -1, c: 3, n: 160, d: 20, z: "savanna" },
+      { t: "S", n: 100, d: 6, z: "savanna" },
     ] },
 ]);
 
@@ -1934,6 +2105,7 @@ async function buildWorldSprites(biome, track) {
   const kit = biomeKit(biome);
   if (track) {
     for (const s of track.segs) for (const sp of s.sprites) if (!kit[sp.id]) ids.add(sp.id);
+    for (const pc of track.def.pacers || []) ids.add(pc.id);
     for (const b of track.def.plan) for (const k of [b.ts, b.ws]) if (k && KIT_EXTRA[k]) Object.assign(kit, KIT_EXTRA[k](biome));
   }
   [...ids].forEach((id) => { if (!W[id]) ids.delete(id); });              // kit pieces (walls, tunnels) are built from the kit below
@@ -2230,6 +2402,300 @@ Object.assign(BIOME_SCENERY.ghats.zones, { ruins: { near: [["ruin", 4], ["banana
 Object.assign(BIOME_SCENERY.volcano.zones, { crater: { near: [["spire", 3], ["obsidian", 2], ["lavarock", 2]], dens: 0.6 } });
 Object.assign(BIOME_SCENERY.tundra.zones, { pines: { near: [["darkpine", 8], ["tsnowrock", 1], ["lantern", 0.4]], dens: 0.9 } });
 
+/* ======================= WORLD TOUR ======================= */
+THEME_ITEMS.snowglobe = () => SV.circ(32, 28, 20, "#bfe9ff", 3) + `<path d="M20 30 L32 16 L44 30Z" fill="#fff"/>` + SV.circ(26, 22, 2, "#fff", 0) + SV.circ(38, 34, 2, "#fff", 0) + SV.rect(16, 44, 32, 14, 4, "#c4562b", 3);
+
+// ---- Valparaíso ----
+const CASA = ["#ff5a7a", "#ffd23f", "#2bb6e8", "#6fd36a", "#b35cff", "#ff8a1c", "#38d0c0"];
+function casaSVG(w, h, seed) {
+  const R = rng(seed);
+  let s = "", y = h;
+  for (let k = 0; k < 3; k++) {
+    const hh = h * (0.26 + R() * 0.08), x = 10 + R() * 20, ww = w - 20 - R() * 30, col = CASA[(R() * CASA.length) | 0];
+    s += SV.rect(x, y - hh, ww, hh, 3, col, 3);
+    for (let wx = x + 14; wx < x + ww - 24; wx += 34) s += SV.rect(wx, y - hh + 14, 18, 22, 2, "#fff6e0", 2);
+    s += SV.rect(x - 4, y - hh - 8, ww + 8, 10, 2, shade(col, -0.25), 2.5);
+    y -= hh + 8;
+  }
+  return s;
+}
+def("casa", 220, 380, 1700, () => casaSVG(220, 380, 3), { solid: 1 });
+def("casa2", 220, 330, 1700, () => casaSVG(220, 330, 11), { solid: 1 });
+KIT_EXTRA.casas = () => ({
+  wall_casas: { w: 300, h: 420, ww: 3400, solid: 1, svg: () => {
+    let s = "";
+    const R = rng(5);
+    for (let x = 0; x < 300; x += 100) { const col = CASA[(R() * CASA.length) | 0]; s += SV.rect(x, 40 + R() * 40, 100, 400, 0, col, 3); for (let y = 110; y < 400; y += 70) s += SV.rect(x + 22, y, 22, 30, 2, "#fff6e0", 2) + SV.rect(x + 58, y, 22, 30, 2, "#fff6e0", 2); }
+    s += `<path d="M20 300 Q80 240 140 300 T260 300" stroke="#ffd23f" stroke-width="14" fill="none" opacity=".85"/><circle cx="210" cy="200" r="34" fill="#ff3d7f" opacity=".8"/>`;   // street murals
+    return s;
+  } },
+});
+def("ascensor", 300, 360, 2200, () => `<path d="M10 350 L290 40" stroke="#5a4a3a" stroke-width="14"/><path d="M30 350 L290 62" stroke="#8a7a6a" stroke-width="6"/>` +
+  SV.path("M120 170 L210 108 L230 150 L140 214Z", "#e2433b", 3) + SV.rect(150, 140, 16, 16, 2, "#fff6e0", 2) + SV.rect(180, 120, 16, 16, 2, "#fff6e0", 2), { solid: 1 });
+def("streetcart", 200, 170, 1000, () => SV.rect(20, 50, 150, 70, 6, "#ffd23f", 3) + SV.path("M14 52 L30 14 L160 14 L176 52Z", "#2b7de9", 3) + `<path d="M50 14 L46 52 M90 14 L90 52 M130 14 L134 52" stroke="#fff" stroke-width="8"/>` +
+  SV.circ(50, 130, 22, "#3a3540", 3) + SV.circ(140, 130, 22, "#3a3540", 3) + SV.rect(170, 70, 26, 8, 3, "#6b4423", 2), { solid: 1 });
+def("trashcan", 100, 120, 420, () => SV.rect(18, 26, 64, 90, 6, "#2bb673", 3) + SV.rect(12, 16, 76, 14, 4, "#1f8a55", 3) + `<path d="M36 40 L36 104 M50 40 L50 104 M64 40 L64 104" stroke="#1f8a55" stroke-width="4"/>`, { obstacle: "small" });
+def("bench", 200, 100, 900, () => SV.rect(10, 30, 180, 16, 4, "#6b4423", 3) + SV.rect(10, 56, 180, 14, 4, "#6b4423", 3) + SV.rect(24, 70, 10, 28, 2, "#3a3540", 2) + SV.rect(166, 70, 10, 28, 2, "#3a3540", 2));
+def("containers", 320, 220, 2600, () => SV.rect(10, 120, 300, 96, 4, "#e2433b", 3) + SV.rect(30, 24, 260, 96, 4, "#2b7de9", 3) + `<path d="M30 130 L30 210 M70 130 L70 210 M110 130 L110 210 M150 130 L150 210 M190 130 L190 210 M230 130 L230 210 M270 130 L270 210" stroke="#a32d2d" stroke-width="5"/><path d="M60 34 L60 114 M100 34 L100 114 M140 34 L140 114 M180 34 L180 114 M220 34 L220 114 M260 34 L260 114" stroke="#185fa5" stroke-width="5"/>`, { solid: 1 });
+BG_EXTRA.harbor = (layer, Wd, H, R) => {
+  if (layer === "far") {
+    let s = `<rect x="0" y="${H - 150}" width="${Wd}" height="150" fill="#2b7de9"/>`;
+    for (let i = 0; i < 5; i++) { const x = 120 + i * 420 + R() * 80; s += `<path d="M${x} ${H - 110} L${x + 140} ${H - 110} L${x + 120} ${H - 86} L${x + 16} ${H - 86}Z" fill="#e2e6ee"/><rect x="${x + 40}" y="${H - 140}" width="50" height="30" fill="#e2433b"/>`; }
+    for (let i = 0; i < 3; i++) { const x = 300 + i * 650; s += `<path d="M${x} ${H - 40} L${x} ${H - 230} L${x + 160} ${H - 230} M${x} ${H - 200} L${x + 120} ${H - 230}" stroke="#ff8a1c" stroke-width="10" fill="none"/>`; }
+    return s;
+  }
+  // near: the hills of colourful houses climbing behind
+  let s = "";
+  for (let x = 0; x < Wd; x += 34) { const h = 60 + R() * 120; s += `<rect x="${x}" y="${H - h}" width="34" height="${h}" fill="${CASA[(R() * CASA.length) | 0]}" opacity=".9"/>`; }
+  return s;
+};
+
+// ---- Great Wall ----
+def("rail_battlement", 90, 170, 520, () => SV.rect(6, 40, 78, 128, 2, "#9e927c", 3) + SV.rect(6, 6, 30, 40, 2, "#a89c86", 3) + SV.rect(54, 6, 30, 40, 2, "#a89c86", 3) + `<path d="M6 90 L84 90 M6 130 L84 130 M44 46 L44 90 M24 90 L24 130 M64 90 L64 130" stroke="#7a705e" stroke-width="3"/>`, { solid: 1 });
+def("rubble", 180, 90, 820, () => SV.path("M10 86 L30 50 L60 60 L80 30 L110 46 L140 36 L170 86Z", "#9e927c", 3) + SV.rect(40, 60, 30, 18, 2, "#a89c86", 2.5) + SV.rect(100, 54, 34, 20, 2, "#8f8572", 2.5), { obstacle: "small" });
+def("mtnpine", 150, 260, 900, () => conifer(150, 260, "#2f6b33", null));
+KIT_EXTRA.tower = () => ({
+  portal_tower: { w: 1600, h: 900, ww: 16000, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M300 900 L300 160 L1300 160 L1300 900 Z ${PORTAL_HOLE}" fill="#a89c86" stroke="${OL}" stroke-width="4"/>`;
+    for (let x = 300; x < 1300; x += 125) s += SV.rect(x, 90, 70, 80, 2, "#a89c86", 4);
+    for (let y = 230; y < 900; y += 70) s += `<path d="M300 ${y} L1300 ${y}" stroke="#8a7f6a" stroke-width="5"/>`;
+    s += SV.rect(390, 300, 90, 140, 40, "#3a3028", 4) + SV.rect(1120, 300, 90, 140, 40, "#3a3028", 4);
+    s += SV.circ(800, 280, 46, "#e2433b", 4) + `<path d="M800 230 L800 330" stroke="#ffd23f" stroke-width="8"/>`;
+    s += `<path fill-rule="evenodd" d="M560 900 L560 660 Q560 530 800 518 Q1040 530 1040 660 L1040 900 Z ${PORTAL_HOLE}" fill="#8f8572" stroke="${OL}" stroke-width="3"/>`;
+    return s;
+  } },
+  rib_tower: { w: 560, h: 400, ww: 5600, svg: () => `<path fill-rule="evenodd" d="M0 400 L0 0 L560 0 L560 400 Z ${RIB_HOLE}" fill="#8f8572" stroke="${OL}" stroke-width="3"/>` + `<path d="M0 80 L560 80 M0 160 L76 160 M484 160 L560 160 M0 240 L76 240 M484 240 L560 240" stroke="#7a705e" stroke-width="5"/>` },
+});
+BG_EXTRA.greatwall = (layer, Wd, H, R) => {
+  if (layer !== "far") return "";
+  // the wall snaking over the ridges, with towers
+  let d = "", pts = [];
+  for (let x = 0; x <= Wd; x += 32) { const y = H - 150 - 90 * Math.abs(Math.sin(x * 0.004)) - 30 * Math.sin(x * 0.011); pts.push([x, y]); }
+  d = "M" + pts.map((p) => p[0] + " " + p[1].toFixed(0)).join(" L");
+  let s = `<path d="${d}" stroke="#c9bfa8" stroke-width="12" fill="none" stroke-linejoin="round"/><path d="${d}" stroke="#a89c86" stroke-width="5" fill="none"/>`;
+  pts.forEach((p, i) => { if (i % 9 === 4) s += `<rect x="${p[0] - 10}" y="${p[1] - 26}" width="20" height="26" fill="#c9bfa8"/><rect x="${p[0] - 13}" y="${p[1] - 31}" width="26" height="6" fill="#8f8572"/>`; });
+  return s;
+};
+
+// ---- Swiss Alps ----
+def("chalet", 260, 250, 2100, () => {
+  let s = SV.rect(30, 110, 200, 136, 4, "#f2ead8", 3) + SV.rect(30, 110, 200, 40, 0, "#9a6a3c", 3);
+  s += SV.path("M6 120 L130 30 L254 120Z", "#7a4a2a", 3);
+  for (const x of [56, 112, 168]) s += SV.rect(x, 170, 36, 40, 3, "#bfe3ff", 2.5) + SV.rect(x - 6, 168, 8, 44, 1, "#2f6b33", 2) + SV.rect(x + 34, 168, 8, 44, 1, "#2f6b33", 2);
+  s += SV.rect(40, 210, 180, 12, 2, "#9a6a3c", 2.5);
+  for (let x = 48; x < 220; x += 18) s += SV.circ(x, 208, 6, x % 36 ? "#e2433b" : "#ffd23f", 1.5);     // window-box flowers
+  s += SV.rect(196, 40, 18, 40, 2, "#8a8a92", 2.5) + `<rect x="120" y="60" width="20" height="20" fill="#e2433b"/><path d="M130 63 L130 77 M123 70 L137 70" stroke="#fff" stroke-width="4"/>`;
+  return s;
+}, { solid: 1 });
+def("alpcow", 240, 170, 1250, () => {
+  let s = SV.ell(110, 92, 74, 42, "#fbf6ee", 3) + SV.ell(80, 80, 22, 18, "#7a4a2a", 0) + SV.ell(146, 104, 18, 14, "#7a4a2a", 0) + SV.ell(110, 70, 14, 10, "#7a4a2a", 0);
+  for (const x of [56, 80, 136, 160]) s += SV.rect(x, 118, 13, 46, 4, "#fbf6ee", 2.5);
+  s += SV.ell(196, 76, 28, 24, "#7a4a2a", 3) + SV.ell(212, 88, 14, 10, "#f2b6a8", 2.5) + SV.circ(190, 70, 3.5, OL, 0) + `<path d="M180 56 Q172 40 184 42 M206 54 Q214 36 220 46" stroke="#e8d7b8" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+  s += SV.path("M178 104 L196 104 L200 128 L174 128Z", "#ffd23f", 2.5);     // the cowbell
+  return s;
+}, { solid: 1 });
+def("railtrack", 300, 60, 2200, () => SV.rect(0, 26, 300, 10, 2, "#8a8a92", 2) + SV.rect(0, 44, 300, 8, 2, "#8a8a92", 2) + `<path d="M20 20 L20 58 M70 20 L70 58 M120 20 L120 58 M170 20 L170 58 M220 20 L220 58 M270 20 L270 58" stroke="#6b4423" stroke-width="9"/>`);
+def("redtrain", 900, 260, 6200, () => {
+  let s = "";
+  for (let k = 0; k < 3; k++) { const x = 10 + k * 296; s += SV.rect(x, 40, 280, 170, 18, "#e2433b", 4) + SV.rect(x, 170, 280, 24, 0, "#f2ead8", 3); for (let wx = x + 20; wx < x + 260; wx += 64) s += SV.rect(wx, 64, 48, 60, 6, "#bfe3ff", 3); s += SV.circ(x + 50, 226, 22, "#3a3540", 3) + SV.circ(x + 230, 226, 22, "#3a3540", 3); }
+  s += `<path d="M20 20 L880 20" stroke="#3a3540" stroke-width="5"/>` + SV.rect(40, 14, 14, 28, 2, "#3a3540", 2);
+  return s;
+});
+KIT_EXTRA.rail = () => ({
+  portal_rail: { w: 1600, h: 900, ww: 16000, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M0 900 L0 380 L260 220 L520 300 L800 90 L1080 260 L1340 180 L1600 330 L1600 900 Z ${PORTAL_HOLE}" fill="#8c94a6" stroke="${OL}" stroke-width="4"/>`;
+    s += SV.path("M0 380 L260 220 L520 300 L800 90 L1080 260 L1340 180 L1600 330 L1600 380 Q1340 230 1080 300 Q800 140 520 340 Q260 260 0 430Z", "#ffffff", 3);
+    s += `<path fill-rule="evenodd" d="M520 900 L520 640 Q520 500 800 488 Q1080 500 1080 640 L1080 900 Z ${PORTAL_HOLE}" fill="#a8a28e" stroke="${OL}" stroke-width="4"/>`;
+    for (let a = 0; a < 9; a++) { const t = (a / 8) * Math.PI; s += `<path d="M${800 - Math.cos(t) * 270} ${640 - Math.sin(t) * 140} L${800 - Math.cos(t) * 230} ${650 - Math.sin(t) * 112}" stroke="#7a7564" stroke-width="6"/>`; }
+    return s;
+  } },
+  rib_rail: { w: 560, h: 400, ww: 5600, svg: () => `<path fill-rule="evenodd" d="M0 400 L0 0 L560 0 L560 400 Z ${RIB_HOLE}" fill="#7d7f74" stroke="${OL}" stroke-width="3"/>` + SV.rect(36, 220, 24, 40, 3, "#ffd36b", 2) + SV.rect(500, 220, 24, 40, 3, "#ffd36b", 2) },
+});
+BG_EXTRA.matterhorn = (layer, Wd, H, R) => {
+  if (layer !== "far") return "";
+  let s = "";
+  for (const x of [520, 1560]) s += `<path d="M${x - 260} ${H - 90} L${x - 40} ${H - 300} L${x} ${H - 390} L${x + 30} ${H - 330} L${x + 300} ${H - 90}Z" fill="#7f8aa0"/><path d="M${x - 40} ${H - 300} L${x} ${H - 390} L${x + 30} ${H - 330} L${x + 10} ${H - 300} L${x - 20} ${H - 280}Z" fill="#fff"/><path d="M${x} ${H - 390} L${x + 30} ${H - 330} L${x + 300} ${H - 90} L${x + 60} ${H - 90}Z" fill="#6a7590"/>`;
+  return s;
+};
+
+// ---- Machu Picchu ----
+def("terrace", 360, 150, 2600, () => {
+  let s = "";
+  for (let k = 0; k < 3; k++) { const y = 20 + k * 44, x = k * 30; s += SV.rect(x, y, 360 - x, 44, 2, "#8f8a78", 3) + SV.rect(x, y - 10, 360 - x, 12, 2, "#4f9a46", 2.5); for (let bx = x + 20; bx < 350; bx += 46) s += `<path d="M${bx} ${y + 4} L${bx} ${y + 40}" stroke="#6f6a5c" stroke-width="3"/>`; }
+  return s;
+});
+def("incahut", 240, 220, 1700, () => SV.rect(30, 90, 180, 126, 4, "#a8a28e", 3) + SV.path("M14 98 L120 14 L226 98Z", "#c9a648", 3) + `<path d="M40 90 L120 24 L200 90" stroke="#a88a36" stroke-width="4" fill="none"/>` +
+  SV.path("M96 216 L102 140 L138 140 L144 216Z", "#3a3028", 3) + SV.path("M50 140 L56 116 L76 116 L82 140Z", "#3a3028", 2.5) + `<path d="M30 130 L210 130 M30 170 L210 170" stroke="#8f8a78" stroke-width="3"/>`, { solid: 1 });
+def("llama", 200, 260, 1100, () => {
+  let s = "";
+  for (const x of [52, 74, 128, 148]) s += SV.rect(x, 176, 12, 78, 4, "#f4ecdc", 2.5);
+  s += SV.ell(100, 160, 64, 34, "#f4ecdc", 3) + SV.path("M140 150 Q150 90 150 50 L176 44 Q186 54 178 66 L166 70 Q166 120 158 160Z", "#f4ecdc", 3);
+  s += `<path d="M152 44 L148 22 M168 42 L172 20" stroke="${OL}" stroke-width="6" stroke-linecap="round"/>` + SV.circ(170, 56, 3, OL, 0);
+  s += SV.path("M66 130 L134 130 L130 160 L70 160Z", "#e2433b", 2.5) + `<path d="M72 144 L128 144" stroke="#ffd23f" stroke-width="5" stroke-dasharray="8 6"/>` + SV.circ(158, 76, 6, "#ff3d7f", 2);
+  return s;
+}, { solid: 1 });
+KIT_EXTRA.inca = () => ({
+  portal_inca: { w: 1600, h: 900, ww: 16000, svg: () => {
+    // a great stone gateway: the road goes through the standard opening, framed by an Inca trapezoid
+    let s = `<path fill-rule="evenodd" d="M200 900 L260 200 L1340 200 L1400 900 Z ${PORTAL_HOLE}" fill="#a8a28e" stroke="${OL}" stroke-width="4"/>`;
+    for (let y = 260; y < 900; y += 80) for (let x = 230 + ((y / 80) % 2) * 60; x < 1380; x += 120) if (!(x > 560 && x < 1020 && y > 540)) s += `<path d="M${x} ${y} L${x + 110} ${y}" stroke="#8f8a78" stroke-width="5"/>`;
+    s += SV.path("M200 210 L1400 210 L1360 170 L240 170Z", "#4f9a46", 3);
+    s += `<path d="M592 900 L640 600 L960 600 L1008 900" stroke="#6f6a5c" stroke-width="14" fill="none"/>`;
+    return s;
+  } },
+  rib_inca: { w: 560, h: 400, ww: 5600, svg: () => `<path fill-rule="evenodd" d="M0 400 L0 0 L560 0 L560 400 Z ${RIB_HOLE}" fill="#8f8a78" stroke="${OL}" stroke-width="3"/>` + `<path d="M0 60 L560 60 M0 130 L76 130 M484 130 L560 130 M0 200 L76 200 M484 200 L560 200 M0 270 L76 270 M484 270 L560 270" stroke="#6f6a5c" stroke-width="5"/>` },
+});
+BG_EXTRA.picchu = (layer, Wd, H, R) => {
+  if (layer !== "far") return "";
+  let s = "";
+  for (const x of [700, 1750]) s += `<path d="M${x - 160} ${H - 60} Q${x - 70} ${H - 300} ${x} ${H - 330} Q${x + 60} ${H - 300} ${x + 150} ${H - 60}Z" fill="#3f7a4a"/><path d="M${x - 40} ${H - 260} Q${x} ${H - 300} ${x + 40} ${H - 260}" stroke="#5aa060" stroke-width="10" fill="none"/>`;
+  for (let i = 0; i < 6; i++) { const x = R() * Wd, y = H - 160 - R() * 120; s += `<ellipse cx="${x}" cy="${y}" rx="${120 + R() * 80}" ry="${18 + R() * 12}" fill="#ffffff" opacity=".7"/>`; }
+  return s;
+};
+
+// ---- Moab ----
+def("rockarch", 1300, 760, 9800, () => {
+  let s = `<path fill-rule="evenodd" d="M0 760 L60 420 Q120 140 400 80 Q650 30 900 80 Q1180 140 1240 420 L1300 760 L1010 760 L990 470 Q960 260 650 240 Q340 260 310 470 L290 760 Z" fill="#c4562b" stroke="${OL}" stroke-width="5"/>`;
+  s += `<path d="M120 400 Q200 160 400 120 M1180 400 Q1100 160 900 120" stroke="#e07a45" stroke-width="16" fill="none" opacity=".8"/><path d="M80 560 L280 560 M1020 560 L1220 560 M60 660 L280 660 M1020 660 L1240 660" stroke="#a3431d" stroke-width="8" opacity=".7"/>`;
+  return s;
+});
+def("hoodoo", 140, 380, 1300, () => SV.path("M40 376 L46 220 Q30 160 52 110 L46 70 L94 70 L88 110 Q110 160 94 220 L100 376Z", "#d9784a", 3) + SV.ell(70, 64, 46, 20, "#a3431d", 3) + `<path d="M46 160 L94 160 M44 260 L96 260" stroke="#b8552c" stroke-width="5"/>`, { solid: 1 });
+def("balrock", 220, 300, 1500, () => SV.path("M70 296 L80 150 L110 120 L140 150 L150 296Z", "#c4562b", 3) + SV.ell(110, 76, 90, 56, "#d9784a", 3) + `<path d="M40 70 Q110 40 180 70" stroke="#e8925a" stroke-width="10" fill="none"/>`, { solid: 1 });
+def("juniper", 170, 130, 900, () => SV.path("M84 128 L88 70", "none", 8) + `<path d="M84 128 L88 70" stroke="#6b4423" stroke-width="10"/>` + SV.ell(86, 60, 70, 42, "#5f7a4a", 3) + SV.ell(60, 50, 30, 20, "#6f8a58", 0));
+def("tumbleroll", 130, 120, 600, () => W.tumbleweed.svg(), { obstacle: "small" });
+BG_EXTRA.buttes = (layer, Wd, H, R) => {
+  if (layer !== "far") return "";
+  let s = "";
+  for (let i = 0; i < 4; i++) { const x = 100 + i * 520 + R() * 100, w = 140 + R() * 120, h = 160 + R() * 100; s += `<path d="M${x} ${H} L${x + 24} ${H - h} L${x + w - 24} ${H - h} L${x + w} ${H}Z" fill="#a8452a"/><path d="M${x + 24} ${H - h} L${x + w - 24} ${H - h} L${x + w - 18} ${H - h + 16} L${x + 30} ${H - h + 16}Z" fill="#e07a45"/>`; }
+  s += `<path fill-rule="evenodd" d="M1300 ${H} L1310 ${H - 160} Q1400 ${H - 260} 1500 ${H - 160} L1510 ${H} L1470 ${H} L1468 ${H - 120} Q1405 ${H - 190} 1342 ${H - 120} L1340 ${H}Z" fill="#b8552c"/>`;   // a far-off arch
+  return s;
+};
+
+// ---- Fuji ----
+def("sakura", 280, 360, 1900, () => {
+  let s = SV.path("M128 356 Q122 260 134 200 L148 200 Q156 260 152 356Z", "#5a3a2a", 3) + SV.poly([[138, 230], [90, 170]], 9, "#5a3a2a") + SV.poly([[144, 220], [196, 160]], 9, "#5a3a2a");
+  for (const [x, y, r] of [[140, 120, 74], [80, 150, 56], [204, 146, 60], [120, 70, 50], [180, 84, 50], [56, 110, 40], [224, 106, 40]]) s += SV.circ(x, y, r, r > 60 ? "#ffb7d0" : "#ffc9dc", 3);
+  for (let i = 0; i < 14; i++) s += SV.circ(40 + ((i * 53) % 210), 60 + ((i * 37) % 130), 6, "#ff8ab0", 0);
+  return s;
+}, { solid: 1 });
+def("pagoda", 240, 460, 2300, () => {
+  let s = "";
+  for (let k = 0; k < 5; k++) { const y = 400 - k * 76, hw = 110 - k * 14; s += SV.rect(120 - hw * 0.55, y - 46, hw * 1.1, 50, 2, "#c4362b", 3) + SV.path(`M${120 - hw} ${y - 40} Q120 ${y - 70} ${120 + hw} ${y - 40} L${120 + hw * 0.7} ${y - 56} L${120 - hw * 0.7} ${y - 56}Z`, "#3a3540", 3); }
+  s += `<path d="M120 20 L120 70" stroke="#c9a227" stroke-width="8"/>` + SV.rect(60, 404, 120, 52, 2, "#c4362b", 3);
+  return s;
+}, { solid: 1 });
+def("torii", 1000, 640, 6000, () => {
+  let s = SV.rect(150, 160, 70, 480, 6, "#e2332b", 4) + SV.rect(780, 160, 70, 480, 6, "#e2332b", 4);
+  s += SV.path("M30 60 Q500 120 970 60 L960 120 Q500 170 40 120Z", "#1b1426", 4) + SV.rect(80, 170, 840, 50, 6, "#e2332b", 4) + SV.rect(470, 120, 60, 60, 4, "#e2332b", 4);
+  s += SV.rect(130, 600, 110, 40, 4, "#1b1426", 3) + SV.rect(760, 600, 110, 40, 4, "#1b1426", 3);
+  return s;
+});
+def("toro", 110, 200, 600, () => SV.rect(40, 120, 30, 76, 3, "#9e9a90", 3) + SV.rect(20, 92, 70, 32, 4, "#b8b4aa", 3) + SV.path("M10 96 L55 56 L100 96Z", "#8e8a80", 3) + SV.rect(32, 100, 46, 18, 2, "#ffd36b", 2) + SV.rect(14, 190, 82, 10, 2, "#8e8a80", 2), { solid: 1, glow: "#ffd36b" });
+def("deer", 220, 230, 1100, () => {
+  let s = "";
+  for (const x of [56, 76, 140, 158]) s += SV.rect(x, 140, 11, 84, 4, "#b8794a", 2.5);
+  s += SV.ell(108, 130, 66, 32, "#c98a55", 3) + SV.circ(84, 122, 5, "#f4e2c8", 0) + SV.circ(110, 116, 5, "#f4e2c8", 0) + SV.circ(132, 126, 5, "#f4e2c8", 0);
+  s += SV.path("M162 118 Q178 80 180 56 L202 52 Q212 62 204 74 L190 78 Q186 104 176 130Z", "#c98a55", 3) + SV.circ(196, 64, 3, OL, 0);
+  return s;
+}, { solid: 1 });
+BG_EXTRA.fujisan = (layer, Wd, H, R) => {
+  if (layer !== "far") return "";
+  const x = 1000;
+  return `<path d="M${x - 520} ${H - 40} Q${x - 200} ${H - 250} ${x - 70} ${H - 360} L${x + 70} ${H - 360} Q${x + 200} ${H - 250} ${x + 520} ${H - 40}Z" fill="#5f7fb8"/>` +
+    `<path d="M${x - 70} ${H - 360} L${x + 70} ${H - 360} Q${x + 120} ${H - 300} ${x + 150} ${H - 270} L${x + 100} ${H - 290} L${x + 60} ${H - 260} L${x + 20} ${H - 295} L${x - 30} ${H - 262} L${x - 80} ${H - 292} L${x - 150} ${H - 270} Q${x - 120} ${H - 300} ${x - 70} ${H - 360}Z" fill="#ffffff"/>`;
+};
+
+// ---- Ladakh ----
+const FLAGS = ["#2b7de9", "#ffffff", "#e2433b", "#2bb673", "#ffd23f"];
+def("prayerflags", 1100, 900, 6000, () => {
+  // tall poles with a string of flags high over the road (the riders pass well underneath)
+  let s = SV.rect(30, 40, 22, 860, 4, "#7b4a2a", 3) + SV.rect(1048, 40, 22, 860, 4, "#7b4a2a", 3);
+  s += `<path d="M41 50 Q550 130 1059 50" stroke="${OL}" stroke-width="5" fill="none"/>`;
+  for (let i = 0; i < 26; i++) { const t = (i + 0.5) / 26, x = 41 + t * 1018, y = 50 + Math.sin(t * Math.PI) * 78; s += SV.rect(x - 15, y, 30, 36, 2, FLAGS[i % 5], 2.5); }
+  return s;
+});
+def("stupa", 180, 280, 1100, () => SV.rect(30, 200, 120, 76, 3, "#f4f2ec", 3) + SV.rect(46, 176, 88, 28, 3, "#f4f2ec", 3) + SV.path("M40 178 Q40 110 90 104 Q140 110 140 178Z", "#f4f2ec", 3) +
+  SV.rect(80, 46, 20, 60, 2, "#e8d9b0", 2.5) + `<path d="M80 60 L100 60 M80 74 L100 74 M80 88 L100 88" stroke="#c9a227" stroke-width="4"/>` + SV.circ(90, 38, 10, "#c9a227", 2.5) + SV.rect(30, 200, 120, 10, 0, "#c4362b", 2), { solid: 1 });
+def("gompa", 360, 300, 3200, () => {
+  let s = SV.path("M0 296 L30 180 L120 150 L200 170 L300 140 L360 200 L360 296Z", "#9a8468", 3);
+  s += SV.rect(60, 120, 120, 90, 2, "#f4f2ec", 3) + SV.rect(170, 80, 140, 120, 2, "#f4f2ec", 3) + SV.rect(60, 112, 120, 14, 0, "#8f2a2a", 2) + SV.rect(170, 72, 140, 14, 0, "#8f2a2a", 2);
+  for (const [x, y] of [[80, 150], [120, 150], [190, 110], [230, 110], [270, 110], [200, 150], [260, 150]]) s += SV.rect(x, y, 18, 22, 2, "#3a2a24", 2);
+  s += SV.rect(230, 50, 20, 24, 2, "#c9a227", 2);
+  return s;
+}, { solid: 1 });
+def("mani", 180, 90, 820, () => SV.path("M10 86 L20 40 Q90 10 160 40 L170 86Z", "#9a9488", 3) + `<path d="M40 50 L140 50 M36 66 L144 66" stroke="#c4362b" stroke-width="4" stroke-dasharray="10 6"/>`, { solid: 1, obstacle: "rock" });
+def("ldkhouse", 260, 190, 2000, () => SV.rect(20, 50, 220, 136, 3, "#f4f2ec", 3) + SV.rect(14, 40, 232, 18, 2, "#7b4a2a", 3) + SV.rect(60, 90, 30, 34, 3, "#3a2a24", 2.5) + SV.rect(170, 90, 30, 34, 3, "#3a2a24", 2.5) + SV.rect(112, 120, 36, 66, 3, "#8f2a2a", 2.5) +
+  `<path d="M40 40 L40 10 M220 40 L220 6" stroke="#6b4423" stroke-width="4"/>` + SV.rect(222, 6, 18, 14, 1, "#2b7de9", 1.5) + SV.rect(42, 10, 18, 14, 1, "#ffd23f", 1.5), { solid: 1 });
+def("yak", 280, 220, 1500, () => {
+  let s = "";
+  for (const x of [66, 90, 180, 204]) s += SV.rect(x, 146, 16, 66, 5, "#2a2224", 2.5);
+  s += SV.path("M40 150 Q30 80 100 70 Q170 50 220 90 Q248 120 236 160 Q130 186 40 150Z", "#3a3034", 3);
+  for (let x = 60; x < 230; x += 22) s += `<path d="M${x} 150 L${x - 4} 176" stroke="#3a3034" stroke-width="7" stroke-linecap="round"/>`;
+  s += SV.ell(240, 110, 28, 26, "#3a3034", 3) + `<path d="M226 92 Q206 70 218 60 M254 92 Q274 70 262 60" stroke="#f2ead8" stroke-width="7" fill="none" stroke-linecap="round"/>` + SV.circ(246, 106, 3, "#fff", 0);
+  s += SV.rect(90, 66, 90, 22, 4, "#e2433b", 2.5) + `<path d="M100 77 L170 77" stroke="#ffd23f" stroke-width="5" stroke-dasharray="10 6"/>`;
+  return s;
+}, { solid: 1 });
+BG_EXTRA.himalaya = (layer, Wd, H, R) => {
+  if (layer !== "far") return "";
+  // the monastery on its cliff, far away
+  return `<path d="M1200 ${H} L1240 ${H - 170} L1330 ${H - 200} L1400 ${H - 160} L1440 ${H}Z" fill="#9a8468"/><rect x="1270" y="${H - 240}" width="70" height="44" fill="#f4f2ec"/><rect x="1270" y="${H - 246}" width="70" height="8" fill="#8f2a2a"/><rect x="1330" y="${H - 214}" width="44" height="30" fill="#f4f2ec"/>`;
+};
+
+// ---- Kilimanjaro ----
+def("acacia", 360, 300, 2300, () => SV.path("M168 296 Q170 220 150 170 L162 166 Q182 210 186 296Z", "#5a3a22", 3) + SV.poly([[160, 180], [110, 120]], 8, "#5a3a22") + SV.poly([[172, 178], [240, 116]], 8, "#5a3a22") +
+  SV.path("M10 120 Q60 70 180 74 Q300 70 350 120 Q300 134 180 130 Q60 134 10 120Z", "#6f8a3a", 3) + `<path d="M40 112 Q180 96 320 112" stroke="#8faa4a" stroke-width="6" fill="none"/>`, { solid: 1 });
+def("baobab", 300, 360, 2100, () => SV.path("M90 356 Q70 240 100 150 L200 150 Q230 240 210 356Z", "#9a7a5a", 3) + SV.poly([[110, 160], [70, 100], [50, 104]], 12, "#9a7a5a") + SV.poly([[150, 152], [150, 80]], 12, "#9a7a5a") + SV.poly([[190, 160], [232, 96], [256, 100]], 12, "#9a7a5a") +
+  SV.ell(56, 92, 34, 18, "#6f8a3a", 3) + SV.ell(150, 70, 40, 20, "#6f8a3a", 3) + SV.ell(250, 88, 36, 18, "#6f8a3a", 3), { solid: 1 });
+def("termite", 150, 200, 820, () => SV.path("M20 196 Q30 110 60 70 Q70 20 86 30 Q96 70 120 120 Q136 160 130 196Z", "#b86a3a", 3) + `<path d="M60 90 L70 180 M96 110 L100 186" stroke="#94512b" stroke-width="4"/>`, { solid: 1, obstacle: "rock" });
+def("zebra", 260, 230, 1350, () => {
+  let s = "";
+  for (const x of [60, 82, 168, 190]) s += SV.rect(x, 140, 13, 84, 4, "#f4f2ec", 2.5);
+  s += SV.ell(124, 124, 82, 38, "#f4f2ec", 3);
+  for (let x = 60; x < 200; x += 18) s += `<path d="M${x} 92 Q${x + 8} 124 ${x - 2} 158" stroke="${OL}" stroke-width="7" fill="none"/>`;
+  s += SV.path("M196 110 Q216 70 218 46 L244 42 Q254 54 246 66 L230 70 Q228 104 214 136Z", "#f4f2ec", 3) + `<path d="M206 70 L232 80 M204 90 L226 96 M220 50 L240 58" stroke="${OL}" stroke-width="6"/>` + SV.circ(238, 56, 3, OL, 0);
+  return s;
+}, { solid: 1 });
+def("giraffe", 220, 420, 1300, () => {
+  let s = "";
+  for (const x of [50, 70, 140, 160]) s += SV.rect(x, 250, 12, 160, 4, "#e8b44a", 2.5);
+  s += SV.ell(104, 240, 70, 36, "#e8b44a", 3) + SV.path("M150 226 Q162 140 168 50 L190 48 Q190 140 176 236Z", "#e8b44a", 3) + SV.ell(186, 40, 26, 16, "#e8b44a", 3);
+  for (const [x, y] of [[70, 236], [100, 226], [130, 244], [90, 256], [160, 150], [170, 100], [166, 196]]) s += SV.ell(x, y, 9, 7, "#a8662a", 0);
+  s += `<path d="M180 26 L178 10 M192 26 L196 10" stroke="#a8662a" stroke-width="5" stroke-linecap="round"/>` + SV.circ(196, 38, 3, OL, 0);
+  return s;
+}, { solid: 1 });
+def("heather", 180, 90, 820, () => SV.path("M10 88 Q20 30 60 40 Q90 10 120 36 Q160 30 170 88Z", "#7a8a4a", 3) + SV.circ(60, 40, 6, "#c98ac9", 0) + SV.circ(110, 34, 6, "#c98ac9", 0));
+BG_EXTRA.kilimanjaro = (layer, Wd, H, R) => {
+  if (layer !== "far") return "";
+  const x = 1100;
+  return `<path d="M${x - 700} ${H - 30} Q${x - 300} ${H - 230} ${x - 160} ${H - 300} L${x + 180} ${H - 300} Q${x + 320} ${H - 230} ${x + 700} ${H - 30}Z" fill="#6f7f94"/>` +
+    `<path d="M${x - 160} ${H - 300} L${x + 180} ${H - 300} Q${x + 220} ${H - 280} ${x + 250} ${H - 262} L${x + 160} ${H - 270} L${x + 90} ${H - 254} L${x} ${H - 272} L${x - 80} ${H - 256} L${x - 230} ${H - 262} Q${x - 200} ${H - 282} ${x - 160} ${H - 300}Z" fill="#ffffff"/>`;
+};
+
+/* scenery sets for the World Tour themes */
+BIOME_SCENERY.valpo = { near: [["casa", 4], ["casa2", 3], ["palm", 1]], far: ["casa", "casa2"], obstacles: ["trashcan", "streetcart"], special: ["banner"],
+  zones: { barrio: { near: [["casa", 4], ["casa2", 4], ["trashcan", 0.5]], dens: 0.85 }, plaza: { near: [["palm", 3], ["bench", 3], ["casa", 1]], dens: 0.6 },
+    ascensor: { near: [["ascensor", 3], ["casa2", 2]], dens: 0.6 }, port: { near: [["containers", 3], ["bench", 1]], dens: 0.5 } } };
+BIOME_SCENERY.greatwall = { near: [["mtnpine", 3]], far: ["mtnpine"], obstacles: ["rubble"], special: ["banner"], zones: {} };
+BIOME_SCENERY.alps = { near: [["snowpine", 2], ["flowers", 3], ["chalet", 1], ["bush", 1]], far: ["snowpine", "pine"], obstacles: ["mossrock"], special: ["banner"],
+  zones: { meadow: { near: [["flowers", 5], ["bush", 2], ["snowpine", 1.5]], dens: 0.6 }, village: { near: [["chalet", 4], ["flowers", 2], ["snowpine", 1]], dens: 0.7 },
+    pasture: { near: [["flowers", 3], ["alpcow", 1], ["bush", 1], ["snowpine", 1]], dens: 0.55 }, railway: { near: [["railtrack", 6], ["flowers", 1]], dens: 0.9 } } };
+BIOME_SCENERY.machu = { near: [["terrace", 3], ["incahut", 1], ["bush", 1]], far: ["terrace", "incahut"], obstacles: ["mossrock"], special: ["banner"],
+  zones: { terraces: { near: [["terrace", 6], ["bush", 1]], dens: 0.75 }, ruins: { near: [["incahut", 3], ["terrace", 2], ["ruin", 1]], dens: 0.7 }, cloud: { near: [["bush", 1]], dens: 0.2 } } };
+BIOME_SCENERY.moab = { near: [["hoodoo", 2], ["juniper", 3], ["balrock", 1], ["boulder", 1]], far: ["hoodoo", "balrock"], obstacles: ["boulder"], special: ["banner"],
+  zones: { slickrock: { near: [["juniper", 3], ["boulder", 1], ["smallcactus", 1]], dens: 0.35 }, hoodoos: { near: [["hoodoo", 5], ["juniper", 1]], dens: 0.7 },
+    arches: { near: [["balrock", 2], ["juniper", 2], ["hoodoo", 1]], dens: 0.5 }, rim: { near: [["juniper", 2]], dens: 0.3 } } };
+BIOME_SCENERY.fuji = { near: [["sakura", 5], ["toro", 1.5], ["bush", 1]], far: ["sakura", "pagoda"], obstacles: ["mossrock"], special: ["banner"],
+  zones: { sakura: { near: [["sakura", 6], ["toro", 1]], dens: 0.8 }, pond: { near: [["reeds", 3], ["sakura", 2], ["toro", 1]], dens: 0.6 },
+    temple: { near: [["pagoda", 1], ["sakura", 3], ["toro", 2]], dens: 0.65 }, shrine: { near: [["toro", 4], ["sakura", 2]], dens: 0.7 } } };
+BIOME_SCENERY.ladakh = { near: [["stupa", 2], ["mani", 1], ["tsnowrock", 1]], far: ["stupa", "gompa"], obstacles: ["mani"], special: ["banner"],
+  zones: { pass: { near: [["mani", 2], ["snowrock", 2], ["stupa", 1]], dens: 0.35 }, stupas: { near: [["stupa", 5], ["mani", 2]], dens: 0.6 },
+    valley: { near: [["stupa", 1], ["bush", 1], ["mani", 1]], dens: 0.35 }, monastery: { near: [["gompa", 2], ["stupa", 3]], dens: 0.55 }, village: { near: [["ldkhouse", 4], ["stupa", 2]], dens: 0.65 } } };
+BIOME_SCENERY.kili = { near: [["acacia", 4], ["baobab", 1], ["termite", 1]], far: ["acacia", "baobab"], obstacles: ["termite"], special: ["banner"],
+  zones: { summit: { near: [["snowrock", 3], ["serac", 1]], dens: 0.3, ground: ["#eef4fa", "#e2eaf4"], road: ["#9a9aa2", "#9090a0"] },
+    moor: { near: [["heather", 4], ["snowrock", 1]], dens: 0.5, ground: ["#7a8a5a", "#718152"], road: ["#8a6a4a", "#80603f"] },
+    forest: { near: [["palm", 3], ["banana", 3], ["fern", 2]], dens: 0.8, ground: ["#3f8a3a", "#388034"] },
+    savanna: { near: [["acacia", 4], ["termite", 1.5], ["baobab", 0.8]], dens: 0.45 }, herd: { near: [["acacia", 3], ["termite", 1]], dens: 0.35 } } };
+
 // ===== audio.js =====
 /* Synthesized audio: engine/wind, SFX and a procedural soundtrack per biome. No audio files. */
 
@@ -2377,6 +2843,9 @@ const SFX = (() => {
     { bpm: 120, root: 48, scale: [0, 2, 4, 7, 9], prog: [0, 5, 3, 4], lead: "square", feel: "menu" },
     // 7+: seasonal and World Tour songs (music index on the theme in themes.js)
     { bpm: 136, root: 41, scale: [0, 1, 3, 5, 6, 8, 10], prog: [0, 1, 0, 5], lead: "square", feel: "rock" },        // 7 Halloween: F locrian, spooky
+    { bpm: 146, root: 45, scale: [0, 2, 4, 7, 9], prog: [0, 3, 4, 0], lead: "triangle", feel: "dhol" },            // 8 Great Wall: A major pentatonic
+    { bpm: 140, root: 48, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 4, 0], lead: "square", feel: "menu" },       // 9 Swiss Alps: C major, bouncy
+    { bpm: 150, root: 45, scale: [0, 1, 5, 7, 8], prog: [0, 3, 4, 1], lead: "triangle", feel: "rock" },            // 10 Fuji: A in-scale (Japanese)
   ];
   const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
   function kick(t, v = 0.9) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25); o.connect(g); g.connect(musicBus); o.start(t); o.stop(t + 0.3); }
@@ -2528,9 +2997,12 @@ function buildTrack(def) {
     for (let k = from; k < to; k++) {
       const s = segs[k];
       s.zone = b.z || null;
+      const zd = b.z && BIOME_SCENERY[biome.id].zones && BIOME_SCENERY[biome.id].zones[b.z];
+      if (zd && zd.ground) s.gnd = zd.ground;                 // a zone can have its own ground / road colour (Kilimanjaro: snow, then savanna)
+      if (zd && zd.road) s.rd = zd.road;
       s.feat = (b.f === "ford" ? null : b.f) || null;
       if (b.ts) s.ts = b.ts;                                  // tunnel style (portal_<ts> / rib_<ts>)
-      if (b.g) { s.gateId = b.g; s.gateK = k - from; s.gateE = b.ge || 8; }   // arches over the trail (torii gates etc.)
+      if (b.g && k >= Math.max(from, 50)) { s.gateId = b.g; s.gateK = k - Math.max(from, 50); s.gateE = b.ge || 8; }   // (not before the start line)   // arches over the trail (torii gates etc.)
       if (b.f === "mtn") { if (s.curve > 0.4) side = 1; else if (s.curve < -0.4) side = -1; s.fside = side; }
     }
     if (b.f === "ford") {
@@ -2548,6 +3020,7 @@ function buildTrack(def) {
     if (!f) continue;
     if (f === "tunnel" || f === "falls" || f === "cave") { s.tun = f; s.gL = s.gR = "rock"; s.wl = s.wr = s.w + 0.32; s.wallL = s.wallR = 1; }
     else if (f === "bridge") { s.bridge = 1; s.gL = s.gR = sideType(biome.bridgeOver); s.wl = s.wr = s.w + 0.14; s.railL = s.railR = 1; }
+    else if (f === "ridge") { s.ridge = 1; s.gL = s.gR = sideType("chasm"); s.wl = s.wr = s.w + 0.14; s.railL = s.railR = 1; }   // on top of a wall / knife-edge ridge: drops both sides
     else if (f === "canyon") { s.wallL = s.wallR = 2; s.wl = s.wr = s.w + 0.55; }
     else if (f === "mtn" || f === "cliffL" || f === "cliffR") {
       const wall = f === "mtn" ? s.fside : f === "cliffL" ? -1 : 1;
@@ -2561,7 +3034,7 @@ function buildTrack(def) {
     else if (f === "lavaR") s.gR = "lava";
     else if (f === "lake") { s.gL = s.gR = "ice"; s.surface = { type: "ice", x0: -2.2, x1: 2.2, k: i, len: 9999 }; s.noObs = 1; }
   }
-  const featBlocks = (s) => !!(s.feat && s.feat !== "waterL" && s.feat !== "waterR" && s.feat !== "lavaL" && s.feat !== "lavaR" && s.feat !== "canyon" && s.feat !== "mtn" && s.feat !== "cliffL" && s.feat !== "cliffR");
+  const featBlocks = (s) => !!(s.feat && s.feat !== "waterL" && s.feat !== "waterR" && s.feat !== "lavaL" && s.feat !== "lavaR" && s.feat !== "canyon" && s.feat !== "ridge" && s.feat !== "mtn" && s.feat !== "cliffL" && s.feat !== "cliffR");
 
   // ---- 1b. Set pieces from plan-beat keys: j big jump, gap crevasse jumps, cr crumbling bridge, rs/ws rail/wall style ----
   const bigJump = (i, id, xs) => {
@@ -2585,7 +3058,7 @@ function buildTrack(def) {
       if (b.ws) s.ws = b.ws;
       // crumbling bridge: every other 10-segment stretch has one side (left, then right) that collapses after the first rider
       const ch = ((k - from) / 10) | 0;
-      if (b.cr && s.bridge && ch % 2 === 1) { s.crumble = 1; s.crSide = ((ch / 2) | 0) % 2 ? 1 : -1; crumbles.push(s); }
+      if (b.cr && (s.bridge || s.ridge) && ch % 2 === 1) { s.crumble = 1; s.crSide = ((ch / 2) | 0) % 2 ? 1 : -1; crumbles.push(s); }
     }
   }
 
@@ -2713,7 +3186,8 @@ function buildTrack(def) {
       for (let tries = 0; tries < 30; tries++) {
         const i = 130 + ((R() * (finishIdx - 230)) | 0);
         const s = segs[i];
-        if (!placeable(i) || s.tun || s.bridge || s.pin || s.split || s.ramp || s.vent || s.noObs) continue;
+        if (m.zone && tries > 25) break;
+        if (!placeable(i) || s.tun || s.bridge || s.pin || s.split || s.ramp || s.vent || s.noObs || (m.zone && s.zone !== m.zone)) continue;
         let near = false;
         for (let k = i - 30; k < i + 10; k++) if (segs[k] && (segs[k].ramp || segs[k].vent || segs[k].mover)) near = true;
         if (near) continue;
@@ -2750,6 +3224,14 @@ function buildTrack(def) {
       break;
     }
   }
+
+  // pacers: something that travels ALONG the trail beside it (the Swiss mountain train): seg range a..b, speed in BASE_SPEED units
+  const pacers = (def.pacers || []).map((pc) => {
+    let a = 0, b = 0;
+    const bt = beats.find((x) => x.b.pace);
+    if (bt) { a = bt.from; b = bt.to; }
+    return { id: pc.id, x: pc.x, a, b, speed: pc.speed, sp: { id: pc.id, x: pc.x }, seg: -1 };
+  }).filter((pc) => pc.b > pc.a);
 
   // crates: rows of three
   for (let i = 150; i < finishIdx - 80; i += 190 + ((R() * 80) | 0)) {
@@ -2812,7 +3294,7 @@ function buildTrack(def) {
     segs[i].sprites.push({ id: "crowd", x: -(segs[i].w + 0.9) }, { id: "crowd", x: segs[i].w + 0.9 });
   }
   return {
-    def, biome, segs, N, beats, movers, fallers, bursts, crumbles,
+    def, biome, segs, N, beats, movers, fallers, bursts, crumbles, pacers,
     length: N * SEG,
     finishZ: finishIdx * SEG,
     startZ: 22 * SEG,
@@ -3066,7 +3548,7 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
     ctx.fillStyle = sideGround(s.gL, s, biome, t); ctx.fillRect(-w * 0.2, sy2, mx + w * 0.2, gh);
     ctx.fillStyle = sideGround(s.gR, s, biome, t); ctx.fillRect(mx, sy2, w * 1.2 - mx, gh);
   } else {
-    ctx.fillStyle = biome.ground[s.dark];
+    ctx.fillStyle = (s.gnd || biome.ground)[s.dark];
     ctx.fillRect(-w * 0.2, sy2, w * 1.4, gh);
   }
   // rumble edges: two side strips only (nothing is painted under the road surface, so no curb colour can show as a line across it)
@@ -3075,7 +3557,7 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
   quad(ctx, sx1 + i1, sy1, sx1 + r1, sy1, sx2 + r2, sy2, sx2 + i2, sy2, edgeCol);
   // road (planks on bridges)
   // crevasse = a dark crack right across the trail; a collapsed bridge shows what's underneath
-  const roadCol = s.gap ? biome.chasm[1] : s.bridge ? biome.plank[0] : biome.road[0];
+  const roadCol = s.gap ? biome.chasm[1] : s.bridge ? biome.plank[0] : (s.rd || biome.road)[0];
   quad(ctx, sx1 - rw1, sy1, sx1 + rw1, sy1, sx2 + rw2, sy2, sx2 - rw2, sy2, roadCol);   // one flat colour: no stripes on the drivable surface
   if (s.crumbled) {                                                   // that side of the bridge has fallen away
     const under = sideGround(biome.lavaSide && biome.bridgeOver === "chasm" ? "lava" : biome.bridgeOver, s, biome, t), d = s.crSide;
@@ -3130,7 +3612,7 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
 
 const BURST_COL = { lava: ["#3a2626", "#ff8a1c", "#ffe08a"], color: ["#d9c9ee", "#ff79b0", "#ffffff"], fire: ["#3a3348", "#ffd23f", "#ffffff"] };
 function sideGround(type, s, biome, t) {
-  if (!type) return biome.ground[s.dark];
+  if (!type) return (s.gnd || biome.ground)[s.dark];
   if (type === "water") return (s.i + Math.floor(t * 5)) % 4 === 0 ? biome.water[1] : biome.water[0];
   if (type === "lava") return (s.i + Math.floor(t * 6)) % 3 === 0 ? "#ff8a2f" : "#ff5a1f";
   if (type === "chasm") return biome.chasm[s.dark];
@@ -3401,6 +3883,15 @@ function drawWeather(ctx, w, h, biome, race, me, t) {
       ctx.fillStyle = g; ctx.fillRect(x - 9, y - 9, 18, 18);
     }
     ctx.globalCompositeOperation = "source-over";
+  } else if (kind === "petals") {
+    // cherry-blossom petals drifting across
+    for (let i = 0; i < 40; i++) {
+      const p = P[i];
+      p[1] += 0.0016 + p[2] * 0.002 + sp * 0.002; p[0] += 0.0015 + Math.sin(t * 1.2 + i) * 0.0015 - me.lean * 0.004;
+      if (p[1] > 1) { p[1] = 0; p[0] = Math.random(); }
+      ctx.save(); ctx.translate(((p[0] % 1) + 1) % 1 * w, p[1] * h); ctx.rotate(t * 1.5 + i);
+      ctx.fillStyle = i % 3 ? "#ffc2d9" : "#ffe3ee"; ctx.beginPath(); ctx.ellipse(0, 0, 4.5, 2.6, 0, 0, TAU); ctx.fill(); ctx.restore();
+    }
   } else if (kind === "bats") {
     // a few bats flapping across the top of the sky, and autumn leaves tumbling down
     for (let i = 0; i < 5; i++) {
@@ -4280,6 +4771,17 @@ function moveMovers(race) {
     const st = p > 2.6 ? 2 : p > 1.8 ? 1 : 0;
     if (st === 2 && b.st !== 2) { const c = BURST_FX[b.kind] || BURST_FX.lava; for (let n = 0; n < 14; n++) spawnFx(race, s.i * SEG, b.x + rnd(-0.2, 0.2), 80 + Math.random() * 900, pick(c), 70, 0.9, 1600); }
     b.st = st;
+  }
+  // pacers ride along beside the trail from segment a to b (moved between segments' sprite lists as they go)
+  if (tr.pacers) for (const pc of tr.pacers) {
+    const z = pc.a * SEG + Math.max(0, t - 1) * pc.speed * BASE_SPEED;
+    const si = z / SEG | 0;
+    const want = si < pc.b ? si : -1;
+    if (want !== pc.seg) {
+      if (pc.seg >= 0) { const L = tr.segs[pc.seg].sprites, k = L.indexOf(pc.sp); if (k >= 0) L.splice(k, 1); }
+      if (want >= 0) tr.segs[want].sprites.push(pc.sp);
+      pc.seg = want;
+    }
   }
   if (tr.crumbles) for (const s of tr.crumbles) if (s.crT && !s.crumbled && t > s.crT) {
     s.crumbled = 1;
@@ -5845,12 +6347,76 @@ function openTrack() {
     c.onclick = () => { if (!unlocked) return; SFX.play("click"); App.pick.track = TRACKS.find((t) => t.biome === bi).id; openTrack(); };
     wrap.appendChild(c);
   });
+  const wc = trailCards().find((cd) => cd.kind === "world");
+  if (wc) wrap.appendChild(worldCard(wc, cur, stars));
   wrap.style.gridAutoColumns = "minmax(210px, 1fr)";
   const t = TRACKS.find((x) => x.id === cur), b = BIOMES[t.biome];
   $("#track-desc").innerHTML = `<span><b>${t.name}</b> — ${t.blurb || b.hazard} <i style="color:var(--sun);font-style:normal">${STAR_RULE}</i></span>`;
   $("#track-go").onclick = () => { SFX.play("click"); App.save.last.track = cur; saveGame(); if (App.mode === "online") return netHost(); startRace(); };
   show("scr-track");
   scrollSel(wrap);
+}
+
+/* ---------- World Tour: a card at the end of Choose a Trail that opens a world map with a pin per trail ---------- */
+const worldTracks = () => TRACKS.filter(isWorldTrack);
+function worldCard(wc, cur, stars) {
+  const unlocked = stars >= WORLD_UNLOCK;
+  const ts = worldTracks();
+  const got = ts.reduce((a, t) => a + (App.save.stars[t.id] || 0), 0);
+  const curW = ts.find((t) => t.id === cur);
+  const c = document.createElement("div");
+  c.className = "card biome world" + (curW ? " sel" : "");
+  c.innerHTML = `<div class="art">${worldMapSVG(true)}</div><div class="info" style="padding-bottom:0"><div class="nm">World Tour</div><div class="tg">${ts.length} famous places · ${got} / ${ts.length * 3} ★</div></div><div class="tracks">` +
+    (curW ? `<div class="trk sel"><div><div>${curW.name}</div><div class="bt">${BIOMES[curW.biome].sub}</div></div><span class="st">${[1, 2, 3].map((k) => `<span class="${k <= (App.save.stars[curW.id] || 0) ? "" : "off"}">★</span>`).join("")}</span></div>` : "") +
+    `<div class="trk wopen"><div><div>OPEN THE MAP ›</div><div class="bt">Pick a place to race</div></div></div></div>` +
+    (unlocked ? "" : `<div class="lock">★ ${WORLD_UNLOCK} TO UNLOCK<span style="font:700 12px Chakra Petch;color:#ccc">You have ${stars} ★</span></div>`);
+  c.onclick = () => { if (!unlocked) return; SFX.play("click"); openWorld(); };
+  return c;
+}
+// simple world map (equirectangular, 1000x500): continents drawn from rough lon/lat outlines
+const WORLD_LAND = [
+  [[-165, 65], [-140, 70], [-95, 72], [-80, 62], [-60, 55], [-65, 45], [-80, 30], [-82, 25], [-97, 20], [-90, 15], [-80, 8], [-85, 12], [-105, 22], [-115, 30], [-125, 40], [-125, 50], [-140, 60], [-165, 60]],
+  [[-55, 60], [-45, 60], [-20, 70], [-25, 82], [-60, 82], [-70, 76]],
+  [[-80, 10], [-60, 10], [-50, 0], [-35, -7], [-40, -22], [-55, -35], [-68, -55], [-75, -50], [-72, -30], [-80, -5]],
+  [[-10, 36], [-9, 43], [-2, 48], [-5, 58], [10, 63], [25, 70], [40, 68], [45, 55], [40, 45], [28, 41], [20, 40], [12, 44], [5, 43], [-2, 37]],
+  [[-17, 15], [-15, 28], [-5, 36], [10, 37], [32, 31], [43, 12], [51, 12], [40, -5], [40, -15], [32, -28], [20, -35], [13, -20], [10, -2], [9, 4], [-8, 5]],
+  [[40, 45], [45, 55], [40, 68], [70, 73], [100, 77], [140, 72], [170, 68], [160, 60], [142, 50], [135, 35], [122, 30], [120, 22], [108, 12], [100, 3], [98, 15], [90, 22], [78, 8], [72, 20], [60, 25], [50, 28], [43, 12], [35, 32], [28, 41]],
+  [[130, 31], [140, 35], [142, 40], [141, 45], [138, 40], [132, 34]],
+  [[113, -22], [130, -12], [142, -11], [153, -26], [146, -39], [135, -35], [115, -35]],
+  [[-8, 50], [2, 51], [-3, 58], [-6, 56]],
+];
+const lonX = (lon) => ((lon + 180) / 360) * 1000, latY = (lat) => ((90 - lat) / 180) * 500;
+function worldMapSVG(mini) {
+  let s = `<svg viewBox="0 ${mini ? 40 : 30} 1000 ${mini ? 380 : 420}" preserveAspectRatio="${mini ? "xMidYMid slice" : "xMidYMid meet"}" style="position:absolute;inset:0;width:100%;height:100%"><rect x="0" y="0" width="1000" height="500" fill="#1d5f9e"/>`;
+  for (let i = 1; i < 6; i++) s += `<path d="M0 ${i * 83} L1000 ${i * 83} M${i * 166} 0 L${i * 166} 500" stroke="#3a7cbc" stroke-width="1.5" opacity=".5"/>`;
+  for (const poly of WORLD_LAND) s += `<path d="M${poly.map(([lo, la]) => lonX(lo).toFixed(0) + " " + latY(la).toFixed(0)).join(" L")}Z" fill="#4f9b3c" stroke="#2c5e24" stroke-width="3" stroke-linejoin="round"/>`;
+  if (mini) for (const t of worldTracks()) { const b = BIOMES[t.biome]; s += `<circle cx="${lonX(b.lon)}" cy="${latY(b.lat)}" r="11" fill="#ffd23f" stroke="${OL}" stroke-width="4"/>`; }
+  return s + "</svg>";
+}
+function openWorld() {
+  App.step = "world";
+  const ts = worldTracks();
+  let cur = App.pick.track && ts.find((t) => t.id === App.pick.track) ? App.pick.track : ts[0].id;
+  App.pick.track = cur;
+  const map = $("#world-map");
+  map.innerHTML = `<div class="wm">${worldMapSVG(false)}</div>`;
+  const wm = map.firstElementChild;
+  for (const t of ts) {
+    const b = BIOMES[t.biome], st = App.save.stars[t.id] || 0;
+    const pin = document.createElement("button");
+    pin.className = "pin" + (t.id === cur ? " sel" : "") + (b.lab ? " " + b.lab : "");   // lab: label to the left / up / down so close pins never overlap
+    // the map shows y 30..450 of the 500-high world, so pins are placed in that window
+    pin.style.left = (lonX(b.lon) / 10) + "%"; pin.style.top = ((latY(b.lat) - 30) / 4.2) + "%";
+    pin.innerHTML = `<i></i><span class="pl"><b>${b.place}</b><em>${[1, 2, 3].map((k) => (k <= st ? "★" : "☆")).join("")}</em></span>`;
+    pin.onclick = (ev) => { ev.stopPropagation(); SFX.play("click"); App.pick.track = t.id; openWorld(); };
+    wm.appendChild(pin);
+  }
+  const got = ts.reduce((a, t) => a + (App.save.stars[t.id] || 0), 0);
+  $("#world-stars").textContent = got + " / " + ts.length * 3 + " ★";
+  const t = TRACKS.find((x) => x.id === cur);
+  $("#world-desc").innerHTML = `<span><b>${t.name}</b> · ${BIOMES[t.biome].sub} — ${t.blurb}</span>`;
+  $("#world-go").onclick = () => { SFX.play("click"); App.save.last.track = cur; saveGame(); if (App.mode === "online") return netHost(); startRace(); };
+  show("scr-world");
 }
 
 /* ---------- settings / help / save code ---------- */
@@ -6117,6 +6683,7 @@ function wireMenus() {
       else if (s === "rider2") { App.step = "veh"; openVeh(); }
       else if (s === "veh2") { App.step = "rider2"; openRider(); }
       else if (s === "track") { App.step = App.mode === "split" ? "veh2" : "veh"; openVeh(); }
+      else if (s === "world") { App.step = "track"; openTrack(); }
       else renderTitle();
     }
   }));
@@ -6324,19 +6891,18 @@ function startupPopups() {
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.14i";
+const APP_VERSION = "2026.10.14j";
 const WHATS_NEW = [
-  "<b>All 12 trails reworked.</b> Each one now has its own big moment and hazard. Best times reset once.",
-  "<b>Fernline:</b> hollow redwoods, rolling logs · <b>Giant's Staircase:</b> fog, rope bridges, waterfall jump.",
-  "<b>Fortress Drop</b> (new name): fort walls, alleys, camels · <b>Sandstorm Alley:</b> giant dunes.",
-  "<b>Frostbite:</b> black ice, ice cave · <b>Avalanche!:</b> crevasse jumps (stay in the middle!), snowballs.",
-  "<b>Tea Terrace:</b> heavy rain, terrace jump · <b>Waterfall Gauntlet:</b> night, temple hall, swinging vines.",
-  "<b>Ashfall:</b> crumbling bridges, eruptions · <b>Geyser Gorge:</b> into the crater, falling rocks.",
-  "<b>Northern Lights:</b> the lake cracks into two lanes · <b>Aurora Pines</b> (new name): reindeer, ski jump.",
+  "<b>New: WORLD TOUR!</b> 8 famous places on a world map. Unlocks at 23 ★ (last card on Choose a Trail).",
+  "<b>Valparaíso:</b> colourful hill streets · <b>Great Wall:</b> race on top of it, crumbling sections.",
+  "<b>Swiss Alps:</b> race the red train, cows · <b>Machu Picchu:</b> terraces in the clouds, llamas.",
+  "<b>Moab:</b> giant stone arches, canyon jump · <b>Fuji:</b> cherry blossoms, torii gate tunnel, deer.",
+  "<b>Ladakh:</b> Himalayan switchbacks, prayer flags, yaks · <b>Kilimanjaro:</b> snowy peak to savanna stampede.",
+  "New throwable: the <b>Snow Globe</b>. Plus new songs for the Great Wall, the Alps and Fuji.",
 ];
 // ============================================
 
-const BUILD_ID = "wild-riders-fb75311983";            // stamped by tools/build.py; matches version.json of this build
+const BUILD_ID = "wild-riders-c0bcb7b32a";            // stamped by tools/build.py; matches version.json of this build
 const VERSION_KEY = "wr-version", BACKUP_INFO_KEY = "wr-backup";
 const Upd = { reg: null, ready: false };
 

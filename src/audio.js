@@ -144,6 +144,9 @@ const SFX = (() => {
     { bpm: 120, root: 48, scale: [0, 2, 4, 7, 9], prog: [0, 5, 3, 4], lead: "square", feel: "menu" },
     // 7+: seasonal and World Tour songs (music index on the theme in themes.js)
     { bpm: 136, root: 41, scale: [0, 1, 3, 5, 6, 8, 10], prog: [0, 1, 0, 5], lead: "square", feel: "rock" },        // 7 Halloween: F locrian, spooky
+    { bpm: 146, root: 45, scale: [0, 2, 4, 7, 9], prog: [0, 3, 4, 0], lead: "triangle", feel: "dhol" },            // 8 Great Wall: A major pentatonic
+    { bpm: 140, root: 48, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 4, 0], lead: "square", feel: "menu" },       // 9 Swiss Alps: C major, bouncy
+    { bpm: 150, root: 45, scale: [0, 1, 5, 7, 8], prog: [0, 3, 4, 1], lead: "triangle", feel: "rock" },            // 10 Fuji: A in-scale (Japanese)
   ];
   const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
   function kick(t, v = 0.9) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25); o.connect(g); g.connect(musicBus); o.start(t); o.stop(t + 0.3); }

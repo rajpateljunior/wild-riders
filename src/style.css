@@ -288,3 +288,26 @@ body.savage .title-cast .dust i { background: rgba(120,90,80,.5); }
 .card.season { border-color: #ff8a1c; }
 .card.season.sel { border-color: var(--sun); }
 .ribbon { position: absolute; top: 8px; left: 8px; z-index: 1; background: #ff8a1c; color: #2a1406; font: 400 15px/1 Bangers, sans-serif; letter-spacing: 1px; padding: 4px 8px 3px; border-radius: 6px; box-shadow: 0 2px 0 rgba(0,0,0,.35); pointer-events: none; }
+
+/* World Tour card + map screen */
+.card.world { border-color: #2b9cff; }
+.card.world.sel { border-color: var(--sun); }
+.card.world .art svg { height: 100%; width: 100%; }
+.trk.wopen { color: #8fd0ff; }
+.wstars { margin-left: auto; margin-right: 10px; font: 400 18px Bangers, sans-serif; color: var(--sun); letter-spacing: 1px; }
+.worldmap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 4px 0; }
+.worldmap .wm { position: relative; height: 100%; max-width: 100%; aspect-ratio: 1000 / 420; border-radius: 14px; overflow: hidden; border: 2px solid var(--line); }
+.pin { position: absolute; width: 0; height: 0; padding: 0; border: 0; background: none; }
+.pin::before { content: ""; position: absolute; left: -24px; top: -24px; width: 48px; height: 48px; }   /* big tap target */
+.pin i { position: absolute; left: -10px; top: -10px; width: 20px; height: 20px; border-radius: 50%; background: #ffd23f; border: 3px solid #1b1426; box-shadow: 0 2px 0 rgba(0,0,0,.4); }
+.pin.sel i { left: -14px; top: -14px; width: 28px; height: 28px; background: #ff3d7f; }
+.pin .pl { position: absolute; left: 12px; top: -11px; white-space: nowrap; background: rgba(20,12,32,.82); border-radius: 7px; padding: 2px 7px 3px; text-align: left; pointer-events: none; display: flex; flex-direction: column; line-height: 1.05; }
+.pin.left .pl { left: auto; right: 12px; text-align: right; }
+.pin .pl b { font: 400 14px Bangers, sans-serif; letter-spacing: .5px; color: #fff; }
+.pin .pl em { font-style: normal; font-size: 10px; color: var(--sun); letter-spacing: 1px; }
+.pin.sel .pl { background: #ff3d7f; }
+.pin.sel .pl b { color: #fff; }
+#scr-world .footer { height: 46px; min-height: 0; flex: none; padding-top: 4px; }
+#scr-world .footer .desc { font-size: 11px; line-height: 1.25; height: 3.75em; overflow: hidden; display: flex; align-items: center; }
+.pin.up .pl { left: 50%; top: -44px; transform: translateX(-50%); text-align: center; }
+.pin.down .pl { left: 50%; top: 13px; transform: translateX(-50%); text-align: center; }

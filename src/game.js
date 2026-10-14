@@ -619,6 +619,17 @@ function moveMovers(race) {
     if (st === 2 && b.st !== 2) { const c = BURST_FX[b.kind] || BURST_FX.lava; for (let n = 0; n < 14; n++) spawnFx(race, s.i * SEG, b.x + rnd(-0.2, 0.2), 80 + Math.random() * 900, pick(c), 70, 0.9, 1600); }
     b.st = st;
   }
+  // pacers ride along beside the trail from segment a to b (moved between segments' sprite lists as they go)
+  if (tr.pacers) for (const pc of tr.pacers) {
+    const z = pc.a * SEG + Math.max(0, t - 1) * pc.speed * BASE_SPEED;
+    const si = z / SEG | 0;
+    const want = si < pc.b ? si : -1;
+    if (want !== pc.seg) {
+      if (pc.seg >= 0) { const L = tr.segs[pc.seg].sprites, k = L.indexOf(pc.sp); if (k >= 0) L.splice(k, 1); }
+      if (want >= 0) tr.segs[want].sprites.push(pc.sp);
+      pc.seg = want;
+    }
+  }
   if (tr.crumbles) for (const s of tr.crumbles) if (s.crT && !s.crumbled && t > s.crT) {
     s.crumbled = 1;
     for (let n = 0; n < 6; n++) spawnFx(race, s.i * SEG, rnd(-0.9, 0.9), 40, "#5a4030", 70, 0.7, -400);

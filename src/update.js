@@ -8,15 +8,14 @@
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.14i";
+const APP_VERSION = "2026.10.14j";
 const WHATS_NEW = [
-  "<b>All 12 trails reworked.</b> Each one now has its own big moment and hazard. Best times reset once.",
-  "<b>Fernline:</b> hollow redwoods, rolling logs · <b>Giant's Staircase:</b> fog, rope bridges, waterfall jump.",
-  "<b>Fortress Drop</b> (new name): fort walls, alleys, camels · <b>Sandstorm Alley:</b> giant dunes.",
-  "<b>Frostbite:</b> black ice, ice cave · <b>Avalanche!:</b> crevasse jumps (stay in the middle!), snowballs.",
-  "<b>Tea Terrace:</b> heavy rain, terrace jump · <b>Waterfall Gauntlet:</b> night, temple hall, swinging vines.",
-  "<b>Ashfall:</b> crumbling bridges, eruptions · <b>Geyser Gorge:</b> into the crater, falling rocks.",
-  "<b>Northern Lights:</b> the lake cracks into two lanes · <b>Aurora Pines</b> (new name): reindeer, ski jump.",
+  "<b>New: WORLD TOUR!</b> 8 famous places on a world map. Unlocks at 23 ★ (last card on Choose a Trail).",
+  "<b>Valparaíso:</b> colourful hill streets · <b>Great Wall:</b> race on top of it, crumbling sections.",
+  "<b>Swiss Alps:</b> race the red train, cows · <b>Machu Picchu:</b> terraces in the clouds, llamas.",
+  "<b>Moab:</b> giant stone arches, canyon jump · <b>Fuji:</b> cherry blossoms, torii gate tunnel, deer.",
+  "<b>Ladakh:</b> Himalayan switchbacks, prayer flags, yaks · <b>Kilimanjaro:</b> snowy peak to savanna stampede.",
+  "New throwable: the <b>Snow Globe</b>. Plus new songs for the Great Wall, the Alps and Fuji.",
 ];
 // ============================================
 

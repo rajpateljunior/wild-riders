@@ -237,7 +237,7 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
     ctx.fillStyle = sideGround(s.gL, s, biome, t); ctx.fillRect(-w * 0.2, sy2, mx + w * 0.2, gh);
     ctx.fillStyle = sideGround(s.gR, s, biome, t); ctx.fillRect(mx, sy2, w * 1.2 - mx, gh);
   } else {
-    ctx.fillStyle = biome.ground[s.dark];
+    ctx.fillStyle = (s.gnd || biome.ground)[s.dark];
     ctx.fillRect(-w * 0.2, sy2, w * 1.4, gh);
   }
   // rumble edges: two side strips only (nothing is painted under the road surface, so no curb colour can show as a line across it)
@@ -246,7 +246,7 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
   quad(ctx, sx1 + i1, sy1, sx1 + r1, sy1, sx2 + r2, sy2, sx2 + i2, sy2, edgeCol);
   // road (planks on bridges)
   // crevasse = a dark crack right across the trail; a collapsed bridge shows what's underneath
-  const roadCol = s.gap ? biome.chasm[1] : s.bridge ? biome.plank[0] : biome.road[0];
+  const roadCol = s.gap ? biome.chasm[1] : s.bridge ? biome.plank[0] : (s.rd || biome.road)[0];
   quad(ctx, sx1 - rw1, sy1, sx1 + rw1, sy1, sx2 + rw2, sy2, sx2 - rw2, sy2, roadCol);   // one flat colour: no stripes on the drivable surface
   if (s.crumbled) {                                                   // that side of the bridge has fallen away
     const under = sideGround(biome.lavaSide && biome.bridgeOver === "chasm" ? "lava" : biome.bridgeOver, s, biome, t), d = s.crSide;
@@ -301,7 +301,7 @@ function drawSegment(ctx, w, s, biome, t, maxy) {
 
 const BURST_COL = { lava: ["#3a2626", "#ff8a1c", "#ffe08a"], color: ["#d9c9ee", "#ff79b0", "#ffffff"], fire: ["#3a3348", "#ffd23f", "#ffffff"] };
 function sideGround(type, s, biome, t) {
-  if (!type) return biome.ground[s.dark];
+  if (!type) return (s.gnd || biome.ground)[s.dark];
   if (type === "water") return (s.i + Math.floor(t * 5)) % 4 === 0 ? biome.water[1] : biome.water[0];
   if (type === "lava") return (s.i + Math.floor(t * 6)) % 3 === 0 ? "#ff8a2f" : "#ff5a1f";
   if (type === "chasm") return biome.chasm[s.dark];
@@ -572,6 +572,15 @@ function drawWeather(ctx, w, h, biome, race, me, t) {
       ctx.fillStyle = g; ctx.fillRect(x - 9, y - 9, 18, 18);
     }
     ctx.globalCompositeOperation = "source-over";
+  } else if (kind === "petals") {
+    // cherry-blossom petals drifting across
+    for (let i = 0; i < 40; i++) {
+      const p = P[i];
+      p[1] += 0.0016 + p[2] * 0.002 + sp * 0.002; p[0] += 0.0015 + Math.sin(t * 1.2 + i) * 0.0015 - me.lean * 0.004;
+      if (p[1] > 1) { p[1] = 0; p[0] = Math.random(); }
+      ctx.save(); ctx.translate(((p[0] % 1) + 1) % 1 * w, p[1] * h); ctx.rotate(t * 1.5 + i);
+      ctx.fillStyle = i % 3 ? "#ffc2d9" : "#ffe3ee"; ctx.beginPath(); ctx.ellipse(0, 0, 4.5, 2.6, 0, 0, TAU); ctx.fill(); ctx.restore();
+    }
   } else if (kind === "bats") {
     // a few bats flapping across the top of the sky, and autumn leaves tumbling down
     for (let i = 0; i < 5; i++) {
