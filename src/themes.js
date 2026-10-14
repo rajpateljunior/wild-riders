@@ -216,3 +216,62 @@ addTheme(Object.assign({ id: "kili", name: "Kilimanjaro", sub: "Tanzania", place
       { t: "S", n: 100, d: 6, z: "savanna" },
     ] },
 ]);
+
+/* ======================= SEASONAL: NOVEMBER & DECEMBER ======================= */
+// Diwali moves every year (Nov 8 in 2026). Update `season` each year: about a week either side of Diwali.
+addTheme({ id: "diwali", name: "Diwali", sub: "Festival of Lights", group: "season", season: [1101, 1114], item: "laddoo", unlock: 0,
+  sky: ["#0a0820", "#26164a", "#5a2a5a"], fog: "#2a1838", sun: "#fff3c8", sunY: 0.14, sunX: 0.25, sunR: 0.03,
+  road: ["#6a5446", "#5f4a3e"], rut: "#4a3a30", edge: ["#ff8a1c", "#ffd23f"], ground: ["#3f3a2a", "#383324"],
+  rock: ["#8a5a3a", "#c9a227"], chasm: ["#1a1228", "#160f22"], water: ["#2a3a6a", "#344a7a"], bridgeOver: "water", plank: ["#8a5a3a", "#7a4f32"],
+  weather: "fireworks", music: 11, dark: 1, darkK: 0.55, aurora: 0, surf: null,
+  bg: { far: ["#2a1a40", "#201433"], near: "#1a1226", tree: null, extra: "diwalitown" },
+  hazard: "Firework spinners erupt on the road. Lamps and lights everywhere." }, [
+  { id: "s11a", name: "Festival of Lights", seed: 9111, len: 3600, curvy: 0.9, hilly: 0.95, ramps: 6, splits: 2, pads: 9, haz: 0.75,
+    bursts: { n: 9, kind: "fire" }, obs: ["sweets", "diyastand"],
+    blurb: "A lit-up town on Diwali night: rows of glowing diyas, rangoli, marigold gates, firework spinners on the road and fireworks overhead.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "lanes", g: "torana", ge: 999 }, { t: "T", dir: 1, c: 3, n: 170, d: 24, z: "lanes" }, { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "bazaar", f: "canyon", ws: "lights" },
+      { t: "S", n: 120, d: 8, z: "bazaar", g: "torana", ge: 30 }, { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "ghat", f: "waterR" }, { t: "S", n: 80, d: 2, z: "ghat", f: "bridge" },
+      { t: "X", n: 130, d: 44, z: "lanes" }, { t: "T", dir: 1, c: 3.5, n: 160, d: 30, f: "tunnel", ts: "palace" }, { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 34, z: "lanes" },
+      { t: "H", dir: -1, d: 6, z: "temple" }, { t: "C", n: 120, d: 56, z: "lanes" }, { t: "E", dir: -1, k: 3, c: 4, n: 200, d: 30, z: "bazaar", f: "canyon", ws: "lights" },
+      { t: "S", n: 130, d: 8, z: "bazaar", g: "torana", ge: 26 },
+    ] },
+]);
+
+addTheme({ id: "harvest", name: "Thanksgiving", sub: "Harvest season", group: "season", season: [1115, 1130], item: "pie", unlock: 0,
+  sky: ["#6aa8d8", "#f2c98a", "#ffd9a0"], fog: "#f0c890", sun: "#fff0c0", sunY: 0.28, sunX: 0.72,
+  road: ["#9a7048", "#8f663f"], rut: "#7a5634", edge: ["#6b4423", "#f2dcae"], ground: ["#a8963c", "#9e8c36"],
+  rock: ["#8a6a4a", "#c9a648"], chasm: ["#6b5a2a", "#615226"], water: ["#4a8ab8", "#5a9ac8"], bridgeOver: "water", plank: ["#9a6a3c", "#8a5c32"],
+  weather: "leaves", music: 12, surf: "mud",
+  bg: { far: ["#c98a4a", "#b8763a"], near: "#a8862e", tree: "#b8562c", extra: "farmhills" },
+  hazard: "Turkeys run across the road. Muddy patches in the fields." }, [
+  { id: "s11b", name: "Harvest Hayride", seed: 9112, len: 3600, curvy: 0.85, hilly: 1.0, ramps: 5, splits: 1, pads: 8, haz: 0.7,
+    movers: [{ id: "turkey", n: 9, amp: 1.0, spd: 0.75 }], obs: ["haybale", "pumpkinpile"],
+    blurb: "A golden autumn farm: red barns and maple trees, turkeys running across the road, hay-bale ramps and a shortcut through the corn maze.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "farm" }, { t: "T", dir: 1, c: 2.5, n: 170, d: 24, z: "farm" }, { t: "S", n: 120, d: 8, z: "orchard", j: 1, jat: 0.4, jr: "hayramp" },
+      { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "maples" }, { t: "S", n: 160, d: 10, z: "corn", f: "canyon", ws: "corn", fork: 1 }, { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "farm" },
+      { t: "S", n: 80, d: 2, z: "creek", f: "bridge" }, { t: "X", n: 130, d: 40, z: "fields" }, { t: "T", dir: 1, c: 3.5, n: 150, d: 28, f: "tunnel", ts: "barn" },
+      { t: "E", dir: 1, k: 3, c: 4, n: 200, d: 30, z: "maples" }, { t: "S", n: 120, d: 8, z: "fields", j: 1, jat: 0.4, jr: "hayramp" }, { t: "C", n: 110, d: 50, z: "orchard" },
+      { t: "T", dir: -1, c: 2.5, n: 150, d: 20, z: "farm" }, { t: "S", n: 100, d: 6, z: "farm" },
+    ] },
+]);
+
+addTheme({ id: "xmas", name: "Christmas", sub: "North Pole", group: "season", season: [1201, 1231], item: "giftbox", unlock: 0,
+  sky: ["#050c22", "#13284a", "#2a4a6a"], fog: "#1a2c48", sun: "#fff6e0", sunY: 0.15, sunX: 0.7, sunR: 0.035,
+  road: ["#e9f0f8", "#dde6f2"], rut: "#b9c9df", edge: ["#e2433b", "#ffffff"], ground: ["#f4f8ff", "#e9f1fc"],
+  rock: ["#9fb8d6", "#ffffff"], chasm: ["#3a5a8a", "#335080"], water: ["#7fd0f0", "#9fdcf5"], bridgeOver: "chasm", plank: ["#8a5a3a", "#7a4f32"],
+  weather: "snow", music: 13, dark: 1, darkK: 0.5, surf: "ice",
+  bg: { far: ["#2a3f6a", "#20335a"], near: "#e6eefa", tree: "#2c5e4a", snow: 1, extra: "northpole" },
+  hazard: "Presents fall off Santa's sleigh. Icy patches, reindeer on the road." }, [
+  { id: "s12", name: "North Pole Express", seed: 9120, len: 3600, curvy: 0.9, hilly: 1.05, ramps: 6, splits: 2, pads: 9, haz: 0.75,
+    movers: [{ id: "reindeer", n: 5, amp: 1.0, spd: 0.45 }], fallers: [{ id: "gift", n: 9 }], obs: ["presents", "snowrock"],
+    blurb: "A Christmas village under the northern lights: candy-cane gates, gingerbread houses, falling presents and a ride through Santa's workshop.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "village", g: "candygate", ge: 999 }, { t: "T", dir: 1, c: 3, n: 170, d: 26, z: "village" }, { t: "S", n: 130, d: 8, z: "canes", g: "candygate", ge: 18 },
+      { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 34, z: "forest" }, { t: "X", n: 130, d: 44, z: "forest" }, { t: "T", dir: -1, c: 3, n: 180, d: 26, f: "tunnel", ts: "workshop" },
+      { t: "S", n: 90, d: 6, z: "village" }, { t: "SW", dir: 1, k: 2, d: 14, z: "forest", f: "mtn" }, { t: "S", n: 90, d: 4, z: "lake", f: "lake" },
+      { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 34, z: "canes" }, { t: "C", n: 120, d: 56, z: "forest", j: 1, jat: 0.2, jr: "skijump" }, { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "village" },
+      { t: "S", n: 100, d: 6, z: "village", g: "candygate", ge: 30 },
+    ] },
+]);

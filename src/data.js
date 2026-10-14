@@ -71,6 +71,9 @@ const ITEMS = {
   // seasonal / World Tour throwables (found in that trail's crates)
   pumpkin:   { name: "Jack-o'-Bomb",  dmg: 15, spd: 5300, slow: 0.75, col: "#ff8a1c", blind: 1 },
   snowglobe: { name: "Snow Globe",    dmg: 14, spd: 5600, slow: 0.74, col: "#bfe9ff", blind: 1 },
+  laddoo:    { name: "Laddoo Bomb",   dmg: 14, spd: 5400, slow: 0.76, col: "#ffb13b" },
+  pie:       { name: "Pumpkin Pie",   dmg: 13, spd: 5400, slow: 0.72, col: "#e8862f", blind: 1 },
+  giftbox:   { name: "Gift Bomb",     dmg: 15, spd: 5500, slow: 0.75, col: "#e2433b" },
   // utility items (from ? crates; PUNCH or swipe down uses them): shield blocks the next hit (15 s), mine is dropped behind you
   bubble:    { name: "Shield",        dmg: 0,  spd: 0,    slow: 1,    col: "#2bd9c5", util: "shield" },
   mine:      { name: "Mine",          dmg: 18, spd: 0,    slow: 0.5,  col: "#ff5a5a", util: "mine" },

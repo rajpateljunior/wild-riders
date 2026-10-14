@@ -534,6 +534,9 @@ const ITEMS = {
   // seasonal / World Tour throwables (found in that trail's crates)
   pumpkin:   { name: "Jack-o'-Bomb",  dmg: 15, spd: 5300, slow: 0.75, col: "#ff8a1c", blind: 1 },
   snowglobe: { name: "Snow Globe",    dmg: 14, spd: 5600, slow: 0.74, col: "#bfe9ff", blind: 1 },
+  laddoo:    { name: "Laddoo Bomb",   dmg: 14, spd: 5400, slow: 0.76, col: "#ffb13b" },
+  pie:       { name: "Pumpkin Pie",   dmg: 13, spd: 5400, slow: 0.72, col: "#e8862f", blind: 1 },
+  giftbox:   { name: "Gift Bomb",     dmg: 15, spd: 5500, slow: 0.75, col: "#e2433b" },
   // utility items (from ? crates; PUNCH or swipe down uses them): shield blocks the next hit (15 s), mine is dropped behind you
   bubble:    { name: "Shield",        dmg: 0,  spd: 0,    slow: 1,    col: "#2bd9c5", util: "shield" },
   mine:      { name: "Mine",          dmg: 18, spd: 0,    slow: 0.5,  col: "#ff5a5a", util: "mine" },
@@ -963,6 +966,65 @@ addTheme(Object.assign({ id: "kili", name: "Kilimanjaro", sub: "Tanzania", place
       { t: "S", n: 220, d: 10, z: "herd" }, { t: "T", dir: 1, c: 2.5, n: 180, d: 20, z: "herd" }, { t: "S", n: 80, d: 2, z: "savanna", f: "ford" },
       { t: "E", dir: 1, k: 3, c: 4, n: 200, d: 30, z: "savanna" }, { t: "S", n: 200, d: 10, z: "herd" }, { t: "T", dir: -1, c: 3, n: 160, d: 20, z: "savanna" },
       { t: "S", n: 100, d: 6, z: "savanna" },
+    ] },
+]);
+
+/* ======================= SEASONAL: NOVEMBER & DECEMBER ======================= */
+// Diwali moves every year (Nov 8 in 2026). Update `season` each year: about a week either side of Diwali.
+addTheme({ id: "diwali", name: "Diwali", sub: "Festival of Lights", group: "season", season: [1101, 1114], item: "laddoo", unlock: 0,
+  sky: ["#0a0820", "#26164a", "#5a2a5a"], fog: "#2a1838", sun: "#fff3c8", sunY: 0.14, sunX: 0.25, sunR: 0.03,
+  road: ["#6a5446", "#5f4a3e"], rut: "#4a3a30", edge: ["#ff8a1c", "#ffd23f"], ground: ["#3f3a2a", "#383324"],
+  rock: ["#8a5a3a", "#c9a227"], chasm: ["#1a1228", "#160f22"], water: ["#2a3a6a", "#344a7a"], bridgeOver: "water", plank: ["#8a5a3a", "#7a4f32"],
+  weather: "fireworks", music: 11, dark: 1, darkK: 0.55, aurora: 0, surf: null,
+  bg: { far: ["#2a1a40", "#201433"], near: "#1a1226", tree: null, extra: "diwalitown" },
+  hazard: "Firework spinners erupt on the road. Lamps and lights everywhere." }, [
+  { id: "s11a", name: "Festival of Lights", seed: 9111, len: 3600, curvy: 0.9, hilly: 0.95, ramps: 6, splits: 2, pads: 9, haz: 0.75,
+    bursts: { n: 9, kind: "fire" }, obs: ["sweets", "diyastand"],
+    blurb: "A lit-up town on Diwali night: rows of glowing diyas, rangoli, marigold gates, firework spinners on the road and fireworks overhead.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "lanes", g: "torana", ge: 999 }, { t: "T", dir: 1, c: 3, n: 170, d: 24, z: "lanes" }, { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "bazaar", f: "canyon", ws: "lights" },
+      { t: "S", n: 120, d: 8, z: "bazaar", g: "torana", ge: 30 }, { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "ghat", f: "waterR" }, { t: "S", n: 80, d: 2, z: "ghat", f: "bridge" },
+      { t: "X", n: 130, d: 44, z: "lanes" }, { t: "T", dir: 1, c: 3.5, n: 160, d: 30, f: "tunnel", ts: "palace" }, { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 34, z: "lanes" },
+      { t: "H", dir: -1, d: 6, z: "temple" }, { t: "C", n: 120, d: 56, z: "lanes" }, { t: "E", dir: -1, k: 3, c: 4, n: 200, d: 30, z: "bazaar", f: "canyon", ws: "lights" },
+      { t: "S", n: 130, d: 8, z: "bazaar", g: "torana", ge: 26 },
+    ] },
+]);
+
+addTheme({ id: "harvest", name: "Thanksgiving", sub: "Harvest season", group: "season", season: [1115, 1130], item: "pie", unlock: 0,
+  sky: ["#6aa8d8", "#f2c98a", "#ffd9a0"], fog: "#f0c890", sun: "#fff0c0", sunY: 0.28, sunX: 0.72,
+  road: ["#9a7048", "#8f663f"], rut: "#7a5634", edge: ["#6b4423", "#f2dcae"], ground: ["#a8963c", "#9e8c36"],
+  rock: ["#8a6a4a", "#c9a648"], chasm: ["#6b5a2a", "#615226"], water: ["#4a8ab8", "#5a9ac8"], bridgeOver: "water", plank: ["#9a6a3c", "#8a5c32"],
+  weather: "leaves", music: 12, surf: "mud",
+  bg: { far: ["#c98a4a", "#b8763a"], near: "#a8862e", tree: "#b8562c", extra: "farmhills" },
+  hazard: "Turkeys run across the road. Muddy patches in the fields." }, [
+  { id: "s11b", name: "Harvest Hayride", seed: 9112, len: 3600, curvy: 0.85, hilly: 1.0, ramps: 5, splits: 1, pads: 8, haz: 0.7,
+    movers: [{ id: "turkey", n: 9, amp: 1.0, spd: 0.75 }], obs: ["haybale", "pumpkinpile"],
+    blurb: "A golden autumn farm: red barns and maple trees, turkeys running across the road, hay-bale ramps and a shortcut through the corn maze.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "farm" }, { t: "T", dir: 1, c: 2.5, n: 170, d: 24, z: "farm" }, { t: "S", n: 120, d: 8, z: "orchard", j: 1, jat: 0.4, jr: "hayramp" },
+      { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 30, z: "maples" }, { t: "S", n: 160, d: 10, z: "corn", f: "canyon", ws: "corn", fork: 1 }, { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "farm" },
+      { t: "S", n: 80, d: 2, z: "creek", f: "bridge" }, { t: "X", n: 130, d: 40, z: "fields" }, { t: "T", dir: 1, c: 3.5, n: 150, d: 28, f: "tunnel", ts: "barn" },
+      { t: "E", dir: 1, k: 3, c: 4, n: 200, d: 30, z: "maples" }, { t: "S", n: 120, d: 8, z: "fields", j: 1, jat: 0.4, jr: "hayramp" }, { t: "C", n: 110, d: 50, z: "orchard" },
+      { t: "T", dir: -1, c: 2.5, n: 150, d: 20, z: "farm" }, { t: "S", n: 100, d: 6, z: "farm" },
+    ] },
+]);
+
+addTheme({ id: "xmas", name: "Christmas", sub: "North Pole", group: "season", season: [1201, 1231], item: "giftbox", unlock: 0,
+  sky: ["#050c22", "#13284a", "#2a4a6a"], fog: "#1a2c48", sun: "#fff6e0", sunY: 0.15, sunX: 0.7, sunR: 0.035,
+  road: ["#e9f0f8", "#dde6f2"], rut: "#b9c9df", edge: ["#e2433b", "#ffffff"], ground: ["#f4f8ff", "#e9f1fc"],
+  rock: ["#9fb8d6", "#ffffff"], chasm: ["#3a5a8a", "#335080"], water: ["#7fd0f0", "#9fdcf5"], bridgeOver: "chasm", plank: ["#8a5a3a", "#7a4f32"],
+  weather: "snow", music: 13, dark: 1, darkK: 0.5, surf: "ice",
+  bg: { far: ["#2a3f6a", "#20335a"], near: "#e6eefa", tree: "#2c5e4a", snow: 1, extra: "northpole" },
+  hazard: "Presents fall off Santa's sleigh. Icy patches, reindeer on the road." }, [
+  { id: "s12", name: "North Pole Express", seed: 9120, len: 3600, curvy: 0.9, hilly: 1.05, ramps: 6, splits: 2, pads: 9, haz: 0.75,
+    movers: [{ id: "reindeer", n: 5, amp: 1.0, spd: 0.45 }], fallers: [{ id: "gift", n: 9 }], obs: ["presents", "snowrock"],
+    blurb: "A Christmas village under the northern lights: candy-cane gates, gingerbread houses, falling presents and a ride through Santa's workshop.",
+    plan: [
+      { t: "S", n: 80, d: 4, z: "village", g: "candygate", ge: 999 }, { t: "T", dir: 1, c: 3, n: 170, d: 26, z: "village" }, { t: "S", n: 130, d: 8, z: "canes", g: "candygate", ge: 18 },
+      { t: "E", dir: -1, k: 3, c: 4, n: 210, d: 34, z: "forest" }, { t: "X", n: 130, d: 44, z: "forest" }, { t: "T", dir: -1, c: 3, n: 180, d: 26, f: "tunnel", ts: "workshop" },
+      { t: "S", n: 90, d: 6, z: "village" }, { t: "SW", dir: 1, k: 2, d: 14, z: "forest", f: "mtn" }, { t: "S", n: 90, d: 4, z: "lake", f: "lake" },
+      { t: "E", dir: 1, k: 3, c: 4.5, n: 200, d: 34, z: "canes" }, { t: "C", n: 120, d: 56, z: "forest", j: 1, jat: 0.2, jr: "skijump" }, { t: "T", dir: -1, c: 3, n: 160, d: 24, z: "village" },
+      { t: "S", n: 100, d: 6, z: "village", g: "candygate", ge: 30 },
     ] },
 ]);
 
@@ -2696,6 +2758,201 @@ BIOME_SCENERY.kili = { near: [["acacia", 4], ["baobab", 1], ["termite", 1]], far
     forest: { near: [["palm", 3], ["banana", 3], ["fern", 2]], dens: 0.8, ground: ["#3f8a3a", "#388034"] },
     savanna: { near: [["acacia", 4], ["termite", 1.5], ["baobab", 0.8]], dens: 0.45 }, herd: { near: [["acacia", 3], ["termite", 1]], dens: 0.35 } } };
 
+/* ======================= DIWALI ======================= */
+THEME_ITEMS.laddoo = () => SV.circ(32, 34, 20, "#ffb13b", 3) + SV.circ(26, 28, 2.5, "#ffe08a", 0) + SV.circ(38, 36, 2.5, "#ffe08a", 0) + SV.circ(30, 42, 2.5, "#ffe08a", 0) + SV.circ(40, 26, 2.5, "#c9761c", 0);
+function diyaSVG(cx, cy, s) {
+  return SV.path(`M${cx - 20 * s} ${cy} Q${cx} ${cy + 18 * s} ${cx + 20 * s} ${cy} Q${cx + 12 * s} ${cy - 4 * s} ${cx + 8 * s} ${cy - 2 * s} L${cx - 8 * s} ${cy - 2 * s} Q${cx - 12 * s} ${cy - 4 * s} ${cx - 20 * s} ${cy}Z`, "#c4562b", 2.5) +
+    `<path d="M${cx} ${cy - 4 * s} Q${cx - 7 * s} ${cy - 16 * s} ${cx} ${cy - 28 * s} Q${cx + 7 * s} ${cy - 16 * s} ${cx} ${cy - 4 * s}Z" fill="#ffd23f"/><path d="M${cx} ${cy - 6 * s} Q${cx - 3 * s} ${cy - 12 * s} ${cx} ${cy - 18 * s} Q${cx + 3 * s} ${cy - 12 * s} ${cx} ${cy - 6 * s}Z" fill="#fff6c2"/>`;
+}
+def("diyas", 260, 90, 1300, () => { let s = SV.rect(0, 70, 260, 18, 3, "#8a5a3a", 2.5); for (let x = 26; x < 260; x += 52) s += diyaSVG(x, 64, 1); return s; });
+def("rangoli", 300, 120, 1700, () => {
+  let s = "";
+  const cols = ["#ff3d7f", "#ffd23f", "#2bd9c5", "#8a4dff", "#ff8a1c", "#38e05a"];
+  for (let r = 5; r > 0; r--) s += `<ellipse cx="150" cy="60" rx="${r * 28}" ry="${r * 11}" fill="${cols[r % 6]}" stroke="${OL}" stroke-width="2"/>`;
+  for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; s += `<ellipse cx="${150 + Math.cos(a) * 100}" cy="${60 + Math.sin(a) * 38}" rx="16" ry="7" fill="${cols[i % 6]}" stroke="${OL}" stroke-width="2"/>`; }
+  return s + diyaSVG(150, 60, 0.8);
+});
+def("lithouse", 260, 280, 2100, () => {
+  let s = SV.rect(20, 80, 220, 196, 3, "#e8c98a", 3) + SV.rect(10, 70, 240, 18, 2, "#c4562b", 3) + SV.rect(60, 10, 140, 70, 3, "#f2dcae", 3) + SV.rect(52, 4, 156, 12, 2, "#c4562b", 2.5);
+  for (const [x, y] of [[44, 120], [110, 120], [176, 120], [44, 200], [176, 200], [96, 30], [150, 30]]) s += SV.rect(x, y, 34, 44, 4, "#ffd36b", 2.5);
+  s += SV.path("M108 276 L108 200 Q130 180 152 200 L152 276Z", "#8a2a2a", 3);
+  const bulbs = ["#ff3d7f", "#ffd23f", "#2bd9c5", "#ff8a1c"];
+  for (let i = 0; i < 18; i++) { const x = 20 + i * 12.5; s += SV.circ(x, 92 + Math.sin(i * 0.9) * 8, 4, bulbs[i % 4], 1.5); }
+  for (let i = 0; i < 12; i++) { const x = 60 + i * 12.5; s += SV.circ(x, 22 + Math.sin(i) * 5, 3.5, bulbs[(i + 1) % 4], 1.5); }
+  s += diyaSVG(90, 276, 0.9) + diyaSVG(170, 276, 0.9);
+  return s;
+}, { solid: 1 });
+def("torana", 1100, 900, 6200, () => {
+  // a marigold gate high over the road: poles, a garland arch and hanging marigold strings
+  let s = SV.rect(30, 60, 26, 840, 4, "#c9a227", 3) + SV.rect(1044, 60, 26, 840, 4, "#c9a227", 3);
+  s += `<path d="M43 80 Q550 -10 1057 80" stroke="#ff8a1c" stroke-width="34" fill="none" stroke-linecap="round"/><path d="M43 80 Q550 -10 1057 80" stroke="#ffd23f" stroke-width="14" fill="none" stroke-dasharray="18 14"/>`;
+  for (let i = 1; i < 16; i++) { const t = i / 16, x = 43 + t * 1014, y = 80 - Math.sin(t * Math.PI) * 90 * 0.98 + 16; s += `<path d="M${x} ${y} L${x} ${y + 70}" stroke="#ff8a1c" stroke-width="10" stroke-dasharray="10 4"/>` + SV.circ(x, y + 76, 9, "#e2433b", 2); }
+  s += SV.ell(550, 40, 70, 34, "#2bb673", 3) + diyaSVG(550, 60, 1.4);
+  return s;
+});
+def("kandil", 120, 300, 700, () => SV.rect(56, 120, 8, 176, 2, "#6b4423", 2) + SV.path("M60 20 L80 60 L118 60 L88 84 L100 122 L60 100 L20 122 L32 84 L2 60 L40 60Z", "#ff3d7f", 3) + SV.path("M60 38 L72 64 L96 64 L78 78 L84 100 L60 88 L36 100 L42 78 L24 64 L48 64Z", "#ffd36b", 0) +
+  `<path d="M40 110 L36 150 M60 104 L60 156 M80 110 L84 150" stroke="#ffd23f" stroke-width="4"/>`, { glow: "#ff8ab0" });
+def("mithai", 260, 220, 1900, () => SV.rect(20, 110, 220, 106, 4, "#f2dcae", 3) + SV.path("M6 112 L30 40 L230 40 L254 112Z", "#ff8a1c", 3) + `<path d="M50 40 L44 112 M100 40 L98 112 M160 40 L162 112 M210 40 L216 112" stroke="#ffd23f" stroke-width="10"/>` +
+  [[60, 104], [90, 100], [120, 104], [150, 100], [180, 104], [210, 100]].map(([x, y], i) => SV.circ(x, y, 11, ["#ffb13b", "#ff79b0", "#fff6e0", "#2bb673"][i % 4], 2)).join("") + SV.rect(40, 140, 180, 12, 2, "#c9a227", 2), { solid: 1 });
+def("sweets", 200, 150, 1000, () => SV.rect(20, 50, 160, 66, 6, "#c4562b", 3) + SV.circ(56, 124, 22, "#3a3540", 3) + SV.circ(144, 124, 22, "#3a3540", 3) +
+  [[50, 44], [80, 40], [110, 44], [140, 40]].map(([x, y], i) => SV.circ(x, y, 13, ["#ffb13b", "#ff79b0", "#fff6e0", "#ffd23f"][i], 2)).join(""), { solid: 1, obstacle: "rock" });
+def("diyastand", 90, 130, 450, () => SV.rect(38, 50, 14, 76, 3, "#c9a227", 2.5) + SV.rect(22, 118, 46, 10, 3, "#c9a227", 2.5) + diyaSVG(45, 50, 1.1), { obstacle: "small", glow: "#ffb13b" });
+def("mandir", 260, 380, 2300, () => SV.rect(40, 220, 180, 156, 3, "#f4ecdc", 3) + SV.path("M60 222 Q70 90 130 20 Q190 90 200 222Z", "#f2dcae", 3) + `<path d="M86 200 Q96 110 130 52 M174 200 Q164 110 130 52" stroke="#d9c49a" stroke-width="4" fill="none"/>` +
+  SV.rect(126, 0, 8, 30, 2, "#6b4423", 2) + SV.path("M134 2 L160 10 L134 18Z", "#ff8a1c", 2) + SV.path("M104 376 L104 300 Q130 274 156 300 L156 376Z", "#8a2a2a", 3) + diyaSVG(70, 370, 1) + diyaSVG(190, 370, 1), { solid: 1 });
+KIT_EXTRA.lights = () => ({
+  wall_lights: { w: 300, h: 420, ww: 3400, solid: 1, svg: () => {
+    let s = SV.rect(0, 30, 300, 390, 0, "#d9b98a", 3);
+    for (const [x, y] of [[30, 80], [130, 80], [230, 80], [30, 210], [230, 210], [130, 210]]) s += SV.rect(x, y, 46, 64, 4, "#ffd36b", 2.5);
+    const bulbs = ["#ff3d7f", "#ffd23f", "#2bd9c5", "#ff8a1c"];
+    for (const y of [40, 170, 300]) for (let i = 0; i < 16; i++) s += SV.circ(10 + i * 19, y + Math.sin(i) * 6, 5, bulbs[i % 4], 1.5);
+    s += SV.rect(110, 320, 80, 100, 3, "#8a2a2a", 3);
+    return s;
+  } },
+});
+KIT_EXTRA.palace = () => ({
+  portal_palace: { w: 1600, h: 900, ww: 16000, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M160 900 L160 300 L400 300 L400 180 L1200 180 L1200 300 L1440 300 L1440 900 Z ${PORTAL_HOLE}" fill="#f2dcae" stroke="${OL}" stroke-width="4"/>`;
+    for (const x of [280, 1320]) s += SV.path(`M${x - 90} 300 Q${x} 150 ${x + 90} 300Z`, "#e8c98a", 4);
+    s += SV.path("M520 180 Q800 -20 1080 180Z", "#e8c98a", 4);
+    for (let x = 180; x < 1440; x += 46) s += SV.circ(x, 312, 9, ["#ff3d7f", "#ffd23f", "#2bd9c5", "#ff8a1c"][(x / 46 | 0) % 4], 2);
+    s += `<path fill-rule="evenodd" d="M540 900 L540 650 Q540 500 800 486 Q1060 500 1060 650 L1060 900 Z ${PORTAL_HOLE}" fill="#c4562b" stroke="${OL}" stroke-width="4"/>`;
+    for (const [x, y] of [[250, 450], [1270, 450], [250, 650], [1270, 650]]) s += SV.rect(x, y, 80, 110, 30, "#ffd36b", 4);
+    return s;
+  } },
+  rib_palace: { w: 560, h: 400, ww: 5600, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M0 400 L0 0 L560 0 L560 400 Z ${RIB_HOLE}" fill="#c9a26a" stroke="${OL}" stroke-width="3"/>`;
+    for (let i = 0; i < 14; i++) { const a = Math.PI * (i / 13); s += SV.circ(280 - Math.cos(a) * 218, 176 - Math.sin(a) * 104, 7, ["#ff3d7f", "#ffd23f", "#2bd9c5", "#ff8a1c"][i % 4], 1.5); }
+    s += diyaSVG(40, 380, 1.2) + diyaSVG(520, 380, 1.2);
+    return s;
+  } },
+});
+BG_EXTRA.diwalitown = (layer, Wd, H, R) => {
+  let s = "";
+  if (layer === "far") {
+    for (let x = 0; x < Wd; x += 60 + R() * 50) { const h = 60 + R() * 110, w = 50 + R() * 40; s += `<rect x="${x}" y="${H - h}" width="${w}" height="${h}" fill="#1a1028"/>`; for (let k = 0; k < 4; k++) s += `<rect x="${x + 8 + R() * (w - 18)}" y="${H - h + 10 + R() * (h - 24)}" width="8" height="10" fill="#ffd36b"/>`; }
+    for (let i = 0; i < 6; i++) s += `<circle cx="${R() * Wd}" cy="${H - 200 - R() * 120}" r="5" fill="#ffb13b"/>`;          // floating sky lanterns
+    return s;
+  }
+  for (let x = 0; x < Wd; x += 24) s += `<circle cx="${x}" cy="${H - 50 + Math.sin(x * 0.02) * 8}" r="3" fill="${["#ff3d7f", "#ffd23f", "#2bd9c5"][(x / 24 | 0) % 3]}"/>`;
+  return s;
+};
+BIOME_SCENERY.diwali = { near: [["lithouse", 3], ["diyas", 3], ["kandil", 1.5], ["rangoli", 1.5]], far: ["lithouse", "mandir"], obstacles: ["sweets", "diyastand"], special: ["banner"],
+  zones: { lanes: { near: [["lithouse", 4], ["diyas", 3], ["rangoli", 2], ["kandil", 1.5]], dens: 0.8 }, bazaar: { near: [["mithai", 3], ["lithouse", 2], ["kandil", 2]], dens: 0.85 },
+    ghat: { near: [["diyas", 5], ["mandir", 1]], dens: 0.6 }, temple: { near: [["mandir", 2], ["diyas", 3], ["kandil", 1]], dens: 0.7 } } };
+
+/* ======================= THANKSGIVING HARVEST ======================= */
+THEME_ITEMS.pie = () => SV.ell(32, 38, 26, 14, "#c98a4a", 3) + SV.ell(32, 34, 22, 10, "#e8862f", 2.5) + `<path d="M14 34 Q32 26 50 34" stroke="#fff6e0" stroke-width="4" fill="none"/>`;
+def("barn", 320, 300, 2900, () => {
+  let s = SV.rect(30, 110, 260, 186, 3, "#c4362b", 3) + SV.path("M10 120 L60 40 L260 40 L310 120Z", "#3a3540", 3) + SV.path("M60 40 L160 6 L260 40Z", "#3a3540", 3);
+  s += SV.rect(110, 170, 100, 126, 2, "#f4ecdc", 3) + `<path d="M110 170 L210 296 M210 170 L110 296" stroke="#f4ecdc" stroke-width="10"/><path d="M114 174 L206 292 M206 174 L114 292" stroke="#c4362b" stroke-width="5"/>`;
+  s += SV.rect(140, 70, 40, 34, 3, "#f4ecdc", 3) + `<path d="M30 150 L290 150" stroke="#f4ecdc" stroke-width="6"/>`;
+  return s;
+}, { solid: 1 });
+def("silo", 140, 360, 1300, () => SV.rect(20, 70, 100, 286, 4, "#c9ced8", 3) + SV.path("M20 74 Q70 0 120 74Z", "#8a8a92", 3) + `<path d="M20 130 L120 130 M20 200 L120 200 M20 270 L120 270" stroke="#9aa0ac" stroke-width="5"/>`, { solid: 1 });
+function mapleSVG(w, h, cols) {
+  let s = SV.path(`M${w * 0.46} ${h} Q${w * 0.44} ${h * 0.7} ${w * 0.48} ${h * 0.5} L${w * 0.54} ${h * 0.5} Q${w * 0.56} ${h * 0.7} ${w * 0.56} ${h}Z`, "#5a3a22", 3);
+  for (const [x, y, r, c] of [[0.5, 0.3, 0.28, 0], [0.28, 0.42, 0.2, 1], [0.72, 0.4, 0.22, 2], [0.4, 0.16, 0.18, 1], [0.62, 0.18, 0.18, 0], [0.5, 0.48, 0.2, 2]]) s += SV.circ(w * x, h * y, w * r, cols[c], 3);
+  return s;
+}
+def("maple", 260, 340, 1800, () => mapleSVG(260, 340, ["#e8562c", "#f2a33a", "#c4362b"]), { solid: 1 });
+def("maple2", 260, 340, 1800, () => mapleSVG(260, 340, ["#f2c53a", "#e8862f", "#f2a33a"]), { solid: 1 });
+def("appletree", 240, 300, 1600, () => { let s = mapleSVG(240, 300, ["#4f9b3c", "#3f8a32", "#5aa646"]); for (let i = 0; i < 9; i++) s += SV.circ(50 + ((i * 47) % 150), 50 + ((i * 31) % 100), 8, "#e2433b", 2); return s; }, { solid: 1 });
+def("turkey", 200, 200, 900, () => {
+  let s = "";
+  const fan = ["#7a4a2a", "#c9761c", "#e8a33a", "#a8452c"];
+  for (let i = 0; i < 7; i++) { const a = -2.6 + i * 0.35; s += SV.ell(100 + Math.cos(a) * 52, 96 + Math.sin(a) * 52, 18, 46, fan[i % 4], 2.5, `transform="rotate(${(a * 180) / Math.PI + 90} ${100 + Math.cos(a) * 52} ${96 + Math.sin(a) * 52})"`); }
+  s += SV.ell(100, 120, 46, 40, "#6b4423", 3) + SV.circ(100, 70, 20, "#8a5a3a", 3) + SV.path("M100 72 L118 78 L100 84Z", "#ffd23f", 2) + SV.path("M98 84 Q92 100 100 106 Q104 96 102 84Z", "#e2433b", 2) + SV.circ(94, 66, 3, OL, 0);
+  s += `<path d="M86 156 L82 194 M114 156 L118 194" stroke="#ffb13b" stroke-width="6" stroke-linecap="round"/>`;
+  return s;
+}, { solid: 1 });
+def("pumpkinpile", 200, 110, 900, () => pumpkinSVG(60, 80, 48, 30, false) + pumpkinSVG(140, 84, 42, 26, false) + pumpkinSVG(100, 50, 34, 22, false), { obstacle: "small" });
+def("tractor", 300, 230, 1900, () => SV.rect(60, 90, 160, 70, 6, "#2bb673", 3) + SV.rect(150, 30, 70, 70, 4, "#2bb673", 3) + SV.rect(160, 40, 50, 40, 3, "#bfe3ff", 2.5) + SV.rect(76, 50, 14, 44, 2, "#3a3540", 2.5) +
+  SV.circ(200, 170, 54, "#3a3540", 3) + SV.circ(200, 170, 22, "#ffd23f", 3) + SV.circ(80, 190, 32, "#3a3540", 3) + SV.circ(80, 190, 12, "#ffd23f", 2.5), { solid: 1 });
+def("woodfence", 300, 110, 1800, () => { let s = SV.rect(0, 30, 300, 14, 2, "#9a6a3c", 2.5) + SV.rect(0, 64, 300, 14, 2, "#9a6a3c", 2.5); for (let x = 10; x < 300; x += 70) s += SV.rect(x, 14, 16, 94, 2, "#7b4a2a", 2.5); return s; }, { solid: 1 });
+def("hayramp", 640, 150, 4400, () => { let s = ""; for (let k = 0; k < 3; k++) s += SV.rect(30 + k * 40, 100 - k * 40, 580 - k * 80, 46, 8, "#e2b64f", 3) + `<path d="M${60 + k * 40} ${110 - k * 40} L${600 - k * 40} ${110 - k * 40}" stroke="#b38a2e" stroke-width="4"/>`; return s; });
+KIT_EXTRA.corn = () => ({
+  wall_corn: { w: 300, h: 420, ww: 3400, solid: 1, svg: () => {
+    let s = "";
+    for (let i = 0; i < 9; i++) { const x = 16 + i * 34; s += `<path d="M${x} 420 Q${x + 8} 200 ${x - 4} 40" stroke="#b8963c" stroke-width="10" fill="none" stroke-linecap="round"/>`; s += SV.path(`M${x} ${200 + (i % 3) * 30} Q${x + 44} ${180 + (i % 3) * 30} ${x + 50} ${140 + (i % 3) * 30} Q${x + 20} ${176 + (i % 3) * 30} ${x} ${190 + (i % 3) * 30}Z`, "#c9a648", 2); s += SV.ell(x + 6, 120 + (i % 2) * 30, 8, 20, "#ffd23f", 2); }
+    return s;
+  } },
+});
+KIT_EXTRA.barn = () => ({
+  portal_barn: { w: 1600, h: 900, ww: 16000, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M200 900 L200 360 L420 120 L1180 120 L1400 360 L1400 900 Z ${PORTAL_HOLE}" fill="#c4362b" stroke="${OL}" stroke-width="4"/>`;
+    s += SV.path("M160 380 L420 90 L1180 90 L1440 380 L1400 380 L1180 130 L420 130 L200 380Z", "#3a3540", 4);
+    s += `<path fill-rule="evenodd" d="M540 900 L540 520 L1060 520 L1060 900 Z ${PORTAL_HOLE}" fill="#f4ecdc" stroke="${OL}" stroke-width="4"/>`;
+    s += SV.rect(720, 220, 160, 140, 4, "#f4ecdc", 4) + `<path d="M200 460 L540 460 M1060 460 L1400 460" stroke="#f4ecdc" stroke-width="12"/>`;
+    return s;
+  } },
+  rib_barn: { w: 560, h: 400, ww: 5600, svg: () => `<path fill-rule="evenodd" d="M0 400 L0 0 L560 0 L560 400 Z ${RIB_HOLE}" fill="#8a3a2a" stroke="${OL}" stroke-width="3"/>` + SV.rect(10, 300, 60, 40, 6, "#e2b64f", 2.5) + SV.rect(490, 300, 60, 40, 6, "#e2b64f", 2.5) + `<path d="M0 60 L560 60" stroke="#6b2a1c" stroke-width="10"/>` },
+});
+BG_EXTRA.farmhills = (layer, Wd, H, R) => {
+  if (layer !== "far") return "";
+  let s = "";
+  for (let i = 0; i < 8; i++) { const x = i * 280 + R() * 80, w = 220 + R() * 100; s += `<path d="M${x} ${H - 60} Q${x + w / 2} ${H - 160 - R() * 40} ${x + w} ${H - 60}Z" fill="${["#d9a648", "#c9862e", "#a8963c", "#e8b85a"][i % 4]}"/>`; }
+  s += `<rect x="900" y="${H - 170}" width="60" height="40" fill="#c4362b"/><path d="M890 ${H - 170} L930 ${H - 196} L970 ${H - 170}Z" fill="#3a3540"/><rect x="975" y="${H - 200}" width="18" height="70" fill="#c9ced8"/>`;
+  return s;
+};
+BIOME_SCENERY.harvest = { near: [["maple", 3], ["haybale", 2], ["woodfence", 1.5], ["pumpkinpile", 1]], far: ["maple", "maple2"], obstacles: ["haybale", "pumpkinpile"], special: ["banner"],
+  zones: { farm: { near: [["barn", 1.2], ["silo", 1], ["woodfence", 3], ["haybale", 2], ["tractor", 0.6]], dens: 0.6 }, orchard: { near: [["appletree", 5], ["haybale", 1]], dens: 0.75 },
+    maples: { near: [["maple", 4], ["maple2", 4]], dens: 0.85 }, corn: { near: [["cornstalk", 6]], dens: 0.9 }, creek: { near: [["reeds", 3], ["maple2", 2]], dens: 0.6 },
+    fields: { near: [["haybale", 3], ["pumpkinpile", 2], ["scarecrow", 1], ["woodfence", 2]], dens: 0.55 } } };
+
+/* ======================= CHRISTMAS ======================= */
+THEME_ITEMS.giftbox = () => SV.rect(12, 22, 40, 36, 4, "#e2433b", 3) + SV.rect(28, 22, 8, 36, 0, "#ffd23f", 0) + `<path d="M32 22 Q18 8 24 6 Q32 8 32 22 Q32 8 40 6 Q46 8 32 22" stroke="#ffd23f" stroke-width="4" fill="none"/>`;
+def("xmastree", 220, 380, 1500, () => {
+  let s = conifer(220, 380, "#2c6e4a", "#f4f8ff");
+  const b = ["#e2433b", "#ffd23f", "#2b9cff", "#ff79b0"];
+  for (let i = 0; i < 16; i++) s += SV.circ(60 + ((i * 53) % 100), 90 + ((i * 41) % 220), 6, b[i % 4], 1.5);
+  s += SV.path("M110 0 L118 20 L140 20 L122 32 L130 54 L110 40 L90 54 L98 32 L80 20 L102 20Z", "#ffd23f", 2.5);
+  return s;
+}, { solid: 1 });
+def("candycane", 110, 300, 600, () => `<path d="M60 296 L60 80 Q60 20 30 24 Q8 28 12 56" stroke="${OL}" stroke-width="30" fill="none" stroke-linecap="round"/><path d="M60 296 L60 80 Q60 20 30 24 Q8 28 12 56" stroke="#ffffff" stroke-width="22" fill="none" stroke-linecap="round"/><path d="M60 296 L60 80 Q60 20 30 24 Q8 28 12 56" stroke="#e2433b" stroke-width="22" fill="none" stroke-dasharray="16 16"/>`, { solid: 1 });
+def("candygate", 1100, 900, 6200, () => {
+  const cane = (d) => `<path d="${d}" stroke="${OL}" stroke-width="58" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#ffffff" stroke-width="44" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#e2433b" stroke-width="44" fill="none" stroke-dasharray="30 30"/>`;
+  let s = cane("M60 890 L60 140 Q60 30 200 30 L540 30") + cane("M1040 890 L1040 140 Q1040 30 900 30 L560 30");
+  s += SV.path("M480 0 Q550 70 620 0 Q600 60 550 70 Q500 60 480 0Z", "#2bb673", 3) + SV.circ(550, 64, 22, "#e2433b", 3);
+  return s;
+});
+def("gingerhouse", 280, 280, 2300, () => {
+  let s = SV.rect(30, 110, 220, 166, 4, "#b8763a", 3) + SV.path("M10 120 L140 20 L270 120Z", "#8a5226", 3) + `<path d="M10 120 L140 20 L270 120" stroke="#ffffff" stroke-width="14" fill="none" stroke-linejoin="round"/><path d="M10 120 L140 20 L270 120" stroke="#ffffff" stroke-width="6" fill="none" stroke-dasharray="4 12"/>`;
+  s += SV.rect(110, 180, 60, 96, 20, "#e2433b", 3) + SV.rect(46, 140, 46, 44, 4, "#ffd36b", 3) + SV.rect(188, 140, 46, 44, 4, "#ffd36b", 3);
+  for (let x = 40; x < 250; x += 30) s += SV.circ(x, 112, 8, ["#e2433b", "#2bb673", "#ffd23f"][(x / 30 | 0) % 3], 2);
+  s += `<path d="M30 230 Q140 210 250 230" stroke="#ffffff" stroke-width="8" fill="none" stroke-dasharray="14 8"/>`;
+  return s;
+}, { solid: 1 });
+function giftSVG(x, y, w, h, c, r) { return SV.rect(x, y, w, h, 4, c, 3) + SV.rect(x + w / 2 - 6, y, 12, h, 0, r, 0) + SV.rect(x, y + h / 2 - 6, w, 12, 0, r, 0) + `<path d="M${x + w / 2} ${y} q-18 -16 -10 -20 q8 0 10 20 q2 -20 10 -20 q8 4 -10 20" stroke="${r}" stroke-width="5" fill="none"/>`; }
+def("presents", 220, 150, 1200, () => giftSVG(10, 70, 90, 76, "#e2433b", "#ffd23f") + giftSVG(110, 84, 100, 62, "#2b9cff", "#ffffff") + giftSVG(60, 20, 70, 54, "#2bb673", "#e2433b"), { solid: 1, obstacle: "rock" });
+def("gift", 140, 130, 760, () => giftSVG(20, 30, 100, 94, "#ff3d7f", "#ffd23f"), { solid: 1, obstacle: "rock" });
+KIT_EXTRA.workshop = () => ({
+  portal_workshop: { w: 1600, h: 900, ww: 16000, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M160 900 L160 330 L800 60 L1440 330 L1440 900 Z ${PORTAL_HOLE}" fill="#a8452c" stroke="${OL}" stroke-width="4"/>`;
+    s += SV.path("M100 350 L800 30 L1500 350 L1440 350 L800 90 L160 350Z", "#f4f8ff", 4);
+    for (let y = 420; y < 900; y += 60) s += `<path d="M160 ${y} L1440 ${y}" stroke="#8a3520" stroke-width="5"/>`;
+    s += SV.rect(640, 180, 320, 90, 10, "#2bb673", 4) + `<text x="800" y="245" text-anchor="middle" font-family="${FONT}" font-weight="900" font-size="54" fill="#ffd23f">TOYS</text>`;
+    s += `<path fill-rule="evenodd" d="M540 900 L540 650 Q540 500 800 486 Q1060 500 1060 650 L1060 900 Z ${PORTAL_HOLE}" fill="#2bb673" stroke="${OL}" stroke-width="4"/>`;
+    for (const x of [260, 1220]) s += SV.rect(x, 440, 120, 140, 6, "#ffd36b", 4) + `<path d="M${x + 60} 440 L${x + 60} 580 M${x} 510 L${x + 120} 510" stroke="#a8452c" stroke-width="10"/>`;
+    return s;
+  } },
+  rib_workshop: { w: 560, h: 400, ww: 5600, svg: () => {
+    let s = `<path fill-rule="evenodd" d="M0 400 L0 0 L560 0 L560 400 Z ${RIB_HOLE}" fill="#7a3a24" stroke="${OL}" stroke-width="3"/>`;
+    for (const y of [120, 220, 320]) { s += SV.rect(4, y, 66, 10, 2, "#c98a55", 2) + SV.rect(490, y, 66, 10, 2, "#c98a55", 2); s += giftSVG(10, y - 34, 26, 34, "#e2433b", "#ffd23f") + giftSVG(40, y - 26, 24, 26, "#2b9cff", "#fff") + giftSVG(496, y - 30, 28, 30, "#2bb673", "#e2433b") + giftSVG(526, y - 24, 24, 24, "#ff79b0", "#fff"); }
+    s += `<path d="M0 30 Q140 70 280 30 Q420 70 560 30" stroke="#2bb673" stroke-width="12" fill="none"/>`;
+    return s;
+  } },
+});
+BG_EXTRA.northpole = (layer, Wd, H, R) => {
+  if (layer !== "far") return "";
+  // Santa's sleigh and reindeer silhouette crossing the moon side of the sky, plus a far village
+  let s = `<g fill="#0a1424" transform="translate(1400 ${H - 330}) scale(1.1)"><path d="M0 30 Q10 50 60 50 L90 30 L60 34 Q20 36 10 20Z"/><path d="M100 26 l30 -6 l6 -12 l4 12 l20 4 l-20 4 l-6 14 l-4 -12Z"/><path d="M150 18 l30 -6 l6 -12 l4 12 l20 4 l-20 4 l-6 14 l-4 -12Z"/></g>`;
+  for (let x = 0; x < Wd; x += 70 + R() * 60) { const h = 40 + R() * 50; s += `<rect x="${x}" y="${H - h}" width="44" height="${h}" fill="#1a2a48"/><path d="M${x - 6} ${H - h} L${x + 22} ${H - h - 24} L${x + 50} ${H - h}Z" fill="#e6eefa"/><rect x="${x + 16}" y="${H - h + 12}" width="10" height="12" fill="#ffd36b"/>`; }
+  return s;
+};
+BIOME_SCENERY.xmas = { near: [["xmastree", 3], ["snowpine", 3], ["candycane", 1.5], ["snowman", 1], ["presents", 0.6]], far: ["snowpine", "xmastree"], obstacles: ["presents", "snowrock"], special: ["banner"],
+  zones: { village: { near: [["gingerhouse", 3], ["xmastree", 2], ["snowman", 1.5], ["candycane", 1]], dens: 0.75 }, canes: { near: [["candycane", 5], ["xmastree", 2]], dens: 0.8 },
+    forest: { near: [["snowpine", 5], ["xmastree", 2]], dens: 0.8 }, lake: { near: [["snowman", 2], ["candycane", 1]], dens: 0.3 } } };
+
 // ===== audio.js =====
 /* Synthesized audio: engine/wind, SFX and a procedural soundtrack per biome. No audio files. */
 
@@ -2846,6 +3103,9 @@ const SFX = (() => {
     { bpm: 146, root: 45, scale: [0, 2, 4, 7, 9], prog: [0, 3, 4, 0], lead: "triangle", feel: "dhol" },            // 8 Great Wall: A major pentatonic
     { bpm: 140, root: 48, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 4, 0], lead: "square", feel: "menu" },       // 9 Swiss Alps: C major, bouncy
     { bpm: 150, root: 45, scale: [0, 1, 5, 7, 8], prog: [0, 3, 4, 1], lead: "triangle", feel: "rock" },            // 10 Fuji: A in-scale (Japanese)
+    { bpm: 140, root: 50, scale: [0, 1, 4, 5, 7, 8, 11], prog: [0, 3, 4, 0], lead: "sawtooth", feel: "dhol" },     // 11 Diwali: D bhairav, festive dhol
+    { bpm: 132, root: 43, scale: [0, 2, 4, 7, 9], prog: [0, 3, 4, 3], lead: "square", feel: "rock" },              // 12 Harvest: G major pentatonic, country
+    { bpm: 150, root: 48, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 4, 4], lead: "triangle", feel: "menu" },     // 13 Christmas: C major, jingly
   ];
   const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
   function kick(t, v = 0.9) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25); o.connect(g); g.connect(musicBus); o.start(t); o.stop(t + 0.3); }
@@ -3892,6 +4152,24 @@ function drawWeather(ctx, w, h, biome, race, me, t) {
       ctx.save(); ctx.translate(((p[0] % 1) + 1) % 1 * w, p[1] * h); ctx.rotate(t * 1.5 + i);
       ctx.fillStyle = i % 3 ? "#ffc2d9" : "#ffe3ee"; ctx.beginPath(); ctx.ellipse(0, 0, 4.5, 2.6, 0, 0, TAU); ctx.fill(); ctx.restore();
     }
+  } else if (kind === "leaves") {
+    for (let i = 0; i < 30; i++) {
+      const p = P[i];
+      p[1] += 0.0018 + p[2] * 0.0025 + sp * 0.003; p[0] += Math.sin(t * 1.3 + i) * 0.002 - me.lean * 0.004;
+      if (p[1] > 1) { p[1] = 0; p[0] = Math.random(); }
+      ctx.save(); ctx.translate(((p[0] % 1) + 1) % 1 * w, p[1] * h); ctx.rotate(t * 2 + i);
+      ctx.fillStyle = ["#c9561c", "#e8a33a", "#a8302a", "#f2c53a"][i % 4]; ctx.fillRect(-5, -3, 10, 6); ctx.restore();
+    }
+  } else if (kind === "fireworks") {
+    // slow fireworks blooming high in the sky (gentle rings that fade, never a screen flash)
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < 4; i++) {
+      const cyc = 2.6, ph = (t + i * 0.83) % cyc, k = ph / cyc, seed = Math.floor((t + i * 0.83) / cyc) * 7 + i;
+      const cx = w * (0.15 + ((seed * 0.37) % 0.7)), cy = h * (0.08 + ((seed * 0.21) % 0.22)), r = h * 0.11 * Math.sqrt(k);
+      ctx.fillStyle = rgba(["#ff3d7f", "#ffd23f", "#2bd9c5", "#b35cff", "#ff8a1c"][seed % 5], 0.7 * (1 - k));
+      for (let a = 0; a < 14; a++) { const an = (a / 14) * TAU; ctx.beginPath(); ctx.arc(cx + Math.cos(an) * r, cy + Math.sin(an) * r + k * k * h * 0.03, 2.2, 0, TAU); ctx.fill(); }
+    }
+    ctx.globalCompositeOperation = "source-over";
   } else if (kind === "bats") {
     // a few bats flapping across the top of the sky, and autumn leaves tumbling down
     for (let i = 0; i < 5; i++) {
@@ -6891,18 +7169,17 @@ function startupPopups() {
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.14j";
+const APP_VERSION = "2026.10.14k";
 const WHATS_NEW = [
-  "<b>New: WORLD TOUR!</b> 8 famous places on a world map. Unlocks at 23 ★ (last card on Choose a Trail).",
-  "<b>Valparaíso:</b> colourful hill streets · <b>Great Wall:</b> race on top of it, crumbling sections.",
-  "<b>Swiss Alps:</b> race the red train, cows · <b>Machu Picchu:</b> terraces in the clouds, llamas.",
-  "<b>Moab:</b> giant stone arches, canyon jump · <b>Fuji:</b> cherry blossoms, torii gate tunnel, deer.",
-  "<b>Ladakh:</b> Himalayan switchbacks, prayer flags, yaks · <b>Kilimanjaro:</b> snowy peak to savanna stampede.",
-  "New throwable: the <b>Snow Globe</b>. Plus new songs for the Great Wall, the Alps and Fuji.",
+  "<b>Coming up on Choose a Trail:</b> three new holiday trails switch on by themselves on their dates.",
+  "<b>Diwali (Nov 1–14):</b> a lit-up town at night, diyas, rangoli, marigold gates, firework spinners.",
+  "<b>Thanksgiving (Nov 15–30):</b> Harvest Hayride: red barns, maples, turkeys, hay ramps, a corn maze.",
+  "<b>Christmas (December):</b> North Pole Express: candy-cane gates, Santa's workshop, falling presents.",
+  "Still here now: <b>Halloween</b> (all October) and the <b>World Tour</b> (23 ★).",
 ];
 // ============================================
 
-const BUILD_ID = "wild-riders-c0bcb7b32a";            // stamped by tools/build.py; matches version.json of this build
+const BUILD_ID = "wild-riders-9f1aac3b37";            // stamped by tools/build.py; matches version.json of this build
 const VERSION_KEY = "wr-version", BACKUP_INFO_KEY = "wr-backup";
 const Upd = { reg: null, ready: false };
 

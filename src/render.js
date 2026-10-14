@@ -581,6 +581,24 @@ function drawWeather(ctx, w, h, biome, race, me, t) {
       ctx.save(); ctx.translate(((p[0] % 1) + 1) % 1 * w, p[1] * h); ctx.rotate(t * 1.5 + i);
       ctx.fillStyle = i % 3 ? "#ffc2d9" : "#ffe3ee"; ctx.beginPath(); ctx.ellipse(0, 0, 4.5, 2.6, 0, 0, TAU); ctx.fill(); ctx.restore();
     }
+  } else if (kind === "leaves") {
+    for (let i = 0; i < 30; i++) {
+      const p = P[i];
+      p[1] += 0.0018 + p[2] * 0.0025 + sp * 0.003; p[0] += Math.sin(t * 1.3 + i) * 0.002 - me.lean * 0.004;
+      if (p[1] > 1) { p[1] = 0; p[0] = Math.random(); }
+      ctx.save(); ctx.translate(((p[0] % 1) + 1) % 1 * w, p[1] * h); ctx.rotate(t * 2 + i);
+      ctx.fillStyle = ["#c9561c", "#e8a33a", "#a8302a", "#f2c53a"][i % 4]; ctx.fillRect(-5, -3, 10, 6); ctx.restore();
+    }
+  } else if (kind === "fireworks") {
+    // slow fireworks blooming high in the sky (gentle rings that fade, never a screen flash)
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < 4; i++) {
+      const cyc = 2.6, ph = (t + i * 0.83) % cyc, k = ph / cyc, seed = Math.floor((t + i * 0.83) / cyc) * 7 + i;
+      const cx = w * (0.15 + ((seed * 0.37) % 0.7)), cy = h * (0.08 + ((seed * 0.21) % 0.22)), r = h * 0.11 * Math.sqrt(k);
+      ctx.fillStyle = rgba(["#ff3d7f", "#ffd23f", "#2bd9c5", "#b35cff", "#ff8a1c"][seed % 5], 0.7 * (1 - k));
+      for (let a = 0; a < 14; a++) { const an = (a / 14) * TAU; ctx.beginPath(); ctx.arc(cx + Math.cos(an) * r, cy + Math.sin(an) * r + k * k * h * 0.03, 2.2, 0, TAU); ctx.fill(); }
+    }
+    ctx.globalCompositeOperation = "source-over";
   } else if (kind === "bats") {
     // a few bats flapping across the top of the sky, and autumn leaves tumbling down
     for (let i = 0; i < 5; i++) {

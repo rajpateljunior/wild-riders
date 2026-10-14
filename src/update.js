@@ -8,14 +8,13 @@
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.14j";
+const APP_VERSION = "2026.10.14k";
 const WHATS_NEW = [
-  "<b>New: WORLD TOUR!</b> 8 famous places on a world map. Unlocks at 23 ★ (last card on Choose a Trail).",
-  "<b>Valparaíso:</b> colourful hill streets · <b>Great Wall:</b> race on top of it, crumbling sections.",
-  "<b>Swiss Alps:</b> race the red train, cows · <b>Machu Picchu:</b> terraces in the clouds, llamas.",
-  "<b>Moab:</b> giant stone arches, canyon jump · <b>Fuji:</b> cherry blossoms, torii gate tunnel, deer.",
-  "<b>Ladakh:</b> Himalayan switchbacks, prayer flags, yaks · <b>Kilimanjaro:</b> snowy peak to savanna stampede.",
-  "New throwable: the <b>Snow Globe</b>. Plus new songs for the Great Wall, the Alps and Fuji.",
+  "<b>Coming up on Choose a Trail:</b> three new holiday trails switch on by themselves on their dates.",
+  "<b>Diwali (Nov 1–14):</b> a lit-up town at night, diyas, rangoli, marigold gates, firework spinners.",
+  "<b>Thanksgiving (Nov 15–30):</b> Harvest Hayride: red barns, maples, turkeys, hay ramps, a corn maze.",
+  "<b>Christmas (December):</b> North Pole Express: candy-cane gates, Santa's workshop, falling presents.",
+  "Still here now: <b>Halloween</b> (all October) and the <b>World Tour</b> (23 ★).",
 ];
 // ============================================
 

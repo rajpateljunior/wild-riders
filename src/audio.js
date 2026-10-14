@@ -147,6 +147,9 @@ const SFX = (() => {
     { bpm: 146, root: 45, scale: [0, 2, 4, 7, 9], prog: [0, 3, 4, 0], lead: "triangle", feel: "dhol" },            // 8 Great Wall: A major pentatonic
     { bpm: 140, root: 48, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 4, 0], lead: "square", feel: "menu" },       // 9 Swiss Alps: C major, bouncy
     { bpm: 150, root: 45, scale: [0, 1, 5, 7, 8], prog: [0, 3, 4, 1], lead: "triangle", feel: "rock" },            // 10 Fuji: A in-scale (Japanese)
+    { bpm: 140, root: 50, scale: [0, 1, 4, 5, 7, 8, 11], prog: [0, 3, 4, 0], lead: "sawtooth", feel: "dhol" },     // 11 Diwali: D bhairav, festive dhol
+    { bpm: 132, root: 43, scale: [0, 2, 4, 7, 9], prog: [0, 3, 4, 3], lead: "square", feel: "rock" },              // 12 Harvest: G major pentatonic, country
+    { bpm: 150, root: 48, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 4, 4], lead: "triangle", feel: "menu" },     // 13 Christmas: C major, jingly
   ];
   const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
   function kick(t, v = 0.9) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25); o.connect(g); g.connect(musicBus); o.start(t); o.stop(t + 0.3); }
