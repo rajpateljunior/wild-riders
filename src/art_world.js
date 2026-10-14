@@ -324,11 +324,12 @@ function bgSVG(biome, layer) {
   };
   let s = "";
   const id = biome.id;
+  const BG = biome.bg || {};
   if (layer === "far") {
-    const cols = { forest: ["#6f9fb4", "#5d8aa0"], desert: ["#d98b5a", "#c4703f"], glacier: ["#c9dcf2", "#a9c4e6"], ghats: ["#6f9a8a", "#5b8574"], volcano: ["#3b1f26", "#2a161c"], tundra: ["#1e3354", "#162843"] }[id];
-    const a = ridge(H - 120, 230, 64, id === "glacier" || id === "volcano" ? 50 : 18);
+    const cols = BG.far || { forest: ["#6f9fb4", "#5d8aa0"], desert: ["#d98b5a", "#c4703f"], glacier: ["#c9dcf2", "#a9c4e6"], ghats: ["#6f9a8a", "#5b8574"], volcano: ["#3b1f26", "#2a161c"], tundra: ["#1e3354", "#162843"] }[id];
+    const a = ridge(H - 120, BG.amp || 230, 64, BG.jag ?? (id === "glacier" || id === "volcano" ? 50 : 18));
     s += `<path d="${a.d}" fill="${cols[0]}"/>`;
-    if (id === "glacier" || id === "tundra") {
+    if (id === "glacier" || id === "tundra" || BG.snow) {
       // snow caps on peaks
       a.pts.forEach(([x, y], i) => { if (y < H - 260 && i % 1 === 0) s += `<path d="M${x - 40} ${y + 50} L${x} ${y} L${x + 40} ${y + 50} Q${x} ${y + 34} ${x - 40} ${y + 50}Z" fill="#fff" opacity=".9"/>`; });
     }
@@ -343,24 +344,26 @@ function bgSVG(biome, layer) {
     if (id === "ghats") {
       for (let i = 0; i < 4; i++) { const x = 200 + i * 520; s += `<path d="M${x} ${H - 200} L${x + 8} ${H}" stroke="#e9f6ff" stroke-width="10" opacity=".75"/>`; }
     }
-    const b = ridge(H - 40, 120, 48, 10);
+    if (BG.extra && BG_EXTRA[BG.extra]) s += BG_EXTRA[BG.extra]("far", Wd, H, R);
+    const b = ridge(H - 40, BG.amp2 || 120, 48, 10);
     s += `<path d="${b.d}" fill="${cols[1]}"/>`;
   } else {
-    const cols = { forest: "#2f5d36", desert: "#d9a05e", glacier: "#e6eefa", ghats: "#2f6e3e", volcano: "#1c1414", tundra: "#0f1f33" }[id];
+    const cols = BG.near || { forest: "#2f5d36", desert: "#d9a05e", glacier: "#e6eefa", ghats: "#2f6e3e", volcano: "#1c1414", tundra: "#0f1f33" }[id];
     const a = ridge(H - 40, 70, 40, 6);
     s += `<path d="${a.d}" fill="${cols}"/>`;
-    if (id === "forest" || id === "glacier" || id === "tundra" || id === "ghats") {
-      const tc = { forest: "#244a2a", glacier: "#2c5248", tundra: "#0a1622", ghats: "#245a32" }[id];
+    if (id === "forest" || id === "glacier" || id === "tundra" || id === "ghats" || BG.tree) {
+      const tc = BG.tree || { forest: "#244a2a", glacier: "#2c5248", tundra: "#0a1622", ghats: "#245a32" }[id];
       for (let x = 0; x < Wd; x += 26 + R() * 30) {
         const i = Math.min(a.pts.length - 1, Math.round(x / 40));
         const y = a.pts[i][1] + 10, h = 50 + R() * 60;
         if (id === "ghats" && R() < 0.5) { s += `<path d="M${x} ${y} L${x + 4} ${y - h}" stroke="#4a3a24" stroke-width="5"/><path d="M${x - 24} ${y - h + 10} Q${x + 4} ${y - h - 20} ${x + 30} ${y - h + 12}" stroke="${tc}" stroke-width="14" fill="none"/>`; continue; }
         s += `<path d="M${x - h * 0.22} ${y} L${x} ${y - h} L${x + h * 0.22} ${y}Z" fill="${tc}"/>`;
-        if (id === "glacier" || id === "tundra") s += `<path d="M${x - h * 0.1} ${y - h * 0.55} L${x} ${y - h} L${x + h * 0.1} ${y - h * 0.55}Z" fill="#fff" opacity=".85"/>`;
+        if (id === "glacier" || id === "tundra" || BG.snow) s += `<path d="M${x - h * 0.1} ${y - h * 0.55} L${x} ${y - h} L${x + h * 0.1} ${y - h * 0.55}Z" fill="#fff" opacity=".85"/>`;
       }
     }
     if (id === "desert") for (let i = 0; i < 6; i++) { const x = R() * Wd; s += `<path d="M${x - 200} ${H} Q${x} ${H - 90} ${x + 260} ${H}Z" fill="#e8b878"/>`; }
     if (id === "volcano") for (let i = 0; i < 4; i++) { const x = 200 + i * 500; s += `<path d="M${x} ${H} Q${x + 60} ${H - 40} ${x + 140} ${H - 30} T${x + 300} ${H}" stroke="#ff5a1f" stroke-width="6" fill="none" opacity=".7"/>`; }
+    if (BG.extra && BG_EXTRA[BG.extra]) s += BG_EXTRA[BG.extra]("near", Wd, H, R);
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${Wd}" height="${H}" viewBox="0 0 ${Wd} ${H}">${s}</svg>`;
 }
@@ -383,14 +386,17 @@ function itemSVG(id) {
     case "paint": s = SV.circ(32, 36, 20, "#38e05a", 3) + SV.path("M18 30 Q32 20 46 30", "none", 3) + SV.circ(26, 30, 4, "#fff", 0); break;
     case "bubble": s = SV.path("M32 6 L54 14 L52 34 Q48 50 32 58 Q16 50 12 34 L10 14Z", "#2bd9c5", 3) + SV.path("M32 14 L46 19 L45 33 Q42 44 32 50Z", "#8ff5e8", 0) + `<path d="M24 32 l6 6 l12 -14" stroke="#14101c" stroke-width="4" fill="none" stroke-linecap="round"/>`; break;
     case "mine": s = SV.ell(32, 40, 24, 13, "#3a3540", 3) + SV.ell(32, 35, 16, 8, "#55505e", 2.5) + SV.circ(32, 31, 5, "#ff3b3b", 2) + `<path d="M12 40 h-6 M52 40 h6" stroke="#14101c" stroke-width="3"/>`; break;
+    default: if (THEME_ITEMS[id]) s = THEME_ITEMS[id]();
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">${s}</svg>`;
 }
 
 /* ---- build all world sprites for one biome (async) ---- */
 const worldCache = {};
-async function buildWorldSprites(biome) {
-  if (worldCache[biome.id]) return worldCache[biome.id];
+async function buildWorldSprites(biome, track) {
+  // cached per trail: a trail's `look` can recolour the kit, and its plan can use extra sprites (tunnel styles, gates, movers)
+  const key = biome.id + (track ? ":" + track.def.id : "");
+  if (worldCache[key]) return worldCache[key];
   const set = BIOME_SCENERY[biome.id];
   const ids = new Set(["ramp", "crate", "repair", "arch", "startgate", "crowd", "banner", "log", "vent"]);
   set.near.forEach(([id]) => ids.add(id));
@@ -400,6 +406,11 @@ async function buildWorldSprites(biome) {
   ["lantern", "crystal", "reeds"].forEach((id) => ids.add(id));
   if (set.zones) Object.values(set.zones).forEach((z) => z.near.forEach(([id]) => ids.add(id)));
   const kit = biomeKit(biome);
+  if (track) {
+    for (const s of track.segs) for (const sp of s.sprites) if (!kit[sp.id]) ids.add(sp.id);
+    for (const b of track.def.plan) if (b.ts && KIT_EXTRA[b.ts]) Object.assign(kit, KIT_EXTRA[b.ts](biome));
+  }
+  [...ids].forEach((id) => { if (!W[id]) ids.delete(id); });              // kit pieces (walls, tunnels) are built from the kit below
   const out = { sprites: {}, items: {} };
   await Promise.all([...ids].map((id) => [id, W[id]]).concat(Object.entries(kit)).map(async ([id, d]) => {
     const scale = d.ww > 9000 ? 0.6 : 1;            // giant tunnel mouths don't need full resolution
@@ -409,6 +420,6 @@ async function buildWorldSprites(biome) {
   await Promise.all(Object.keys(ITEMS).map(async (id) => { out.items[id] = await svgToCanvas(itemSVG(id), 64, 64); }));
   out.far = await svgToCanvas(bgSVG(biome, "far"), 2048, 420);
   out.near = await svgToCanvas(bgSVG(biome, "near"), 2048, 300);
-  worldCache[biome.id] = out;
+  worldCache[key] = out;
   return out;
 }

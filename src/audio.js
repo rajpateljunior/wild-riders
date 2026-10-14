@@ -142,6 +142,8 @@ const SFX = (() => {
     { bpm: 156, root: 40, scale: [0, 1, 3, 5, 7, 8, 10], prog: [0, 1, 5, 6], lead: "sawtooth", feel: "metal" }, // E phrygian
     { bpm: 128, root: 42, scale: [0, 2, 3, 7, 8], prog: [0, 5, 3, 4], lead: "triangle", feel: "synth" },   // F# minor, dreamy
     { bpm: 120, root: 48, scale: [0, 2, 4, 7, 9], prog: [0, 5, 3, 4], lead: "square", feel: "menu" },
+    // 7+: seasonal and World Tour songs (music index on the theme in themes.js)
+    { bpm: 136, root: 41, scale: [0, 1, 3, 5, 6, 8, 10], prog: [0, 1, 0, 5], lead: "square", feel: "rock" },        // 7 Halloween: F locrian, spooky
   ];
   const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
   function kick(t, v = 0.9) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25); o.connect(g); g.connect(musicBus); o.start(t); o.stop(t + 0.3); }

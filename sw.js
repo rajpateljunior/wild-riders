@@ -3,7 +3,7 @@
 // A new worker takes over as soon as it has cached the new files (so the newest version is used from the next open).
 // The game also checks version.json (never cached) and shows an UPDATE banner so you can switch right away.
 // Saves live in localStorage and are never touched by any of this.
-const CACHE = "wild-riders-09b6f006ef";
+const CACHE = "wild-riders-73aaceaee3";
 const ASSETS = [
   './',
   './manifest.webmanifest',

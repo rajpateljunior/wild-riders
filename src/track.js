@@ -92,6 +92,8 @@ function buildTrack(def) {
       const s = segs[k];
       s.zone = b.z || null;
       s.feat = (b.f === "ford" ? null : b.f) || null;
+      if (b.ts) s.ts = b.ts;                                  // tunnel style (portal_<ts> / rib_<ts>)
+      if (b.g) { s.gateId = b.g; s.gateK = k - from; s.gateE = b.ge || 8; }   // arches over the trail (torii gates etc.)
       if (b.f === "mtn") { if (s.curve > 0.4) side = 1; else if (s.curve < -0.4) side = -1; s.fside = side; }
     }
     if (b.f === "ford") {
@@ -99,6 +101,8 @@ function buildTrack(def) {
       for (let k = 0; k < 16; k++) { const s = segs[mid - 8 + k]; s.surface = { type: "water", x0: -2, x1: 2, k, len: 16 }; s.noObs = 1; }
     }
   }
+  // road width for the whole trail (some trails are wide open, some are narrow ledges)
+  if (def.wide) for (const s of segs) s.w = def.wide;
   // turn features into side ground, walls and limits.  gL/gR: what lies beside the trail; wl/wr: hard edge (x) or 0
   const sideType = (t) => (t === "chasm" && biome.lavaSide ? "lava" : t);
   for (let i = 0; i < N; i++) {
@@ -141,7 +145,7 @@ function buildTrack(def) {
     for (let k = 0; k < len; k++) {
       const s = segs[i0 + k];
       const t = k < 20 ? k / 20 : k > len - 20 ? (len - k) / 20 : 1;
-      s.w = 1 + 0.75 * t;
+      s.w = (def.wide || 1) * (1 + 0.75 * t);
       s.split = t;
       s.curve *= 0.5;
     }
@@ -187,7 +191,7 @@ function buildTrack(def) {
   }
 
   // biome surfaces
-  const surf = { forest: null, desert: "sand", glacier: "ice", ghats: "mud", volcano: "lava", tundra: "ice" }[biome.id];
+  const surf = biome.surf !== undefined ? biome.surf : { forest: null, desert: "sand", glacier: "ice", ghats: "mud", volcano: "lava", tundra: "ice" }[biome.id];
   if (surf) {
     const count = Math.round(6 * def.haz);
     for (let n = 0; n < count; n++) {
@@ -236,6 +240,24 @@ function buildTrack(def) {
   }
   function pickW(arr, r) { return arr[(r() * arr.length) | 0]; }
 
+  // movers: ghosts, animals or rolling logs that sweep across the trail (x is updated every frame by moveMovers)
+  const movers = [];
+  for (const m of def.movers || []) {
+    for (let n = 0; n < m.n; n++) {
+      for (let tries = 0; tries < 30; tries++) {
+        const i = 130 + ((R() * (finishIdx - 230)) | 0);
+        const s = segs[i];
+        if (!placeable(i) || s.tun || s.bridge || s.pin || s.split || s.ramp || s.vent || s.noObs) continue;
+        let near = false;
+        for (let k = i - 30; k < i + 10; k++) if (segs[k] && (segs[k].ramp || segs[k].vent || segs[k].mover)) near = true;
+        if (near) continue;
+        const sp = { id: m.id, x: 0, mv: { c: (R() - 0.5) * 0.3, a: (m.amp || 1) * s.w, w: (m.spd || 0.6) * (0.75 + R() * 0.5), p: R() * TAU } };
+        s.sprites.push(sp); s.mover = 1; movers.push(sp);
+        break;
+      }
+    }
+  }
+
   // crates: rows of three
   for (let i = 150; i < finishIdx - 80; i += 190 + ((R() * 80) | 0)) {
     if (segs[i].ramp || segs[i].split) continue;
@@ -265,9 +287,10 @@ function buildTrack(def) {
     // tunnels: portal at each mouth, ribs every 2 segments, lights on the walls
     if (s.tun) {
       const prev = segs[i - 1], next = segs[i + 1];
-      if (!prev || !prev.tun) s.sprites.push({ id: "portal", x: 0, gate: 1 });
-      else if (!next || !next.tun) s.sprites.push({ id: "portal", x: 0, gate: 1 });
-      else if (i % 2 === 0) s.sprites.push({ id: "rib", x: 0, gate: 1 });
+      const pid = s.ts ? "portal_" + s.ts : "portal", rid = s.ts ? "rib_" + s.ts : "rib";
+      if (!prev || !prev.tun) s.sprites.push({ id: pid, x: 0, gate: 1 });
+      else if (!next || !next.tun) s.sprites.push({ id: pid, x: 0, gate: 1 });
+      else if (i % 2 === 0) s.sprites.push({ id: rid, x: 0, gate: 1 });
       tunRun++;
       if (s.tun === "cave" && i % 5 === 0) s.sprites.push({ id: "crystal", x: (i % 10 ? -1 : 1) * (edge + 0.34) });
       else if (i % 14 === 0) s.sprites.push({ id: "lantern", x: (i % 28 ? -1 : 1) * (edge + 0.3) });
@@ -281,6 +304,7 @@ function buildTrack(def) {
       if (R() < zp.dens) s.sprites.push({ id: zp.pick(), x: side * (edge + 0.5 + R() * 1.5) });
       if (i % 4 === 0 && R() < 0.5 + zp.dens * 0.5) s.sprites.push({ id: set.far[(R() * set.far.length) | 0], x: side * (edge + 2.4 + R() * 4) });
     }
+    if (s.gateId && !s.tun && s.gateK % s.gateE === 0) s.sprites.push({ id: s.gateId, x: 0, gate: 1 });
     // hairpin chevrons on the outside of the bend
     if (s.pin && i % 6 === 0) s.sprites.push({ id: s.pin > 0 ? "chevR" : "chevL", x: -s.pin * (edge + 0.42) });
     const open = !s.feat;
@@ -295,7 +319,7 @@ function buildTrack(def) {
     segs[i].sprites.push({ id: "crowd", x: -(segs[i].w + 0.9) }, { id: "crowd", x: segs[i].w + 0.9 });
   }
   return {
-    def, biome, segs, N, beats,
+    def, biome, segs, N, beats, movers,
     length: N * SEG,
     finishZ: finishIdx * SEG,
     startZ: 22 * SEG,

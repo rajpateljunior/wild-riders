@@ -283,3 +283,8 @@ body.savage .title-cast .dust i { background: rgba(120,90,80,.5); }
   #scr-veh .upg .u { font-size: 9px; gap: 3px; }
   #scr-veh .upg .ub { height: 22px; font-size: 11px; padding: 0 5px; }
 }
+
+/* Choose a Trail: seasonal card (first in the row, only during its dates) */
+.card.season { border-color: #ff8a1c; }
+.card.season.sel { border-color: var(--sun); }
+.ribbon { position: absolute; top: 8px; left: 8px; z-index: 1; background: #ff8a1c; color: #2a1406; font: 400 15px/1 Bangers, sans-serif; letter-spacing: 1px; padding: 4px 8px 3px; border-radius: 6px; box-shadow: 0 2px 0 rgba(0,0,0,.35); pointer-events: none; }

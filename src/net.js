@@ -153,7 +153,7 @@ function netStartAsHost() {
   const g = N.guest;
   const me = myHello();
   const cfg = {
-    trackId: App.pick.track || App.save.last.track, total: 8, difficulty: App.save.settings.diff, botSeed: (Math.random() * 100000) | 0, online: true,
+    trackId: validTrack(App.pick.track || App.save.last.track), total: 8, difficulty: App.save.settings.diff, botSeed: (Math.random() * 100000) | 0, online: true,
     fav: cutieOn() ? 1 : g.cz ? 0 : null,          // cutie mode on either phone: the OTHER phone's rider always wins
     humans: [{ riderId: me.rider, vehId: me.veh, upg: me.upg, netId: 0 }, { riderId: g.rider, vehId: g.veh, upg: g.upg, netId: 1, remote: true }],
   };

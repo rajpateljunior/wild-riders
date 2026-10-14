@@ -2,7 +2,7 @@
 
 Downhill bike & ATV racing for iPhone and iPad (landscape), in the spirit of PS2-era downhill racers.
 Armored anime riders (Arcade or Savage style), punches and kicks, throwables, health that slows you down, boost pads, ramps, tricks,
-six nature biomes, bots, two-player split screen, and online 2-player with room codes. Installable to the Home Screen and fully offline.
+six nature biomes, a seasonal trail every month, bots, two-player split screen, and online 2-player with room codes. Installable to the Home Screen and fully offline.
 
 **Play:** https://rajpateljunior.github.io/wild-riders/ (open in Safari → Share → Add to Home Screen)
 
@@ -32,8 +32,10 @@ Commit `src/`, `index.html`, `sw.js` and `version.json` together. Before a relea
 | File | What's in it |
 |---|---|
 | `src/data.js` | Riders, vehicles, items, biomes, tracks, prices |
+| `src/themes.js` | Seasonal trails and World Tour themes + their trails, season dates |
 | `src/art.js` | Rider sprites (back view), anime portraits, side-view vehicles |
 | `src/art_world.js` | Scenery, track objects, backgrounds, projectiles |
+| `src/art_themes.js` | Art for the seasonal / World Tour themes (sprites, tunnel styles, background extras) |
 | `src/track.js` | Track generation (layout, forks, ramps, pads, hazards, scenery) |
 | `src/render.js` | Pseudo-3D renderer, weather, lighting, HUD |
 | `src/game.js` | Physics, combat, items, health, tricks, AI |
@@ -48,6 +50,7 @@ Commit `src/`, `index.html`, `sw.js` and `version.json` together. Before a relea
 ## Tests (Playwright, Chromium)
 - `node tools/bot.js 0.85 mtb kaito` — an AI drives every track; checks all are finishable.
 - `node tools/shots.js <outdir> 844 390 f1,d1 [split]` — gameplay screenshots.
+- `node tools/spots.js <outdir> 844 390 s10 tunnel,mover 2026-10-20` — screenshots at a trail's features (optional fake date for seasonal trails).
 - `node tools/menus.js <outdir> 844 390` — menu screenshots.
 - `node tools/touch.js` — multi-touch steering/boost/punch check.
 - `node tools/throttle.js` — auto-accelerate: the bike goes with no thumb down, the stick only steers left/right, releasing keeps it going.

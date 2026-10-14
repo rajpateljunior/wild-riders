@@ -8,15 +8,14 @@
       of your progress lives outside the game (Notes, a text to yourself). Stored in localStorage "wr-backup". */
 
 // ===== Edit these two on every release =====
-const APP_VERSION = "2026.10.14e";
+const APP_VERSION = "2026.10.14h";
 const WHATS_NEW = [
-  "<b>Super moves:</b> punches, hits, tricks and takedowns fill the gold SUPER bar. When full, tap SUPER.",
-  "<b>Kaito</b> TEMPEST wind dash + 5 shurikens · <b>Bruno</b> TIMBERFALL smashes everyone he touches.",
-  "<b>Yuki</b> BLIZZARD STEP rides through everything, frost trail · <b>Zara</b> MIRAGE vanishes, sand blinds.",
-  "<b>Priya</b> INFERNO TADKA flaming trail · <b>Rex</b> RIOT paint blast + slippery puddle.",
-  "<b>New items:</b> SHIELD blocks your next hit. MINE drops behind you.",
-  "<b>Harder throws:</b> riders wind up and hurl items straight at the rider ahead.",
-];
+  "<b>New: Halloween trail!</b> Haunted Hollow is first on Choose a Trail, all October, for everyone.",
+  "Moonlit pumpkin patch, a crooked graveyard, and a ride straight through the haunted mansion.",
+  "<b>Ghosts</b> drift across the trail. Touch one and it spooks you blind for a second.",
+  "New throwable: the <b>Jack-o'-Bomb</b>. A new trail arrives every month and holiday.",
+  "Seasonal stars don't count toward unlocks, so nobody falls behind when a trail goes away.",
+]
 // ============================================
 
 const BUILD_ID = "__BUILD__";            // stamped by tools/build.py; matches version.json of this build

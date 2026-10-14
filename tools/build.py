@@ -9,7 +9,7 @@ import hashlib, pathlib, re
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
 
-JS_ORDER = ["core.js", "data.js", "art.js", "art_world.js", "audio.js",
+JS_ORDER = ["core.js", "data.js", "themes.js", "art.js", "art_world.js", "art_themes.js", "audio.js",
             "track.js", "render.js", "game.js", "super.js", "input.js", "net.js", "ui.js", "spin.js", "update.js", "main.js"]
 
 def main():

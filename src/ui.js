@@ -88,8 +88,26 @@ function migrateRiders(s) {
   return s;
 }
 function saveGame() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(App.save)); } catch (_) {} }
-function totalStars() { return Object.values(App.save.stars).reduce((a, b) => a + b, 0); }
-function biomeUnlocked(i) { return totalStars() >= BIOMES[i].unlock; }
+// Seasonal trails' stars are shown on their card but never count here (the trail goes away when its dates end).
+function totalStars() {
+  let n = 0;
+  for (const [id, v] of Object.entries(App.save.stars)) { const t = TRACKS.find((x) => x.id === id); if (!t || !isSeasonTrack(t)) n += v; }
+  return n;
+}
+function biomeUnlocked(i) { const b = BIOMES[i]; return b.group === "season" ? seasonActive(b) : totalStars() >= b.unlock; }
+// Cards on Choose a Trail, left to right: this month's seasonal trail (only during its dates), the 6 nature biomes, World Tour.
+function trailCards() {
+  const cards = [];
+  BIOMES.forEach((b, bi) => { if (b.group === "season" && seasonActive(b)) cards.push({ kind: "season", bis: [bi], b }); });
+  BIOMES.forEach((b, bi) => { if (!b.group) cards.push({ kind: "biome", bis: [bi], b }); });
+  const w = BIOMES.map((b, bi) => (b.group === "world" ? bi : -1)).filter((i) => i >= 0);
+  if (w.length) cards.push({ kind: "world", bis: w, b: BIOMES[w[0]] });
+  return cards;
+}
+// every trail in card order (used for NEXT TRAIL)
+function trailOrder() { return trailCards().flatMap((c) => c.bis.flatMap((bi) => TRACKS.filter((t) => t.biome === bi))); }
+// a saved "last trail" may be a seasonal one whose dates are over, or a trail from a newer version
+function validTrack(id) { const t = TRACKS.find((x) => x.id === id); return t && biomeUnlocked(t.biome) ? id : "f1"; }
 // Riders and rides unlock strictly in order: only the first one you don't own yet can be bought.
 function nextToUnlock(list, owned) { return list.find((x) => !owned.includes(x.id)) || null; }
 
@@ -330,15 +348,18 @@ async function biomeThumb(b) {
 function openTrack() {
   const wrap = $("#track-cards");
   wrap.innerHTML = "";
-  const cur = App.pick.track || App.save.last.track;
+  const cur = validTrack(App.pick.track || App.save.last.track);
   App.pick.track = cur;
   const stars = totalStars();
-  BIOMES.forEach((b, bi) => {
+  trailCards().filter((cd) => cd.kind !== "world").forEach((cd) => {
+    const bi = cd.bis[0], b = cd.b;
     const unlocked = biomeUnlocked(bi);
     const c = document.createElement("div");
-    c.className = "card biome" + (TRACKS.find((t) => t.id === cur).biome === bi ? " sel" : "");
+    c.className = "card biome" + (cd.kind === "season" ? " season" : "") + (TRACKS.find((t) => t.id === cur).biome === bi ? " sel" : "");
     c.style.gridAutoColumns = "";
-    c.innerHTML = `<div class="art"></div><div class="info" style="padding-bottom:0"><div class="nm">${b.name}</div><div class="tg">${b.sub}</div></div><div class="tracks"></div>` +
+    const left = cd.kind === "season" ? seasonDaysLeft(b) : 0;
+    const sub = cd.kind === "season" ? (left <= 1 ? "Last day!" : "Ends in " + left + " days") : b.sub;
+    c.innerHTML = `<div class="art"></div>${cd.kind === "season" ? `<div class="ribbon">${seasonLabel(b)}</div>` : ""}<div class="info" style="padding-bottom:0"><div class="nm">${b.name}</div><div class="tg">${sub}</div></div><div class="tracks"></div>` +
       (unlocked ? "" : `<div class="lock">★ ${b.unlock} TO UNLOCK<span style="font:700 12px Chakra Petch;color:#ccc">You have ${stars} ★</span></div>`);
     biomeThumb(b).then((cv) => { const cl = cv.cloneNode(); cl.getContext("2d").drawImage(cv, 0, 0); c.querySelector(".art").appendChild(cl); });
     const tl = c.querySelector(".tracks");
@@ -451,7 +472,7 @@ async function startRace() {
   await new Promise((r) => setTimeout(r, 30));
   const humans = [{ riderId: App.pick.riders[0] || App.save.last.rider, vehId: App.pick.vehs[0] || App.save.last.veh, upg: myUpg() }];
   if (App.mode === "split") humans.push({ riderId: App.pick.riders[1] || App.save.last.rider2, vehId: App.pick.vehs[1] || App.save.last.veh2, upg: myUpg() });
-  const cfg = { trackId: App.pick.track || App.save.last.track, humans, total: 8, difficulty: App.save.settings.diff };
+  const cfg = { trackId: validTrack(App.pick.track || App.save.last.track), humans, total: 8, difficulty: App.save.settings.diff };
   if (App.mode === "split" && cutieOn()) cfg.fav = 1;           // secret switch: Player 2 always wins
   App.lastCfg = cfg;
   await launchRace(cfg);
@@ -557,14 +578,20 @@ function finishRace() {
   App.save.races++;
   html += `<div class="ln" style="font-size:18px;color:var(--sun);border-top:1px solid var(--line);padding-top:6px"><span>COINS EARNED</span><span>+${coins}</span></div>`;
   const starsAfter = totalStars();
-  BIOMES.forEach((b) => { if (starsBefore < b.unlock && starsAfter >= b.unlock) html += `<div class="ln" style="color:var(--good)"><span>NEW TRAIL UNLOCKED</span><span>${b.name}</span></div>`; });
+  const said = new Set();
+  BIOMES.forEach((b) => {
+    if (b.group === "season") return;
+    const nm = b.group === "world" ? "World Tour" : b.name;
+    if (starsBefore < b.unlock && starsAfter >= b.unlock && !said.has(nm)) { said.add(nm); html += `<div class="ln" style="color:var(--good)"><span>NEW TRAIL UNLOCKED</span><span>${nm}</span></div>`; }
+  });
   rw.innerHTML = html;
   saveGame();
   const win = race.humans.some((h) => h.place === 1);
   $("#res-h").textContent = win ? "VICTORY!" : race.humans.some((h) => h.place <= 3) ? "PODIUM!" : "RACE OVER";
   // next trail = next unlocked track
-  const idx = TRACKS.findIndex((t) => t.id === tid);
-  const nxt = TRACKS.slice(idx + 1).find((t) => biomeUnlocked(t.biome));
+  const order = trailOrder();
+  const idx = order.findIndex((t) => t.id === tid);
+  const nxt = idx < 0 ? null : order.slice(idx + 1).find((t) => biomeUnlocked(t.biome));
   const nb = $("#res-next");
   nb.classList.toggle("hidden", !nxt || App.mode === "online");
   nb.onclick = () => { SFX.play("click"); App.pick.track = nxt.id; App.save.last.track = nxt.id; saveGame(); startRace(); };

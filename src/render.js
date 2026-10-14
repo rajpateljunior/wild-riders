@@ -120,7 +120,7 @@ function renderView(ctx, vp, race, me, tnow) {
 
   // ---- weather & lighting ----
   if (tun < 0.5) drawWeather(ctx, w, h, biome, race, me, tnow);
-  if (biome.dark || tun > 0.05) drawDarkness(ctx, w, h, hz, glows, me, biome.dark ? 1 : tun * 0.85);
+  if (biome.dark || tun > 0.05) drawDarkness(ctx, w, h, hz, glows, me, biome.dark ? Math.max(biome.darkK || 1, tun * 0.85) : tun * 0.85);
   if (tun > 0.05 && me.tunKind === "falls") drawFallsMist(ctx, w, h, tnow, tun);
   ctx.restore();
 
@@ -171,7 +171,7 @@ function drawSky(ctx, w, h, hz, biome, t, me) {
   const rg = ctx.createRadialGradient(sx, sy, 0, sx, sy, h * 0.35);
   rg.addColorStop(0, rgba(biome.sun, 0.9)); rg.addColorStop(0.12, rgba(biome.sun, 0.55)); rg.addColorStop(1, rgba(biome.sun, 0));
   ctx.fillStyle = rg; ctx.fillRect(sx - h * 0.4, sy - h * 0.4, h * 0.8, h * 0.8);
-  ctx.fillStyle = biome.sun; ctx.beginPath(); ctx.arc(sx, sy, h * (biome.dark ? 0.04 : 0.055), 0, TAU); ctx.fill();
+  ctx.fillStyle = biome.sun; ctx.beginPath(); ctx.arc(sx, sy, h * (biome.sunR || (biome.dark ? 0.04 : 0.055)), 0, TAU); ctx.fill();
   if (biome.dark) {
     // stars
     ctx.fillStyle = "#fff";
@@ -183,7 +183,7 @@ function drawSky(ctx, w, h, hz, biome, t, me) {
     ctx.globalAlpha = 1;
     // aurora curtains
     ctx.globalCompositeOperation = "lighter";
-    for (let b = 0; b < 3; b++) {
+    for (let b = 0; b < (biome.aurora === 0 ? 0 : 3); b++) {
       const col = ["#3dffb0", "#38d0ff", "#b35cff"][b];
       ctx.beginPath();
       const y0 = hz * (0.18 + b * 0.12);
@@ -529,6 +529,24 @@ function drawWeather(ctx, w, h, biome, race, me, t) {
       ctx.fillRect(p[0] * w, p[1] * h, 6 + p[2] * 10, 1.5);
     }
     if (race.stormFog > 0) { ctx.fillStyle = `rgba(214,160,96,${race.stormFog * 0.45})`; ctx.fillRect(0, 0, w, h); }
+  } else if (kind === "bats") {
+    // a few bats flapping across the top of the sky, and autumn leaves tumbling down
+    for (let i = 0; i < 5; i++) {
+      const p = P[i];
+      p[0] += 0.0022 + p[2] * 0.0022;
+      if (p[0] > 1.1) { p[0] = -0.1; p[1] = Math.random() * 0.3; }
+      const x = p[0] * w, y = (0.04 + p[1]) * h + Math.sin(t * 3 + i) * h * 0.02, z = h * (0.012 + p[2] * 0.012), f = Math.sin(t * 13 + i * 2);
+      ctx.fillStyle = "#0b0712"; ctx.beginPath(); ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x - z * 1.2, y - z * (0.5 + f), x - z * 2.3, y + z * 0.25 * f); ctx.quadraticCurveTo(x - z * 1.1, y + z * 0.2, x, y + z * 0.55);
+      ctx.quadraticCurveTo(x + z * 1.1, y + z * 0.2, x + z * 2.3, y + z * 0.25 * f); ctx.quadraticCurveTo(x + z * 1.2, y - z * (0.5 + f), x, y); ctx.fill();
+    }
+    for (let i = 5; i < 30; i++) {
+      const p = P[i];
+      p[1] += 0.002 + p[2] * 0.003 + sp * 0.003; p[0] += Math.sin(t * 1.5 + i) * 0.002 - me.lean * 0.004;
+      if (p[1] > 1) { p[1] = 0; p[0] = Math.random(); }
+      ctx.save(); ctx.translate(((p[0] % 1) + 1) % 1 * w, p[1] * h); ctx.rotate(t * 2 + i);
+      ctx.fillStyle = i % 3 ? "#c9561c" : "#e8a33a"; ctx.fillRect(-4, -2.5, 8, 5); ctx.restore();
+    }
   } else if (kind === "shafts") {
     // (the drifting light beams were removed: they looked like a flashing light shining down on the riders)
     ctx.fillStyle = "#d9772f";

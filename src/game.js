@@ -49,11 +49,11 @@ function popup(e, txt, col, big, sub) {
 
 /* ---------------- Race setup ---------------- */
 async function createRace(cfg, onProgress) {
-  const def = TRACKS.find((t) => t.id === cfg.trackId);
+  const def = TRACKS.find((t) => t.id === cfg.trackId) || TRACKS[0];   // (an older copy of the game online may not know a new trail)
   const track = buildTrack(def);
   const biome = track.biome;
   onProgress && onProgress(0.2);
-  const assets = await buildWorldSprites(biome);
+  const assets = await buildWorldSprites(biome, track);
   onProgress && onProgress(0.5);
 
   const riders = [];
@@ -155,6 +155,7 @@ function stepRace(race, inputs, dt) {
     return;
   }
   race.time += dt;
+  moveMovers(race);
 
   // hazards: avalanche & sandstorm
   if (race.avalanche) {
@@ -549,6 +550,16 @@ function collideSprites(race, e, s) {
       race.events.push({ snd: "kick", e });
       continue;
     }
+    if (S.obstacle === "ghost") {                      // ghosts don't crash you: they spook you blind and slow you
+      if ((e.booT || 0) > race.time) continue;
+      e.booT = race.time + 1.5;
+      e.blindT = Math.max(e.blindT, 1.3); e.blindCol = "#e9e4ff"; e.speed *= 0.82; e.wobble = 0.6;
+      damage(race, e, 4, null, "crash", true);
+      popup(e, "BOO!", "#cfc6ff");
+      for (let k = 0; k < 8; k++) spawnFx(race, e.z + 100, sp.x + rnd(-0.2, 0.2), 200 + Math.random() * 200, "#f1eefc", 60, 0.6, 600);
+      race.events.push({ snd: "whoosh", e });
+      continue;
+    }
     if (S.obstacle === "small") {
       sp.dead = true;
       damage(race, e, 5, null, "crash");
@@ -568,6 +579,14 @@ function collideSprites(race, e, s) {
     race.events.push({ snd: "crash", e });
     return;
   }
+}
+
+/* Movers (ghosts, animals, rolling logs) sweep across the trail on a sine path. Same clock on every device. */
+function moveMovers(race) {
+  const ms = race.track.movers;
+  if (!ms) return;
+  const t = race.time;
+  for (const sp of ms) if (!sp.dead) sp.x = sp.mv.c + sp.mv.a * Math.sin(sp.mv.w * t + sp.mv.p);
 }
 
 function damage(race, e, amt, by, kind, silent) {
